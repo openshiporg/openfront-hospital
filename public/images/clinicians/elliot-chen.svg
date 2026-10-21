@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Elliot Chen, NP</title>
+  <desc id="desc">Editorial portrait illustration of nurse practitioner Elliot Chen.</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d7e6ed"/><stop offset="1" stop-color="#adc9d4"/></linearGradient></defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <path d="M96 800c16-179 126-286 304-286s288 107 304 286H96Z" fill="#315f59"/>
+  <path d="M290 520c30 66 190 66 220 0l-38-68H328l-38 68Z" fill="#d39a72"/>
+  <ellipse cx="400" cy="326" rx="140" ry="174" fill="#dfa77e"/>
+  <path d="M259 315c-7-128 55-210 148-210 104 0 157 79 141 205-44-38-74-88-83-132-53 58-122 100-206 137Z" fill="#192a31"/>
+  <path d="M275 307c-18 9-26 34-17 60 8 25 29 39 47 31l-4-87-26-4Zm250 0c18 9 26 34 17 60-8 25-29 39-47 31l4-87 26-4Z" fill="#dfa77e"/>
+  <path d="M328 338h58m28 0h58m-86 0h28" fill="none" stroke="#263b42" stroke-width="10" stroke-linecap="round"/>
+  <rect x="318" y="319" width="78" height="48" rx="19" fill="none" stroke="#263b42" stroke-width="8"/>
+  <rect x="404" y="319" width="78" height="48" rx="19" fill="none" stroke="#263b42" stroke-width="8"/>
+  <path d="M365 425c23 16 47 16 70 0" fill="none" stroke="#8c4c40" stroke-width="9" stroke-linecap="round"/>
+  <path d="m290 520 110 119 110-119 49 280H241l49-280Z" fill="#315f59"/>
+  <path d="M343 548 400 639l57-91" fill="#eef4ef"/>
+  <path d="M400 639v161" stroke="#dbe8e1" stroke-width="6" opacity=".7"/>
+  <rect x="499" y="646" width="74" height="104" rx="10" fill="#eef4ef" opacity=".9"/>
+  <path d="M520 677h32m-32 22h32" stroke="#315f59" stroke-width="7" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,27 @@
+name: Static source checks
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run validate:static
+        env:
+          NODE_ENV: test
+          SESSION_SECRET: ci-only-session-secret-that-is-long-enough-for-source-tests
+          AUTH_RATE_LIMIT_PEPPER: ci-only-auth-rate-limit-pepper-that-is-long-enough
+          INTAKE_DELIVERY_SIGNING_KEY: ci-only-intake-signing-key-that-is-long-enough

@@ -1,0 +1,300 @@
+{
+  "practiceInfo": {
+    "name": "Northstar Family Care",
+    "shortName": "Northstar",
+    "market": "Independent hospital patient operations",
+    "description": "A fictional independently operated hospital fixture for patient registration, scheduling, intake, and bounded operational workflows.",
+    "locationName": "Northstar Downtown Clinic",
+    "serviceArea": "Downtown and telehealth",
+    "addressLine1": "100 Market Street",
+    "city": "Harbor City",
+    "region": "CA",
+    "postalCode": "00000",
+    "supportPhone": "+1-555-0100",
+    "supportEmail": "care@northstarfamilycare.test",
+    "media": {
+      "hero": "/images/hero/family-consultation.jpg",
+      "primaryCare": "/images/care/primary-care-consultation.jpg",
+      "behavioralHealth": "/images/care/behavioral-health-session.jpg",
+      "telehealth": "/images/care/telehealth-consultation.jpg",
+      "clinic": "/images/facilities/northstar-downtown-clinic.jpg"
+    }
+  },
+  "departments": [
+    {
+      "name": "Primary Care",
+      "code": "PCP",
+      "status": "active",
+      "description": "Preventive care, same-week concerns, chronic-condition follow-up, and care coordination.",
+      "phone": "+1-555-0100",
+      "email": "primarycare@example.test",
+      "imagePath": "/images/departments/primary-care.jpg",
+      "imageAltText": "Northstar Family Care primary care consultation room"
+    },
+    {
+      "name": "Behavioral Health",
+      "code": "BH",
+      "status": "active",
+      "description": "Integrated behavioral health consultations and coordinated follow-up care.",
+      "phone": "+1-555-0100",
+      "email": "behavioralhealth@example.test",
+      "imagePath": "/images/departments/behavioral-health.jpg",
+      "imageAltText": "Northstar Family Care behavioral health consultation space"
+    }
+  ],
+  "facilities": [
+    {
+      "name": "Northstar Downtown Clinic",
+      "slug": "northstar-downtown-clinic",
+      "facilityType": "clinic",
+      "status": "active",
+      "addressLine1": "100 Market Street",
+      "city": "Harbor City",
+      "region": "CA",
+      "postalCode": "00000",
+      "phone": "+1-555-0100",
+      "timeZone": "America/Los_Angeles",
+      "departmentCodes": ["PCP", "BH"],
+      "imagePath": "/images/facilities/northstar-downtown-clinic.jpg",
+      "imageAltText": "Street view of Northstar Downtown Clinic"
+    },
+    {
+      "name": "Northstar Virtual Care",
+      "slug": "northstar-virtual-care",
+      "facilityType": "telehealth",
+      "status": "active",
+      "city": "Online",
+      "timeZone": "America/Los_Angeles",
+      "departmentCodes": ["BH"],
+      "imagePath": "/images/facilities/northstar-virtual-care.jpg",
+      "imageAltText": "Northstar Family Care virtual visit workspace"
+    }
+  ],
+  "providers": [
+    {
+      "onboardingKey": "provider-maya-patel",
+      "firstName": "Maya",
+      "lastName": "Patel",
+      "credentials": "MD",
+      "specialty": "Family medicine",
+      "status": "active",
+      "bio": "Primary care physician focused on preventive care and complex care coordination.",
+      "locationName": "Northstar Downtown Clinic",
+      "facilitySlug": "northstar-downtown-clinic"
+    },
+    {
+      "onboardingKey": "provider-elliot-chen",
+      "firstName": "Elliot",
+      "lastName": "Chen",
+      "credentials": "NP",
+      "specialty": "Primary care",
+      "status": "active",
+      "bio": "Nurse practitioner supporting same-week primary care access and follow-up visits.",
+      "locationName": "Northstar Downtown Clinic",
+      "facilitySlug": "northstar-downtown-clinic"
+    },
+    {
+      "onboardingKey": "provider-priya-shah",
+      "firstName": "Priya",
+      "lastName": "Shah",
+      "credentials": "LCSW",
+      "specialty": "Behavioral health",
+      "status": "active",
+      "bio": "Licensed clinical social worker providing integrated behavioral health consultations.",
+      "locationName": "Northstar Virtual Care",
+      "facilitySlug": "northstar-virtual-care"
+    }
+  ],
+  "clinicians": [
+    {
+      "onboardingKey": "clinician-maya-patel",
+      "displayName": "Maya Patel, MD",
+      "clinicianType": "physician",
+      "providerKey": "provider-maya-patel",
+      "providerLastName": "Patel",
+      "departmentCode": "PCP",
+      "licenseNumber": "LOCAL-MD-1001",
+      "phone": "+1-555-0111",
+      "email": "maya.patel@example.test",
+      "active": true,
+      "imagePath": "/images/clinicians/maya-patel.jpg",
+      "imageAltText": "Representative portrait for Maya Patel, MD"
+    },
+    {
+      "onboardingKey": "clinician-elliot-chen",
+      "displayName": "Elliot Chen, NP",
+      "clinicianType": "nurse",
+      "providerKey": "provider-elliot-chen",
+      "providerLastName": "Chen",
+      "departmentCode": "PCP",
+      "licenseNumber": "LOCAL-NP-1002",
+      "phone": "+1-555-0112",
+      "email": "elliot.chen@example.test",
+      "active": true,
+      "imagePath": "/images/clinicians/elliot-chen.jpg",
+      "imageAltText": "Representative portrait for Elliot Chen, nurse practitioner"
+    },
+    {
+      "onboardingKey": "clinician-priya-shah",
+      "displayName": "Priya Shah, LCSW",
+      "clinicianType": "therapist",
+      "providerKey": "provider-priya-shah",
+      "providerLastName": "Shah",
+      "departmentCode": "BH",
+      "licenseNumber": "LOCAL-LCSW-1003",
+      "phone": "+1-555-0113",
+      "email": "priya.shah@example.test",
+      "active": true,
+      "imagePath": "/images/clinicians/priya-shah.jpg",
+      "imageAltText": "Representative portrait for Priya Shah, behavioral health clinician"
+    }
+  ],
+  "appointmentTypes": [
+    {
+      "name": "New Patient Visit",
+      "slug": "new-patient-visit",
+      "description": "A first primary care visit for history, goals, and next steps.",
+      "status": "bookable",
+      "durationMinutes": 45,
+      "bufferBeforeMinutes": 5,
+      "bufferAfterMinutes": 10,
+      "priceCents": 18000,
+      "intakeRequirements": { "sections": ["contact", "insurance", "reason_for_visit", "medical_history"] },
+      "providerKeys": ["provider-maya-patel", "provider-elliot-chen"],
+      "providerLastNames": ["Patel", "Chen"]
+    },
+    {
+      "name": "Follow-up Visit",
+      "slug": "follow-up-visit",
+      "description": "A shorter visit for existing patient follow-up and medication checks.",
+      "status": "bookable",
+      "durationMinutes": 30,
+      "bufferBeforeMinutes": 0,
+      "bufferAfterMinutes": 5,
+      "priceCents": 9500,
+      "intakeRequirements": { "sections": ["contact", "reason_for_visit"] },
+      "providerKeys": ["provider-maya-patel", "provider-elliot-chen"],
+      "providerLastNames": ["Patel", "Chen"]
+    },
+    {
+      "name": "Behavioral Health Consult",
+      "slug": "behavioral-health-consult",
+      "description": "Integrated behavioral health consultation by secure telehealth.",
+      "status": "bookable",
+      "durationMinutes": 50,
+      "bufferBeforeMinutes": 5,
+      "bufferAfterMinutes": 10,
+      "priceCents": 14000,
+      "intakeRequirements": { "sections": ["contact", "consent", "reason_for_visit"] },
+      "providerKeys": ["provider-priya-shah"],
+      "providerLastNames": ["Shah"]
+    }
+  ],
+  "scheduleBlocks": [
+    { "label": "Patel morning clinic", "onboardingKey": "patel-morning-clinic", "providerKey": "provider-maya-patel", "providerLastName": "Patel", "facilitySlug": "northstar-downtown-clinic", "facilityName": "Northstar Downtown Clinic", "dayOffset": 1, "startHour": 9, "endHour": 12, "blockType": "available", "maxAppointments": 1, "locationName": "Northstar Downtown Clinic" },
+    { "label": "Patel afternoon clinic", "onboardingKey": "patel-afternoon-clinic", "providerKey": "provider-maya-patel", "providerLastName": "Patel", "facilitySlug": "northstar-downtown-clinic", "facilityName": "Northstar Downtown Clinic", "dayOffset": 2, "startHour": 13, "endHour": 17, "blockType": "available", "maxAppointments": 1, "locationName": "Northstar Downtown Clinic" },
+    { "label": "Chen primary care block", "onboardingKey": "chen-primary-care-block", "providerKey": "provider-elliot-chen", "providerLastName": "Chen", "facilitySlug": "northstar-downtown-clinic", "facilityName": "Northstar Downtown Clinic", "dayOffset": 1, "startHour": 10, "endHour": 15, "blockType": "available", "maxAppointments": 1, "locationName": "Northstar Downtown Clinic" },
+    { "label": "Chen morning clinic", "onboardingKey": "chen-morning-clinic", "providerKey": "provider-elliot-chen", "providerLastName": "Chen", "facilitySlug": "northstar-downtown-clinic", "facilityName": "Northstar Downtown Clinic", "dayOffset": 3, "startHour": 8, "endHour": 12, "blockType": "available", "maxAppointments": 1, "locationName": "Northstar Downtown Clinic" },
+    { "label": "Shah telehealth block", "onboardingKey": "shah-telehealth-block", "providerKey": "provider-priya-shah", "providerLastName": "Shah", "facilitySlug": "northstar-virtual-care", "facilityName": "Northstar Virtual Care", "dayOffset": 2, "startHour": 9, "endHour": 14, "blockType": "available", "maxAppointments": 1, "locationName": "Telehealth" }
+  ],
+  "patients": [
+    {
+      "patientKey": "patient-jordan-rivera",
+      "firstName": "Jordan",
+      "lastName": "Rivera",
+      "medicalRecordNumber": "NFC-DEMO-1001",
+      "status": "active",
+      "facilitySlug": "northstar-downtown-clinic",
+      "dateOfBirth": "1988-04-12T00:00:00.000Z",
+      "phone": "+1-555-0142",
+      "email": "jordan.rivera@example.test",
+      "preferredContactMethod": "sms",
+      "emergencyContactName": "Sam Rivera",
+      "emergencyContactPhone": "+1-555-0198",
+      "insuranceSummary": { "payer": "Acme Health", "memberId": "DEMO-1001" },
+      "notes": "Prefers morning appointments."
+    },
+    {
+      "patientKey": "patient-avery-morgan",
+      "firstName": "Avery",
+      "lastName": "Morgan",
+      "medicalRecordNumber": "NFC-DEMO-1002",
+      "status": "active",
+      "facilitySlug": "northstar-downtown-clinic",
+      "dateOfBirth": "1979-11-03T00:00:00.000Z",
+      "phone": "+1-555-0164",
+      "email": "avery.morgan@example.test",
+      "preferredContactMethod": "email",
+      "insuranceSummary": { "payer": "Northwind Plan", "memberId": "DEMO-1002" }
+    }
+  ],
+  "appointments": [
+    {
+      "appointmentNumber": "APT-DEMO-1001",
+      "status": "confirmed",
+      "source": "front_desk",
+      "patientKey": "patient-jordan-rivera",
+      "patientLastName": "Rivera",
+      "providerKey": "provider-maya-patel",
+      "providerLastName": "Patel",
+      "appointmentTypeSlug": "new-patient-visit",
+      "dayOffset": 1,
+      "startHour": 9,
+      "startMinute": 30,
+      "facilitySlug": "northstar-downtown-clinic",
+      "locationName": "Northstar Downtown Clinic",
+      "reasonForVisit": "Establish care and review preventive screenings."
+    },
+    {
+      "appointmentNumber": "APT-DEMO-1002",
+      "status": "requested",
+      "patientKey": "patient-avery-morgan",
+      "patientLastName": "Morgan",
+      "providerKey": "provider-elliot-chen",
+      "providerLastName": "Chen",
+      "appointmentTypeSlug": "follow-up-visit",
+      "dayOffset": 1,
+      "startHour": 11,
+      "startMinute": 0,
+      "facilitySlug": "northstar-downtown-clinic",
+      "locationName": "Northstar Downtown Clinic",
+      "reasonForVisit": "Follow-up on blood pressure plan."
+    }
+  ],
+  "intakeForms": [
+    {
+      "title": "New patient intake",
+      "patientKey": "patient-jordan-rivera",
+      "patientLastName": "Rivera",
+      "appointmentNumber": "APT-DEMO-1001",
+      "templateKey": "new_patient",
+      "formSchema": { "sections": ["contact", "insurance", "reason_for_visit", "medical_history"] }
+    },
+    {
+      "title": "Follow-up pre-visit update",
+      "patientKey": "patient-avery-morgan",
+      "patientLastName": "Morgan",
+      "appointmentNumber": "APT-DEMO-1002",
+      "templateKey": "follow_up",
+      "formSchema": { "sections": ["contact", "reason_for_visit"] }
+    }
+  ],
+  "messages": [
+    {
+      "patientKey": "patient-jordan-rivera",
+      "patientLastName": "Rivera",
+      "appointmentNumber": "APT-DEMO-1001",
+      "channel": "phone",
+      "subject": "Appointment confirmation follow-up",
+      "body": "Manual staff follow-up is required. No external message was sent by this setup fixture."
+    },
+    {
+      "patientKey": "patient-avery-morgan",
+      "patientLastName": "Morgan",
+      "appointmentNumber": "APT-DEMO-1002",
+      "channel": "phone",
+      "subject": "Appointment request follow-up",
+      "body": "Manual staff follow-up is required. No external message was sent by this setup fixture."
+    }
+  ]
+}

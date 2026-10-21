@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Northstar behavioral health department</title>
+  <desc id="desc">A warm and private Northstar Family Care behavioral health consultation space.</desc>
+  <defs><linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3ede4"/><stop offset="1" stop-color="#e2d4c4"/></linearGradient></defs>
+  <rect width="1200" height="720" fill="url(#wall)"/>
+  <rect y="548" width="1200" height="172" fill="#b78f6d"/>
+  <circle cx="225" cy="185" r="84" fill="#efc873" opacity=".65"/>
+  <rect x="685" y="98" width="360" height="270" rx="8" fill="#f9f4ea" stroke="#795f4e" stroke-width="12"/>
+  <path d="M739 298c68-107 144-107 252 0" fill="none" stroke="#8ba99a" stroke-width="18" stroke-linecap="round"/>
+  <path d="M729 548c22-127 92-194 213-194s191 67 213 194H729Z" fill="#315f59"/>
+  <rect x="768" y="446" width="332" height="102" rx="40" fill="#426f67"/>
+  <rect x="803" y="548" width="28" height="106" fill="#233f3b"/><rect x="1038" y="548" width="28" height="106" fill="#233f3b"/>
+  <path d="M104 548c18-123 86-188 202-188s184 65 202 188H104Z" fill="#846859"/>
+  <rect x="143" y="451" width="326" height="97" rx="38" fill="#987867"/>
+  <rect x="175" y="548" width="28" height="106" fill="#5d493e"/><rect x="410" y="548" width="28" height="106" fill="#5d493e"/>
+  <ellipse cx="607" cy="562" rx="105" ry="34" fill="#d5b18e"/><rect x="594" y="562" width="26" height="92" fill="#856548"/>
+</svg>

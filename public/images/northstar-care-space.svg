@@ -1,0 +1,36 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title description">
+  <title id="title">A calm Northstar Family Care consultation room</title>
+  <description id="description">An editorial illustration of a sunlit care room with chairs, a side table, a plant, and a privacy curtain. No patients are shown.</description>
+  <rect width="1200" height="900" fill="#F8F4E9"/>
+  <rect y="626" width="1200" height="274" fill="#E4E9DD"/>
+  <path d="M0 626H1200" stroke="#CAD4C8" stroke-width="3"/>
+  <rect x="90" y="74" width="460" height="385" rx="12" fill="#EDF2E8" stroke="#B9C9BC" stroke-width="3"/>
+  <rect x="126" y="110" width="388" height="313" fill="#DCEBE8"/>
+  <path d="M320 110V423M126 266.5H514" stroke="#F8F4E9" stroke-width="14"/>
+  <circle cx="438" cy="177" r="48" fill="#F2DFAF"/>
+  <path d="M110 445C198 366 263 350 339 376C411 401 480 380 540 331V459H110V445Z" fill="#AFCBC2"/>
+  <path d="M126 403C196 340 255 326 318 352C380 376 434 363 514 305V423H126V403Z" fill="#87AFA3"/>
+  <rect x="751" y="66" width="360" height="545" rx="18" fill="#F1EBDD"/>
+  <path d="M811 66V611M871 66V611M931 66V611M991 66V611M1051 66V611" stroke="#D8CDBB" stroke-width="4"/>
+  <path d="M788 611H1080" stroke="#BCA98D" stroke-width="6" stroke-linecap="round"/>
+  <path d="M777 78H1091" stroke="#6D7E78" stroke-width="10" stroke-linecap="round"/>
+  <path d="M168 682C168 637 205 600 250 600H350C398 600 437 639 437 687V805H168V682Z" fill="#356B63"/>
+  <rect x="196" y="556" width="214" height="169" rx="54" fill="#4D8178"/>
+  <path d="M196 662H410" stroke="#F8F4E9" stroke-opacity="0.22" stroke-width="3"/>
+  <path d="M211 805V855M395 805V855" stroke="#253F3B" stroke-width="14" stroke-linecap="round"/>
+  <path d="M684 693C684 648 721 611 766 611H866C914 611 953 650 953 698V805H684V693Z" fill="#D0B691"/>
+  <rect x="712" y="567" width="214" height="158" rx="54" fill="#DFC9A8"/>
+  <path d="M712 663H926" stroke="#775F44" stroke-opacity="0.18" stroke-width="3"/>
+  <path d="M727 805V855M911 805V855" stroke="#594939" stroke-width="14" stroke-linecap="round"/>
+  <ellipse cx="579" cy="733" rx="102" ry="34" fill="#A69B82"/>
+  <rect x="561" y="733" width="36" height="94" fill="#877C67"/>
+  <ellipse cx="579" cy="827" rx="64" ry="17" fill="#756B59"/>
+  <path d="M543 707C539 672 556 642 582 631C612 619 640 639 646 674C619 677 596 687 579 708H543Z" fill="#F5F0E4"/>
+  <path d="M620 699C605 658 610 615 638 583C670 610 680 653 661 697L620 699Z" fill="#5B8775"/>
+  <path d="M593 695C574 649 579 601 611 565C648 603 650 652 633 697L593 695Z" fill="#78A18D"/>
+  <path d="M650 699C650 659 669 627 702 608C724 644 717 680 692 707L650 699Z" fill="#426F61"/>
+  <rect x="590" y="692" width="87" height="72" rx="12" fill="#C88B64"/>
+  <path d="M94 846H1106" stroke="#C8CEC2" stroke-width="3"/>
+  <circle cx="110" cy="803" r="9" fill="#356B63"/>
+  <circle cx="1090" cy="803" r="9" fill="#356B63"/>
+</svg>

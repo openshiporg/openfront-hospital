@@ -12,69 +12,1788 @@ generator client {
 }
 
 model User {
-  id                      String    @id @default(cuid())
-  name                    String    @default("")
-  email                   String    @unique @default("")
-  password                String
-  role                    Role?     @relation("User_role", fields: [roleId], references: [id])
-  roleId                  String?   @map("role")
-  tasks                   Todo[]    @relation("Todo_assignedTo")
-  passwordResetToken      String?
-  passwordResetIssuedAt   DateTime?
-  passwordResetRedeemedAt DateTime?
+  id                                 String                 @id @default(cuid())
+  name                               String                 @default("")
+  email                              String                 @unique @default("")
+  password                           String
+  securityVersion                    Int                    @default(1)
+  passwordResetToken                 String?
+  passwordResetIssuedAt              DateTime?
+  passwordResetRedeemedAt            DateTime?
+  role                               Role?                  @relation("User_role", fields: [roleId], references: [id])
+  roleId                             String?                @map("role")
+  onboardingStatus                   String                 @default("not_started")
+  facilities                         Facility[]             @relation("Facility_staff")
+  patientProfile                     Patient?               @relation("Patient_user")
+  providerProfile                    Provider?              @relation("Provider_user")
+  patientPortalAccess                PatientPortalAccess?   @relation("PatientPortalAccess_user")
+  reviewedIntakeForms                IntakeForm[]           @relation("IntakeForm_reviewedBy")
+  createdAt                          DateTime               @default(now())
+  updatedAt                          DateTime               @default(now()) @updatedAt
+  from_PatientIdentifier_createdBy   PatientIdentifier[]    @relation("PatientIdentifier_createdBy")
+  from_PatientRegistration_createdBy PatientRegistration[]  @relation("PatientRegistration_createdBy")
+  from_LabResult_acknowledgedBy      LabResult[]            @relation("LabResult_acknowledgedBy")
+  from_PatientCoverage_verifiedBy    PatientCoverage[]      @relation("PatientCoverage_verifiedBy")
+  from_MachineCredential_createdBy   MachineCredential[]    @relation("MachineCredential_createdBy")
+  from_ClinicalDocument_signedBy     ClinicalDocument[]     @relation("ClinicalDocument_signedBy")
+  from_ExportJob_requestedBy         ExportJob[]            @relation("ExportJob_requestedBy")
+  from_PasswordResetRequest_user     PasswordResetRequest[] @relation("PasswordResetRequest_user")
 
   @@index([roleId])
 }
 
 model Role {
-  id                 String  @id @default(cuid())
-  name               String  @default("")
-  canCreateTodos     Boolean @default(false)
-  canManageAllTodos  Boolean @default(false)
-  canSeeOtherPeople  Boolean @default(false)
-  canEditOtherPeople Boolean @default(false)
-  canManagePeople    Boolean @default(false)
-  canManageRoles     Boolean @default(false)
-  canAccessDashboard Boolean @default(false)
-  assignedTo         User[]  @relation("User_role")
+  id                       String   @id @default(cuid())
+  name                     String   @default("")
+  canManageAppointments    Boolean  @default(false)
+  canManageScheduling      Boolean  @default(false)
+  canManagePatients        Boolean  @default(false)
+  canManageProviders       Boolean  @default(false)
+  canManageIntake          Boolean  @default(false)
+  canManageCommunications  Boolean  @default(false)
+  canManageBilling         Boolean  @default(false)
+  canManageInventory       Boolean  @default(false)
+  canManageIntegrations    Boolean  @default(false)
+  canManageDataPortability Boolean  @default(false)
+  canManageRetention       Boolean  @default(false)
+  canViewReports           Boolean  @default(false)
+  canManageOnboarding      Boolean  @default(false)
+  canSeeOtherPeople        Boolean  @default(false)
+  canEditOtherPeople       Boolean  @default(false)
+  canManagePeople          Boolean  @default(false)
+  canManageRoles           Boolean  @default(false)
+  canAccessDashboard       Boolean  @default(false)
+  canAccessAllClinicalData Boolean  @default(false)
+  assignedTo               User[]   @relation("User_role")
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @default(now()) @updatedAt
 }
 
-model Todo {
-  id                   String      @id @default(cuid())
-  label                String      @default("")
-  description          Json        @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  isComplete           Boolean     @default(false)
-  status               String?     @default("todo")
-  priority             Int?        @default(1)
-  tags                 Json        @default("[]")
-  dueDate              DateTime?
-  weight               Float?      @default(1)
-  budget               Decimal?    @default("0.00") @postgresql.Decimal(10, 2)
-  isPrivate            Boolean     @default(false)
-  largeNumber          BigInt?
-  metadata             Json?
-  secretNote           String?
-  coverImage_id        String?
-  coverImage_filesize  Int?
-  coverImage_width     Int?
-  coverImage_height    Int?
-  coverImage_extension String?
-  todoImages           TodoImage[] @relation("Todo_todoImages")
-  assignedTo           User?       @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
-  assignedToId         String?     @map("assignedTo")
-
-  @@index([assignedToId])
+model HospitalProfile {
+  id           String   @id @default(cuid())
+  profileKey   String   @unique @default("primary")
+  status       String   @default("active")
+  name         String   @default("")
+  shortName    String   @default("")
+  logoIcon     String?  @default("<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" height=\"100%\" width=\"100%\" viewBox=\"0 0 42 48\"><path fill=\"#155eef\" fill-rule=\"evenodd\" d=\"m22.102 20.86 9.9-9.9L29.88 8.84l-7.339 7.339V3h-3v13.178l-7.339-7.34-2.121 2.122 9.9 9.9 1.06 1.06zm2.12 2.121 9.9-9.9 2.121 2.122-7.339 7.339H42v3H28.904l7.34 7.339L34.121 35l-9.9-9.899-1.06-1.06zM7.96 35.001l9.9-9.899 1.06-1.06-1.06-1.061-9.9-9.9-2.121 2.122 7.339 7.339H.002v3h13.176l-7.34 7.339zm12.02-7.777-9.9 9.9 2.122 2.12 7.339-7.338V45h3V31.906l7.339 7.338L32 37.124l-9.9-9.9-1.06-1.061z\" clip-rule=\"evenodd\"/></svg>")
+  logoColor    String?  @default("0")
+  brandTheme   String   @default("evergreen")
+  market       String   @default("")
+  description  String   @default("")
+  locationName String   @default("")
+  serviceArea  String   @default("")
+  addressLine1 String   @default("")
+  city         String   @default("")
+  region       String   @default("")
+  postalCode   String   @default("")
+  supportPhone String   @default("")
+  supportEmail String   @default("")
+  media        Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 }
 
-model TodoImage {
-  id              String  @id @default(cuid())
+model PhiReadAudit {
+  id                    String   @id @default(cuid())
+  eventType             String   @default("phi.read")
+  occurredAt            DateTime @default(now())
+  actorReference        String   @default("")
+  operationType         String   @default("")
+  operationName         String   @default("")
+  rootFields            Json?
+  selectedFields        Json?
+  selectionDigest       String   @default("")
+  resultReferenceDigest String   @default("")
+  resourceReferences    Json?
+  scopeReferences       Json?
+  authority             Json?
+  purpose               String   @default("")
+  correlationReference  String   @default("")
+  resultCount           Int      @default(0)
+  success               Boolean  @default(true)
+
+  @@index([selectionDigest])
+}
+
+model Patient {
+  id                                   String                    @id @default(cuid())
+  firstName                            String                    @default("")
+  lastName                             String                    @default("")
+  status                               String                    @default("active")
+  dateOfBirth                          DateTime?
+  phone                                String                    @default("")
+  email                                String                    @default("")
+  preferredContactMethod               String?                   @default("phone")
+  emergencyContactName                 String                    @default("")
+  emergencyContactPhone                String                    @default("")
+  insuranceSummary                     Json?
+  notes                                String                    @default("")
+  facilities                           Facility[]                @relation("Facility_patients")
+  appointments                         Appointment[]             @relation("Appointment_patient")
+  intakeForms                          IntakeForm[]              @relation("IntakeForm_patient")
+  messages                             PatientMessage[]          @relation("PatientMessage_patient")
+  identifiers                          PatientIdentifier[]       @relation("PatientIdentifier_patient")
+  registrations                        PatientRegistration[]     @relation("PatientRegistration_patient")
+  consents                             PatientConsent[]          @relation("PatientConsent_patient")
+  clinicalAuditLogs                    ClinicalAuditLog[]        @relation("ClinicalAuditLog_patient")
+  portalAccess                         PatientPortalAccess[]     @relation("PatientPortalAccess_patient")
+  user                                 User?                     @relation("Patient_user", fields: [userId], references: [id])
+  userId                               String?                   @unique @map("user")
+  createdAt                            DateTime                  @default(now())
+  updatedAt                            DateTime                  @default(now()) @updatedAt
+  from_ClinicalOutboxEvent_patient     ClinicalOutboxEvent[]     @relation("ClinicalOutboxEvent_patient")
+  from_WorkflowTransition_patient      WorkflowTransition[]      @relation("WorkflowTransition_patient")
+  from_CareQueueTicket_patient         CareQueueTicket[]         @relation("CareQueueTicket_patient")
+  from_CarePlan_patient                CarePlan[]                @relation("CarePlan_patient")
+  from_InsuranceClaim_patient          InsuranceClaim[]          @relation("InsuranceClaim_patient")
+  from_Procedure_patient               Procedure[]               @relation("Procedure_patient")
+  from_LabResult_patient               LabResult[]               @relation("LabResult_patient")
+  from_Prescription_patient            Prescription[]            @relation("Prescription_patient")
+  from_MedicalOrder_patient            MedicalOrder[]            @relation("MedicalOrder_patient")
+  from_VitalSign_patient               VitalSign[]               @relation("VitalSign_patient")
+  from_Bed_currentPatient              Bed[]                     @relation("Bed_currentPatient")
+  from_BedOccupancyEvent_patient       BedOccupancyEvent[]       @relation("BedOccupancyEvent_patient")
+  from_Admission_patient               Admission[]               @relation("Admission_patient")
+  from_Encounter_patient               Encounter[]               @relation("Encounter_patient")
+  from_PatientCoverage_patient         PatientCoverage[]         @relation("PatientCoverage_patient")
+  from_ClaimVersion_patient            ClaimVersion[]            @relation("ClaimVersion_patient")
+  from_PatientPayment_patient          PatientPayment[]          @relation("PatientPayment_patient")
+  from_PatientRefund_patient           PatientRefund[]           @relation("PatientRefund_patient")
+  from_CommunicationPreference_patient CommunicationPreference[] @relation("CommunicationPreference_patient")
+  from_BedReservation_patient          BedReservation[]          @relation("BedReservation_patient")
+  from_ClinicalDocument_patient        ClinicalDocument[]        @relation("ClinicalDocument_patient")
+  from_Specimen_patient                Specimen[]                @relation("Specimen_patient")
+  from_RetentionDisposition_patient    RetentionDisposition[]    @relation("RetentionDisposition_patient")
+  from_RecordHold_patient              RecordHold[]              @relation("RecordHold_patient")
+}
+
+model PatientIdentifier {
+  id                                  String                @id @default(cuid())
+  identifierType                      String                @default("mrn")
+  normalizedValue                     String                @default("")
+  maskedValue                         String                @default("")
+  status                              String                @default("active")
+  facility                            Facility              @relation("PatientIdentifier_facility", fields: [facilityId], references: [id])
+  facilityId                          String                @map("facility")
+  patient                             Patient               @relation("PatientIdentifier_patient", fields: [patientId], references: [id])
+  patientId                           String                @map("patient")
+  createdBy                           User                  @relation("PatientIdentifier_createdBy", fields: [createdById], references: [id])
+  createdById                         String                @map("createdBy")
+  createdAt                           DateTime              @default(now())
+  from_PatientRegistration_identifier PatientRegistration[] @relation("PatientRegistration_identifier")
+
+  @@unique([facilityId, normalizedValue], map: "PatientIdentifier_facility_value_key")
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([createdById])
+}
+
+model PatientRegistration {
+  id                  String            @id @default(cuid())
+  status              String            @default("completed")
+  facility            Facility          @relation("PatientRegistration_facility", fields: [facilityId], references: [id])
+  facilityId          String            @map("facility")
+  patient             Patient           @relation("PatientRegistration_patient", fields: [patientId], references: [id])
+  patientId           String            @map("patient")
+  identifier          PatientIdentifier @relation("PatientRegistration_identifier", fields: [identifierId], references: [id])
+  identifierId        String            @unique @map("identifier")
+  consent             PatientConsent    @relation("PatientRegistration_consent", fields: [consentId], references: [id])
+  consentId           String            @unique @map("consent")
+  auditLog            ClinicalAuditLog  @relation("PatientRegistration_auditLog", fields: [auditLogId], references: [id])
+  auditLogId          String            @unique @map("auditLog")
+  createdBy           User              @relation("PatientRegistration_createdBy", fields: [createdById], references: [id])
+  createdById         String            @map("createdBy")
+  idempotencyKeyHash  String            @default("")
+  requestHash         String            @default("")
+  duplicateResolution String
+  provenance          Json?
+  createdAt           DateTime          @default(now())
+
+  @@unique([facilityId, idempotencyKeyHash], map: "PatientRegistration_facility_idempotency_key")
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([identifierId])
+  @@index([consentId])
+  @@index([auditLogId])
+  @@index([createdById])
+}
+
+model Provider {
+  id                                 String                  @id @default(cuid())
+  onboardingKey                      String?                 @unique
+  firstName                          String                  @default("")
+  lastName                           String                  @default("")
+  credentials                        String                  @default("")
+  specialty                          String                  @default("")
+  status                             String                  @default("active")
+  bio                                String                  @default("")
+  locationName                       String                  @default("")
+  facilities                         Facility[]              @relation("Facility_providers")
+  appointmentTypes                   AppointmentType[]       @relation("AppointmentType_providers")
+  scheduleBlocks                     ProviderScheduleBlock[] @relation("ProviderScheduleBlock_provider")
+  appointments                       Appointment[]           @relation("Appointment_provider")
+  clinicians                         Clinician[]             @relation("Clinician_provider")
+  user                               User?                   @relation("Provider_user", fields: [userId], references: [id])
+  userId                             String?                 @unique @map("user")
+  metadata                           Json?
+  createdAt                          DateTime                @default(now())
+  updatedAt                          DateTime                @default(now()) @updatedAt
+  from_CarePlan_provider             CarePlan[]              @relation("CarePlan_provider")
+  from_Procedure_provider            Procedure[]             @relation("Procedure_provider")
+  from_Prescription_provider         Prescription[]          @relation("Prescription_provider")
+  from_MedicalOrder_orderingProvider MedicalOrder[]          @relation("MedicalOrder_orderingProvider")
+  from_Admission_attendingProvider   Admission[]             @relation("Admission_attendingProvider")
+  from_Encounter_provider            Encounter[]             @relation("Encounter_provider")
+  from_ClinicalDocument_author       ClinicalDocument[]      @relation("ClinicalDocument_author")
+}
+
+model AppointmentType {
+  id                  String        @id @default(cuid())
+  name                String        @default("")
+  slug                String        @unique @default("")
+  description         String        @default("")
+  status              String        @default("bookable")
+  durationMinutes     Int           @default(30)
+  bufferBeforeMinutes Int?          @default(0)
+  bufferAfterMinutes  Int?          @default(0)
+  priceCents          Int?          @default(0)
+  intakeRequirements  Json?
+  providers           Provider[]    @relation("AppointmentType_providers")
+  appointments        Appointment[] @relation("Appointment_appointmentType")
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @default(now()) @updatedAt
+}
+
+model ProviderScheduleBlock {
+  id              String    @id @default(cuid())
+  provider        Provider? @relation("ProviderScheduleBlock_provider", fields: [providerId], references: [id])
+  providerId      String?   @map("provider")
+  facility        Facility  @relation("ProviderScheduleBlock_facility", fields: [facilityId], references: [id])
+  facilityId      String    @map("facility")
+  onboardingKey   String?   @unique
+  blockType       String    @default("available")
+  startsAt        DateTime
+  endsAt          DateTime
+  recurrenceRule  String    @default("")
+  maxAppointments Int       @default(1)
+  locationName    String    @default("")
+  notes           String    @default("")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  @@index([providerId])
+  @@index([facilityId])
+  @@index([providerId, startsAt, endsAt], map: "ProviderScheduleBlock_provider_window_idx")
+}
+
+model Appointment {
+  id                                   String                @id @default(cuid())
+  appointmentNumber                    String                @unique @default("")
+  bookingLockKey                       String                @unique @default("")
+  transitionVersion                    Int                   @default(1)
+  status                               String                @default("requested")
+  patient                              Patient               @relation("Appointment_patient", fields: [patientId], references: [id])
+  patientId                            String                @map("patient")
+  provider                             Provider              @relation("Appointment_provider", fields: [providerId], references: [id])
+  providerId                           String                @map("provider")
+  facility                             Facility              @relation("Appointment_facility", fields: [facilityId], references: [id])
+  facilityId                           String                @map("facility")
+  appointmentType                      AppointmentType       @relation("Appointment_appointmentType", fields: [appointmentTypeId], references: [id])
+  appointmentTypeId                    String                @map("appointmentType")
+  startsAt                             DateTime
+  endsAt                               DateTime
+  locationName                         String                @default("")
+  reasonForVisit                       String                @default("")
+  source                               String?               @default("front_desk")
+  estimatedFeeCents                    Int?                  @default(0)
+  checkInAt                            DateTime?
+  completedAt                          DateTime?
+  cancellationReason                   String                @default("")
+  intakeForms                          IntakeForm[]          @relation("IntakeForm_appointment")
+  messages                             PatientMessage[]      @relation("PatientMessage_appointment")
+  careQueueTickets                     CareQueueTicket[]     @relation("CareQueueTicket_appointment")
+  consents                             PatientConsent[]      @relation("PatientConsent_appointment")
+  clinicalAuditLogs                    ClinicalAuditLog[]    @relation("ClinicalAuditLog_appointment")
+  operationalNotes                     String                @default("")
+  metadata                             Json?
+  createdAt                            DateTime              @default(now())
+  updatedAt                            DateTime              @default(now()) @updatedAt
+  from_ClinicalOutboxEvent_appointment ClinicalOutboxEvent[] @relation("ClinicalOutboxEvent_appointment")
+  from_Encounter_appointment           Encounter[]           @relation("Encounter_appointment")
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([facilityId])
+  @@index([appointmentTypeId])
+}
+
+model IntakeForm {
+  id                String             @id @default(cuid())
+  operationKeyHash  String             @unique @default("")
+  requestHash       String             @default("")
+  title             String             @default("Patient intake")
+  transitionVersion Int                @default(1)
+  status            String             @default("not_sent")
+  facility          Facility           @relation("IntakeForm_facility", fields: [facilityId], references: [id])
+  facilityId        String             @map("facility")
+  patient           Patient?           @relation("IntakeForm_patient", fields: [patientId], references: [id])
+  patientId         String?            @map("patient")
+  appointment       Appointment?       @relation("IntakeForm_appointment", fields: [appointmentId], references: [id])
+  appointmentId     String?            @map("appointment")
+  templateKey       String             @default("new_patient")
+  accessCodeHash    String?            @unique
+  accessExpiresAt   DateTime
+  accessUsedAt      DateTime?
+  accessRevokedAt   DateTime?
+  formSchema        Json?
+  responses         Json?
+  sentAt            DateTime?
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedBy        User?              @relation("IntakeForm_reviewedBy", fields: [reviewedById], references: [id])
+  reviewedById      String?            @map("reviewedBy")
+  reviewNotes       String             @default("")
+  consents          PatientConsent[]   @relation("PatientConsent_intakeForm")
+  clinicalAuditLogs ClinicalAuditLog[] @relation("ClinicalAuditLog_intakeForm")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([reviewedById])
+}
+
+model PatientMessage {
+  id                String                   @id @default(cuid())
+  operationKeyHash  String                   @unique @default("")
+  requestHash       String                   @default("")
+  transitionVersion Int                      @default(1)
+  purpose           String                   @default("care_operations")
+  facility          Facility                 @relation("PatientMessage_facility", fields: [facilityId], references: [id])
+  facilityId        String                   @map("facility")
+  installation      IntegrationInstallation? @relation("PatientMessage_installation", fields: [installationId], references: [id])
+  installationId    String?                  @map("installation")
+  template          CommunicationTemplate?   @relation("PatientMessage_template", fields: [templateId], references: [id])
+  templateId        String?                  @map("template")
+  patient           Patient?                 @relation("PatientMessage_patient", fields: [patientId], references: [id])
+  patientId         String?                  @map("patient")
+  appointment       Appointment?             @relation("PatientMessage_appointment", fields: [appointmentId], references: [id])
+  appointmentId     String?                  @map("appointment")
+  direction         String                   @default("outbound")
+  channel           String                   @default("sms")
+  subject           String                   @default("")
+  body              String                   @default("")
+  status            String                   @default("draft")
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  externalId        String                   @default("")
+  metadata          Json?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([installationId])
+  @@index([templateId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([externalId])
+}
+
+model PatientPortalAccess {
+  id                String    @id @default(cuid())
+  operationKeyHash  String    @unique @default("")
+  requestHash       String    @default("")
+  facility          Facility  @relation("PatientPortalAccess_facility", fields: [facilityId], references: [id])
+  facilityId        String    @map("facility")
+  patient           Patient   @relation("PatientPortalAccess_patient", fields: [patientId], references: [id])
+  patientId         String    @map("patient")
+  user              User?     @relation("PatientPortalAccess_user", fields: [userId], references: [id])
+  userId            String?   @unique @map("user")
+  status            String    @default("invited")
+  inviteEmail       String    @default("")
+  inviteTokenDigest String    @default("")
+  invitedAt         DateTime?
+  inviteExpiresAt   DateTime?
+  inviteUsedAt      DateTime?
+  inviteRevokedAt   DateTime?
+  acceptedAt        DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@unique([facilityId, patientId], map: "PatientPortalAccess_facility_patient_key")
+  @@index([facilityId])
+  @@index([patientId])
+}
+
+model PatientConsent {
+  id                               String                @id @default(cuid())
+  operationKeyHash                 String?               @unique
+  requestHash                      String?
+  consentType                      String                @default("")
+  decision                         String                @default("granted")
+  effectiveAt                      DateTime              @default(now())
+  reasonCode                       String                @default("")
+  supersedes                       PatientConsent?       @relation("PatientConsent_supersedes", fields: [supersedesId], references: [id])
+  supersedesId                     String?               @unique @map("supersedes")
+  supersedingDecision              PatientConsent?       @relation("PatientConsent_supersedes")
+  policyVersion                    String                @default("")
+  statementKey                     String                @default("")
+  grantedAt                        DateTime?
+  captureMethod                    String                @default("public_web")
+  facility                         Facility              @relation("PatientConsent_facility", fields: [facilityId], references: [id])
+  facilityId                       String                @map("facility")
+  patient                          Patient?              @relation("PatientConsent_patient", fields: [patientId], references: [id])
+  patientId                        String?               @map("patient")
+  appointment                      Appointment?          @relation("PatientConsent_appointment", fields: [appointmentId], references: [id])
+  appointmentId                    String?               @map("appointment")
+  intakeForm                       IntakeForm?           @relation("PatientConsent_intakeForm", fields: [intakeFormId], references: [id])
+  intakeFormId                     String?               @map("intakeForm")
+  auditLogs                        ClinicalAuditLog[]    @relation("ClinicalAuditLog_consent")
+  evidence                         Json?
+  createdAt                        DateTime              @default(now())
+  from_PatientRegistration_consent PatientRegistration[] @relation("PatientRegistration_consent")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([intakeFormId])
+}
+
+model ClinicalAuditLog {
+  id                                String                @id @default(cuid())
+  eventType                         String                @default("")
+  occurredAt                        DateTime              @default(now())
+  actorType                         String                @default("patient")
+  actorReference                    String                @default("")
+  facility                          Facility              @relation("ClinicalAuditLog_facility", fields: [facilityId], references: [id])
+  facilityId                        String                @map("facility")
+  patient                           Patient?              @relation("ClinicalAuditLog_patient", fields: [patientId], references: [id])
+  patientId                         String?               @map("patient")
+  appointment                       Appointment?          @relation("ClinicalAuditLog_appointment", fields: [appointmentId], references: [id])
+  appointmentId                     String?               @map("appointment")
+  encounter                         Encounter?            @relation("ClinicalAuditLog_encounter", fields: [encounterId], references: [id])
+  encounterId                       String?               @map("encounter")
+  intakeForm                        IntakeForm?           @relation("ClinicalAuditLog_intakeForm", fields: [intakeFormId], references: [id])
+  intakeFormId                      String?               @map("intakeForm")
+  consent                           PatientConsent?       @relation("ClinicalAuditLog_consent", fields: [consentId], references: [id])
+  consentId                         String?               @map("consent")
+  metadata                          Json?
+  createdAt                         DateTime              @default(now())
+  from_PatientRegistration_auditLog PatientRegistration[] @relation("PatientRegistration_auditLog")
+  from_WorkflowTransition_auditLog  WorkflowTransition[]  @relation("WorkflowTransition_auditLog")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([encounterId])
+  @@index([intakeFormId])
+  @@index([consentId])
+}
+
+model ClinicalOutboxEvent {
+  id                                          String                       @id @default(cuid())
+  eventKey                                    String                       @unique @default("")
+  eventType                                   String                       @default("")
+  aggregateType                               String                       @default("")
+  aggregateId                                 String                       @default("")
+  contractVersion                             String                       @default("hospital.event.v1")
+  deliveryMode                                String                       @default("internal")
+  installation                                IntegrationInstallation?     @relation("ClinicalOutboxEvent_installation", fields: [installationId], references: [id])
+  installationId                              String?                      @map("installation")
+  installationVersion                         Int?
+  status                                      String                       @default("recorded")
+  attempts                                    Int                          @default(0)
+  nextAttemptAt                               DateTime?
+  deliveredAt                                 DateTime?
+  lastError                                   String                       @default("")
+  facility                                    Facility                     @relation("ClinicalOutboxEvent_facility", fields: [facilityId], references: [id])
+  facilityId                                  String                       @map("facility")
+  patient                                     Patient?                     @relation("ClinicalOutboxEvent_patient", fields: [patientId], references: [id])
+  patientId                                   String?                      @map("patient")
+  appointment                                 Appointment?                 @relation("ClinicalOutboxEvent_appointment", fields: [appointmentId], references: [id])
+  appointmentId                               String?                      @map("appointment")
+  encounter                                   Encounter?                   @relation("ClinicalOutboxEvent_encounter", fields: [encounterId], references: [id])
+  encounterId                                 String?                      @map("encounter")
+  payload                                     Json?
+  createdAt                                   DateTime                     @default(now())
+  from_WorkflowTransition_outboxEvent         WorkflowTransition[]         @relation("WorkflowTransition_outboxEvent")
+  from_IntegrationDeliveryAttempt_outboxEvent IntegrationDeliveryAttempt[] @relation("IntegrationDeliveryAttempt_outboxEvent")
+
+  @@index([eventType])
+  @@index([aggregateId])
+  @@index([deliveryMode])
+  @@index([installationId])
+  @@index([status])
+  @@index([nextAttemptAt])
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([encounterId])
+}
+
+model WorkflowTransition {
+  id               String               @id @default(cuid())
+  operationKeyHash String               @unique @default("")
+  requestHash      String               @default("")
+  aggregateType    String               @default("")
+  aggregateId      String               @default("")
+  fromStatus       String               @default("")
+  toStatus         String               @default("")
+  fromVersion      Int
+  toVersion        Int
+  actorReference   String               @default("")
+  facility         Facility             @relation("WorkflowTransition_facility", fields: [facilityId], references: [id])
+  facilityId       String               @map("facility")
+  patient          Patient?             @relation("WorkflowTransition_patient", fields: [patientId], references: [id])
+  patientId        String?              @map("patient")
+  auditLog         ClinicalAuditLog?    @relation("WorkflowTransition_auditLog", fields: [auditLogId], references: [id])
+  auditLogId       String?              @map("auditLog")
+  outboxEvent      ClinicalOutboxEvent? @relation("WorkflowTransition_outboxEvent", fields: [outboxEventId], references: [id])
+  outboxEventId    String?              @map("outboxEvent")
+  result           Json?
+  occurredAt       DateTime             @default(now())
+
+  @@index([aggregateId])
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([auditLogId])
+  @@index([outboxEventId])
+}
+
+model CareQueueTicket {
+  id                 String      @id @default(cuid())
+  ticketNumber       String      @unique @default("")
+  status             String      @default("waiting")
+  priority           String      @default("routine")
+  reasonCode         String      @default("scheduled_visit")
+  queueDate          String      @default("")
+  queuePosition      Int
+  transitionVersion  Int         @default(1)
+  actorReference     String      @default("")
+  idempotencyKeyHash String      @default("")
+  requestHash        String      @default("")
+  arrivedAt          DateTime
+  calledAt           DateTime?
+  completedAt        DateTime?
+  facility           Facility    @relation("CareQueueTicket_facility", fields: [facilityId], references: [id])
+  facilityId         String      @map("facility")
+  patient            Patient     @relation("CareQueueTicket_patient", fields: [patientId], references: [id])
+  patientId          String      @map("patient")
+  appointment        Appointment @relation("CareQueueTicket_appointment", fields: [appointmentId], references: [id])
+  appointmentId      String      @unique @map("appointment")
+  encounter          Encounter?  @relation("CareQueueTicket_encounter", fields: [encounterId], references: [id])
+  encounterId        String?     @map("encounter")
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @default(now()) @updatedAt
+
+  @@unique([facilityId, queueDate, queuePosition], map: "CareQueueTicket_facility_queue_position_key")
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([encounterId])
+}
+
+model CarePlan {
+  id                String     @id @default(cuid())
+  title             String     @default("")
+  status            String     @default("draft")
+  transitionVersion Int        @default(1)
+  operationKeyHash  String     @unique @default("")
+  requestHash       String     @default("")
+  actorReference    String     @default("")
+  facility          Facility   @relation("CarePlan_facility", fields: [facilityId], references: [id])
+  facilityId        String     @map("facility")
+  patient           Patient    @relation("CarePlan_patient", fields: [patientId], references: [id])
+  patientId         String     @map("patient")
+  provider          Provider   @relation("CarePlan_provider", fields: [providerId], references: [id])
+  providerId        String     @map("provider")
+  encounter         Encounter? @relation("CarePlan_encounter", fields: [encounterId], references: [id])
+  encounterId       String?    @map("encounter")
+  goals             String     @default("")
+  interventions     String     @default("")
+  startsAt          DateTime?
+  endsAt            DateTime?
+  metadata          Json?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([providerId])
+  @@index([encounterId])
+}
+
+model InsuranceClaim {
+  id                        String           @id @default(cuid())
+  claimNumber               String           @unique @default("")
+  status                    String           @default("draft")
+  transitionVersion         Int              @default(1)
+  operationKeyHash          String           @unique @default("")
+  requestHash               String           @default("")
+  actorReference            String           @default("")
+  reasonCode                String           @default("")
+  facility                  Facility         @relation("InsuranceClaim_facility", fields: [facilityId], references: [id])
+  facilityId                String           @map("facility")
+  patient                   Patient          @relation("InsuranceClaim_patient", fields: [patientId], references: [id])
+  patientId                 String           @map("patient")
+  encounter                 Encounter        @relation("InsuranceClaim_encounter", fields: [encounterId], references: [id])
+  encounterId               String           @map("encounter")
+  coverage                  PatientCoverage? @relation("InsuranceClaim_coverage", fields: [coverageId], references: [id])
+  coverageId                String?          @map("coverage")
+  versions                  ClaimVersion[]   @relation("ClaimVersion_claim")
+  payerName                 String           @default("")
+  billedAmountCents         Int?             @default(0)
+  paidAmountCents           Int?             @default(0)
+  submittedAt               DateTime?
+  paidAt                    DateTime?
+  denialReason              String           @default("")
+  metadata                  Json?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @default(now()) @updatedAt
+  from_PatientPayment_claim PatientPayment[] @relation("PatientPayment_claim")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([coverageId])
+}
+
+model Procedure {
+  id                               String              @id @default(cuid())
+  procedureNumber                  String              @unique @default("")
+  status                           String              @default("scheduled")
+  transitionVersion                Int                 @default(1)
+  operationKeyHash                 String              @unique @default("")
+  requestHash                      String              @default("")
+  actorReference                   String              @default("")
+  facility                         Facility            @relation("Procedure_facility", fields: [facilityId], references: [id])
+  facilityId                       String              @map("facility")
+  patient                          Patient             @relation("Procedure_patient", fields: [patientId], references: [id])
+  patientId                        String              @map("patient")
+  encounter                        Encounter           @relation("Procedure_encounter", fields: [encounterId], references: [id])
+  encounterId                      String              @map("encounter")
+  provider                         Provider            @relation("Procedure_provider", fields: [providerId], references: [id])
+  providerId                       String              @map("provider")
+  medicalOrder                     MedicalOrder?       @relation("Procedure_medicalOrder", fields: [medicalOrderId], references: [id])
+  medicalOrderId                   String?             @map("medicalOrder")
+  procedureName                    String              @default("")
+  scheduledAt                      DateTime?
+  completedAt                      DateTime?
+  notes                            String              @default("")
+  metadata                         Json?
+  createdAt                        DateTime            @default(now())
+  updatedAt                        DateTime            @default(now()) @updatedAt
+  from_InventoryMovement_procedure InventoryMovement[] @relation("InventoryMovement_procedure")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([providerId])
+  @@index([medicalOrderId])
+}
+
+model LabResult {
+  id                 String       @id @default(cuid())
+  resultNumber       String       @unique @default("")
+  status             String       @default("preliminary")
+  version            Int          @default(1)
+  transitionVersion  Int          @default(1)
+  operationKeyHash   String       @unique @default("")
+  requestHash        String       @default("")
+  actorReference     String       @default("")
+  facility           Facility     @relation("LabResult_facility", fields: [facilityId], references: [id])
+  facilityId         String       @map("facility")
+  patient            Patient      @relation("LabResult_patient", fields: [patientId], references: [id])
+  patientId          String       @map("patient")
+  encounter          Encounter    @relation("LabResult_encounter", fields: [encounterId], references: [id])
+  encounterId        String       @map("encounter")
+  medicalOrder       MedicalOrder @relation("LabResult_medicalOrder", fields: [medicalOrderId], references: [id])
+  medicalOrderId     String       @map("medicalOrder")
+  labTest            LabTest      @relation("LabResult_labTest", fields: [labTestId], references: [id])
+  labTestId          String       @map("labTest")
+  supersedesResult   LabResult?   @relation("LabResult_supersedesResult", fields: [supersedesResultId], references: [id])
+  supersedesResultId String?      @unique @map("supersedesResult")
+  supersedingResult  LabResult?   @relation("LabResult_supersedesResult")
+  resultValue        String       @default("")
+  referenceRange     String       @default("")
+  abnormalFlag       String?      @default("normal")
+  resultedAt         DateTime?
+  acknowledgedAt     DateTime?
+  acknowledgedBy     User?        @relation("LabResult_acknowledgedBy", fields: [acknowledgedById], references: [id])
+  acknowledgedById   String?      @map("acknowledgedBy")
+  metadata           Json?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([medicalOrderId])
+  @@index([labTestId])
+  @@index([acknowledgedById])
+}
+
+model LabTest {
+  id                     String      @id @default(cuid())
+  name                   String      @default("")
+  code                   String      @unique @default("")
+  category               String      @default("")
+  specimenType           String      @default("")
+  turnaroundHours        Int?
+  active                 Boolean     @default(true)
+  metadata               Json?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @default(now()) @updatedAt
+  from_LabResult_labTest LabResult[] @relation("LabResult_labTest")
+}
+
+model Prescription {
+  id                                  String              @id @default(cuid())
+  prescriptionNumber                  String              @unique @default("")
+  status                              String              @default("recorded_manual")
+  transitionVersion                   Int                 @default(1)
+  operationKeyHash                    String              @unique @default("")
+  requestHash                         String              @default("")
+  actorReference                      String              @default("")
+  recordingBasis                      String
+  facility                            Facility            @relation("Prescription_facility", fields: [facilityId], references: [id])
+  facilityId                          String              @map("facility")
+  patient                             Patient             @relation("Prescription_patient", fields: [patientId], references: [id])
+  patientId                           String              @map("patient")
+  provider                            Provider            @relation("Prescription_provider", fields: [providerId], references: [id])
+  providerId                          String              @map("provider")
+  encounter                           Encounter           @relation("Prescription_encounter", fields: [encounterId], references: [id])
+  encounterId                         String              @map("encounter")
+  medicalOrder                        MedicalOrder?       @relation("Prescription_medicalOrder", fields: [medicalOrderId], references: [id])
+  medicalOrderId                      String?             @map("medicalOrder")
+  medicationName                      String              @default("")
+  dosage                              String              @default("")
+  frequency                           String              @default("")
+  startsAt                            DateTime?
+  endsAt                              DateTime?
+  notes                               String              @default("")
+  createdAt                           DateTime            @default(now())
+  updatedAt                           DateTime            @default(now()) @updatedAt
+  from_InventoryMovement_prescription InventoryMovement[] @relation("InventoryMovement_prescription")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([providerId])
+  @@index([encounterId])
+  @@index([medicalOrderId])
+}
+
+model MedicalOrder {
+  id                             String         @id @default(cuid())
+  orderNumber                    String         @unique @default("")
+  orderType                      String         @default("lab")
+  status                         String         @default("draft")
+  transitionVersion              Int            @default(1)
+  operationKeyHash               String         @unique @default("")
+  requestHash                    String         @default("")
+  actorReference                 String         @default("")
+  facility                       Facility       @relation("MedicalOrder_facility", fields: [facilityId], references: [id])
+  facilityId                     String         @map("facility")
+  patient                        Patient        @relation("MedicalOrder_patient", fields: [patientId], references: [id])
+  patientId                      String         @map("patient")
+  encounter                      Encounter      @relation("MedicalOrder_encounter", fields: [encounterId], references: [id])
+  encounterId                    String         @map("encounter")
+  orderingProvider               Provider       @relation("MedicalOrder_orderingProvider", fields: [orderingProviderId], references: [id])
+  orderingProviderId             String         @map("orderingProvider")
+  summary                        String         @default("")
+  orderedAt                      DateTime?
+  completedAt                    DateTime?
+  metadata                       Json?
+  createdAt                      DateTime       @default(now())
+  updatedAt                      DateTime       @default(now()) @updatedAt
+  from_Procedure_medicalOrder    Procedure[]    @relation("Procedure_medicalOrder")
+  from_LabResult_medicalOrder    LabResult[]    @relation("LabResult_medicalOrder")
+  from_Prescription_medicalOrder Prescription[] @relation("Prescription_medicalOrder")
+  from_Specimen_medicalOrder     Specimen[]     @relation("Specimen_medicalOrder")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([orderingProviderId])
+}
+
+model VitalSign {
+  id                 String    @id @default(cuid())
+  operationKeyHash   String    @unique @default("")
+  requestHash        String    @default("")
+  facility           Facility  @relation("VitalSign_facility", fields: [facilityId], references: [id])
+  facilityId         String    @map("facility")
+  patient            Patient   @relation("VitalSign_patient", fields: [patientId], references: [id])
+  patientId          String    @map("patient")
+  encounter          Encounter @relation("VitalSign_encounter", fields: [encounterId], references: [id])
+  encounterId        String    @map("encounter")
+  recordedBy         Clinician @relation("VitalSign_recordedBy", fields: [recordedById], references: [id])
+  recordedById       String    @map("recordedBy")
+  actorReference     String    @default("")
+  recordedAt         DateTime  @default(now())
+  temperatureC       Int?
+  temperatureTenthsC Int?
+  systolicBp         Int?
+  diastolicBp        Int?
+  heartRate          Int?
+  respiratoryRate    Int?
+  oxygenSaturation   Int?
+  notes              String    @default("")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([recordedById])
+}
+
+model ClinicianImage {
+  id              String     @id @default(cuid())
   image_id        String?
   image_filesize  Int?
   image_width     Int?
   image_height    Int?
   image_extension String?
-  imagePath       String  @default("")
-  altText         String  @default("")
-  todos           Todo[]  @relation("Todo_todoImages")
+  imagePath       String     @default("")
+  altText         String     @default("")
+  order           Int?       @default(0)
+  clinician       Clinician? @relation("ClinicianImage_clinician", fields: [clinicianId], references: [id])
+  clinicianId     String?    @map("clinician")
   metadata        Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @default(now()) @updatedAt
+
+  @@index([clinicianId])
+}
+
+model Clinician {
+  id                        String           @id @default(cuid())
+  onboardingKey             String?          @unique
+  displayName               String           @default("")
+  clinicianType             String?          @default("physician")
+  provider                  Provider?        @relation("Clinician_provider", fields: [providerId], references: [id])
+  providerId                String?          @map("provider")
+  department                Department?      @relation("Clinician_department", fields: [departmentId], references: [id])
+  departmentId              String?          @map("department")
+  licenseNumber             String           @default("")
+  phone                     String           @default("")
+  email                     String           @default("")
+  active                    Boolean          @default(true)
+  images                    ClinicianImage[] @relation("ClinicianImage_clinician")
+  metadata                  Json?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @default(now()) @updatedAt
+  from_VitalSign_recordedBy VitalSign[]      @relation("VitalSign_recordedBy")
+
+  @@index([providerId])
+  @@index([departmentId])
+}
+
+model Bed {
+  id                                 String              @id @default(cuid())
+  bedNumber                          String              @default("")
+  transitionVersion                  Int                 @default(1)
+  facility                           Facility            @relation("Bed_facility", fields: [facilityId], references: [id])
+  facilityId                         String              @map("facility")
+  room                               Room?               @relation("Bed_room", fields: [roomId], references: [id])
+  roomId                             String?             @map("room")
+  status                             String              @default("available")
+  currentPatient                     Patient?            @relation("Bed_currentPatient", fields: [currentPatientId], references: [id])
+  currentPatientId                   String?             @map("currentPatient")
+  metadata                           Json?
+  createdAt                          DateTime            @default(now())
+  updatedAt                          DateTime            @default(now()) @updatedAt
+  from_BedOccupancyEvent_bed         BedOccupancyEvent[] @relation("BedOccupancyEvent_bed")
+  from_BedOccupancyEvent_previousBed BedOccupancyEvent[] @relation("BedOccupancyEvent_previousBed")
+  from_Admission_bed                 Admission[]         @relation("Admission_bed")
+  from_BedReservation_bed            BedReservation[]    @relation("BedReservation_bed")
+
+  @@index([facilityId])
+  @@index([roomId])
+  @@index([currentPatientId])
+}
+
+model BedOccupancyEvent {
+  id             String     @id @default(cuid())
+  eventKey       String     @unique @default("")
+  eventType      String
+  facility       Facility   @relation("BedOccupancyEvent_facility", fields: [facilityId], references: [id])
+  facilityId     String     @map("facility")
+  patient        Patient?   @relation("BedOccupancyEvent_patient", fields: [patientId], references: [id])
+  patientId      String?    @map("patient")
+  admission      Admission? @relation("BedOccupancyEvent_admission", fields: [admissionId], references: [id])
+  admissionId    String?    @map("admission")
+  bed            Bed        @relation("BedOccupancyEvent_bed", fields: [bedId], references: [id])
+  bedId          String     @map("bed")
+  previousBed    Bed?       @relation("BedOccupancyEvent_previousBed", fields: [previousBedId], references: [id])
+  previousBedId  String?    @map("previousBed")
+  actorReference String     @default("")
+  reasonCode     String     @default("")
+  occurredAt     DateTime   @default(now())
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([admissionId])
+  @@index([bedId])
+  @@index([previousBedId])
+}
+
+model Room {
+  id                  String      @id @default(cuid())
+  roomNumber          String      @unique @default("")
+  ward                Ward?       @relation("Room_ward", fields: [wardId], references: [id])
+  wardId              String?     @map("ward")
+  roomType            String?     @default("private")
+  status              String?     @default("available")
+  metadata            Json?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @default(now()) @updatedAt
+  from_Bed_room       Bed[]       @relation("Bed_room")
+  from_Admission_room Admission[] @relation("Admission_room")
+
+  @@index([wardId])
+}
+
+model Ward {
+  id             String      @id @default(cuid())
+  name           String      @default("")
+  department     Department? @relation("Ward_department", fields: [departmentId], references: [id])
+  departmentId   String?     @map("department")
+  floor          String      @default("")
+  status         String?     @default("open")
+  capacity       Int?        @default(0)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @default(now()) @updatedAt
+  from_Room_ward Room[]      @relation("Room_ward")
+
+  @@index([departmentId])
+}
+
+model FacilityImage {
+  id              String    @id @default(cuid())
+  image_id        String?
+  image_filesize  Int?
+  image_width     Int?
+  image_height    Int?
+  image_extension String?
+  imagePath       String    @default("")
+  altText         String    @default("")
+  order           Int?      @default(0)
+  facility        Facility? @relation("FacilityImage_facility", fields: [facilityId], references: [id])
+  facilityId      String?   @map("facility")
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  @@index([facilityId])
+}
+
+model Facility {
+  id                                       String                       @id @default(cuid())
+  name                                     String                       @default("")
+  slug                                     String                       @unique @default("")
+  facilityType                             String                       @default("clinic")
+  status                                   String                       @default("active")
+  addressLine1                             String                       @default("")
+  addressLine2                             String                       @default("")
+  city                                     String                       @default("")
+  region                                   String                       @default("")
+  postalCode                               String                       @default("")
+  phone                                    String                       @default("")
+  timeZone                                 String                       @default("UTC")
+  staff                                    User[]                       @relation("Facility_staff")
+  providers                                Provider[]                   @relation("Facility_providers")
+  patients                                 Patient[]                    @relation("Facility_patients")
+  patientIdentifiers                       PatientIdentifier[]          @relation("PatientIdentifier_facility")
+  patientRegistrations                     PatientRegistration[]        @relation("PatientRegistration_facility")
+  appointments                             Appointment[]                @relation("Appointment_facility")
+  encounters                               Encounter[]                  @relation("Encounter_facility")
+  departments                              Department[]                 @relation("Department_facilities")
+  images                                   FacilityImage[]              @relation("FacilityImage_facility")
+  metadata                                 Json?
+  createdAt                                DateTime                     @default(now())
+  updatedAt                                DateTime                     @default(now()) @updatedAt
+  from_ProviderScheduleBlock_facility      ProviderScheduleBlock[]      @relation("ProviderScheduleBlock_facility")
+  from_IntakeForm_facility                 IntakeForm[]                 @relation("IntakeForm_facility")
+  from_PatientMessage_facility             PatientMessage[]             @relation("PatientMessage_facility")
+  from_PatientPortalAccess_facility        PatientPortalAccess[]        @relation("PatientPortalAccess_facility")
+  from_PatientConsent_facility             PatientConsent[]             @relation("PatientConsent_facility")
+  from_ClinicalAuditLog_facility           ClinicalAuditLog[]           @relation("ClinicalAuditLog_facility")
+  from_ClinicalOutboxEvent_facility        ClinicalOutboxEvent[]        @relation("ClinicalOutboxEvent_facility")
+  from_WorkflowTransition_facility         WorkflowTransition[]         @relation("WorkflowTransition_facility")
+  from_CareQueueTicket_facility            CareQueueTicket[]            @relation("CareQueueTicket_facility")
+  from_CarePlan_facility                   CarePlan[]                   @relation("CarePlan_facility")
+  from_InsuranceClaim_facility             InsuranceClaim[]             @relation("InsuranceClaim_facility")
+  from_Procedure_facility                  Procedure[]                  @relation("Procedure_facility")
+  from_LabResult_facility                  LabResult[]                  @relation("LabResult_facility")
+  from_Prescription_facility               Prescription[]               @relation("Prescription_facility")
+  from_MedicalOrder_facility               MedicalOrder[]               @relation("MedicalOrder_facility")
+  from_VitalSign_facility                  VitalSign[]                  @relation("VitalSign_facility")
+  from_Bed_facility                        Bed[]                        @relation("Bed_facility")
+  from_BedOccupancyEvent_facility          BedOccupancyEvent[]          @relation("BedOccupancyEvent_facility")
+  from_Admission_facility                  Admission[]                  @relation("Admission_facility")
+  from_EpisodeClosurePolicy_facility       EpisodeClosurePolicy[]       @relation("EpisodeClosurePolicy_facility")
+  from_PatientCoverage_facility            PatientCoverage[]            @relation("PatientCoverage_facility")
+  from_ClaimVersion_facility               ClaimVersion[]               @relation("ClaimVersion_facility")
+  from_PatientPayment_facility             PatientPayment[]             @relation("PatientPayment_facility")
+  from_PatientRefund_facility              PatientRefund[]              @relation("PatientRefund_facility")
+  from_InventoryItem_facility              InventoryItem[]              @relation("InventoryItem_facility")
+  from_InventoryMovement_facility          InventoryMovement[]          @relation("InventoryMovement_facility")
+  from_CommunicationPreference_facility    CommunicationPreference[]    @relation("CommunicationPreference_facility")
+  from_CommunicationTemplate_facility      CommunicationTemplate[]      @relation("CommunicationTemplate_facility")
+  from_BedReservation_facility             BedReservation[]             @relation("BedReservation_facility")
+  from_IntegrationInstallation_facility    IntegrationInstallation[]    @relation("IntegrationInstallation_facility")
+  from_MachineCredential_facility          MachineCredential[]          @relation("MachineCredential_facility")
+  from_IntegrationDeliveryAttempt_facility IntegrationDeliveryAttempt[] @relation("IntegrationDeliveryAttempt_facility")
+  from_IntegrationWebhookReceipt_facility  IntegrationWebhookReceipt[]  @relation("IntegrationWebhookReceipt_facility")
+  from_ClinicalDocument_facility           ClinicalDocument[]           @relation("ClinicalDocument_facility")
+  from_Specimen_facility                   Specimen[]                   @relation("Specimen_facility")
+  from_RetentionPolicy_facility            RetentionPolicy[]            @relation("RetentionPolicy_facility")
+  from_RetentionDisposition_facility       RetentionDisposition[]       @relation("RetentionDisposition_facility")
+  from_RecordHold_facility                 RecordHold[]                 @relation("RecordHold_facility")
+  from_ImportBatch_facility                ImportBatch[]                @relation("ImportBatch_facility")
+  from_ExportJob_facility                  ExportJob[]                  @relation("ExportJob_facility")
+  from_ExternalIdentityLink_facility       ExternalIdentityLink[]       @relation("ExternalIdentityLink_facility")
+}
+
+model DepartmentImage {
+  id              String      @id @default(cuid())
+  image_id        String?
+  image_filesize  Int?
+  image_width     Int?
+  image_height    Int?
+  image_extension String?
+  imagePath       String      @default("")
+  altText         String      @default("")
+  order           Int?        @default(0)
+  department      Department? @relation("DepartmentImage_department", fields: [departmentId], references: [id])
+  departmentId    String?     @map("department")
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @default(now()) @updatedAt
+
+  @@index([departmentId])
+}
+
+model Department {
+  id                        String            @id @default(cuid())
+  name                      String            @default("")
+  code                      String            @unique @default("")
+  status                    String?           @default("active")
+  description               String            @default("")
+  phone                     String            @default("")
+  email                     String            @default("")
+  facilities                Facility[]        @relation("Department_facilities")
+  images                    DepartmentImage[] @relation("DepartmentImage_department")
+  metadata                  Json?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @default(now()) @updatedAt
+  from_Clinician_department Clinician[]       @relation("Clinician_department")
+  from_Ward_department      Ward[]            @relation("Ward_department")
+  from_Encounter_department Encounter[]       @relation("Encounter_department")
+}
+
+model Admission {
+  id                               String              @id @default(cuid())
+  admissionNumber                  String              @unique @default("")
+  status                           String              @default("admitted")
+  transitionVersion                Int                 @default(1)
+  operationKeyHash                 String              @unique @default("")
+  requestHash                      String              @default("")
+  actorReference                   String              @default("")
+  facility                         Facility            @relation("Admission_facility", fields: [facilityId], references: [id])
+  facilityId                       String              @map("facility")
+  patient                          Patient             @relation("Admission_patient", fields: [patientId], references: [id])
+  patientId                        String              @map("patient")
+  encounter                        Encounter?          @relation("Admission_encounter", fields: [encounterId], references: [id])
+  encounterId                      String?             @map("encounter")
+  attendingProvider                Provider            @relation("Admission_attendingProvider", fields: [attendingProviderId], references: [id])
+  attendingProviderId              String              @map("attendingProvider")
+  room                             Room                @relation("Admission_room", fields: [roomId], references: [id])
+  roomId                           String              @map("room")
+  bed                              Bed                 @relation("Admission_bed", fields: [bedId], references: [id])
+  bedId                            String              @map("bed")
+  admittedAt                       DateTime?
+  dischargedAt                     DateTime?
+  dischargeDisposition             String              @default("")
+  notes                            String              @default("")
+  metadata                         Json?
+  createdAt                        DateTime            @default(now())
+  updatedAt                        DateTime            @default(now()) @updatedAt
+  from_BedOccupancyEvent_admission BedOccupancyEvent[] @relation("BedOccupancyEvent_admission")
+  from_BedReservation_admission    BedReservation[]    @relation("BedReservation_admission")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([attendingProviderId])
+  @@index([roomId])
+  @@index([bedId])
+}
+
+model Encounter {
+  id                                 String                @id @default(cuid())
+  encounterNumber                    String                @unique @default("")
+  status                             String                @default("open")
+  transitionVersion                  Int                   @default(1)
+  operationKeyHash                   String                @unique @default("")
+  requestHash                        String                @default("")
+  actorReference                     String                @default("")
+  patient                            Patient               @relation("Encounter_patient", fields: [patientId], references: [id])
+  patientId                          String                @map("patient")
+  provider                           Provider              @relation("Encounter_provider", fields: [providerId], references: [id])
+  providerId                         String                @map("provider")
+  appointment                        Appointment?          @relation("Encounter_appointment", fields: [appointmentId], references: [id])
+  appointmentId                      String?               @unique @map("appointment")
+  facility                           Facility              @relation("Encounter_facility", fields: [facilityId], references: [id])
+  facilityId                         String                @map("facility")
+  department                         Department?           @relation("Encounter_department", fields: [departmentId], references: [id])
+  departmentId                       String?               @map("department")
+  chiefComplaint                     String                @default("")
+  diagnosisSummary                   String                @default("")
+  clinicalAuditLogs                  ClinicalAuditLog[]    @relation("ClinicalAuditLog_encounter")
+  startedAt                          DateTime?
+  endedAt                            DateTime?
+  metadata                           Json?
+  createdAt                          DateTime              @default(now())
+  updatedAt                          DateTime              @default(now()) @updatedAt
+  from_ClinicalOutboxEvent_encounter ClinicalOutboxEvent[] @relation("ClinicalOutboxEvent_encounter")
+  from_CareQueueTicket_encounter     CareQueueTicket[]     @relation("CareQueueTicket_encounter")
+  from_CarePlan_encounter            CarePlan[]            @relation("CarePlan_encounter")
+  from_InsuranceClaim_encounter      InsuranceClaim[]      @relation("InsuranceClaim_encounter")
+  from_Procedure_encounter           Procedure[]           @relation("Procedure_encounter")
+  from_LabResult_encounter           LabResult[]           @relation("LabResult_encounter")
+  from_Prescription_encounter        Prescription[]        @relation("Prescription_encounter")
+  from_MedicalOrder_encounter        MedicalOrder[]        @relation("MedicalOrder_encounter")
+  from_VitalSign_encounter           VitalSign[]           @relation("VitalSign_encounter")
+  from_Admission_encounter           Admission[]           @relation("Admission_encounter")
+  from_ClinicalDocument_encounter    ClinicalDocument[]    @relation("ClinicalDocument_encounter")
+  from_Specimen_encounter            Specimen[]            @relation("Specimen_encounter")
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([appointmentId])
+  @@index([facilityId])
+  @@index([departmentId])
+}
+
+model EpisodeClosurePolicy {
+  id                    String   @id @default(cuid())
+  facility              Facility @relation("EpisodeClosurePolicy_facility", fields: [facilityId], references: [id])
+  facilityId            String   @map("facility")
+  revision              Int
+  revisionKey           String   @unique @default("")
+  definition            Json?
+  reviewReference       String   @default("")
+  reviewedByReference   String   @default("")
+  reviewedRoleReference String   @default("")
+  operationKeyHash      String   @unique @default("")
+  requestHash           String   @default("")
+  originalCommand       Json?
+  effectiveAt           DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now()) @updatedAt
+
+  @@index([facilityId])
+}
+
+model PatientCoverage {
+  id                           String           @id @default(cuid())
+  coverageNumber               String           @unique @default("")
+  status                       String           @default("unverified")
+  transitionVersion            Int              @default(1)
+  operationKeyHash             String           @unique @default("")
+  requestHash                  String           @default("")
+  actorReference               String           @default("")
+  facility                     Facility         @relation("PatientCoverage_facility", fields: [facilityId], references: [id])
+  facilityId                   String           @map("facility")
+  patient                      Patient          @relation("PatientCoverage_patient", fields: [patientId], references: [id])
+  patientId                    String           @map("patient")
+  payerName                    String           @default("")
+  memberId                     String           @default("")
+  groupNumber                  String           @default("")
+  effectiveAt                  DateTime?
+  terminatesAt                 DateTime?
+  verifiedAt                   DateTime?
+  verifiedBy                   User?            @relation("PatientCoverage_verifiedBy", fields: [verifiedById], references: [id])
+  verifiedById                 String?          @map("verifiedBy")
+  createdAt                    DateTime         @default(now())
+  updatedAt                    DateTime         @default(now()) @updatedAt
+  from_InsuranceClaim_coverage InsuranceClaim[] @relation("InsuranceClaim_coverage")
+  from_ClaimVersion_coverage   ClaimVersion[]   @relation("ClaimVersion_coverage")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([verifiedById])
+}
+
+model ClaimVersion {
+  id               String           @id @default(cuid())
+  versionKey       String           @unique @default("")
+  version          Int
+  status           String           @default("")
+  operationKeyHash String           @unique @default("")
+  requestHash      String           @default("")
+  facility         Facility         @relation("ClaimVersion_facility", fields: [facilityId], references: [id])
+  facilityId       String           @map("facility")
+  patient          Patient          @relation("ClaimVersion_patient", fields: [patientId], references: [id])
+  patientId        String           @map("patient")
+  claim            InsuranceClaim   @relation("ClaimVersion_claim", fields: [claimId], references: [id])
+  claimId          String           @map("claim")
+  coverage         PatientCoverage? @relation("ClaimVersion_coverage", fields: [coverageId], references: [id])
+  coverageId       String?          @map("coverage")
+  reasonCode       String           @default("")
+  snapshot         Json?
+  actorReference   String           @default("")
+  createdAt        DateTime         @default(now())
+
+  @@unique([claimId, version], map: "ClaimVersion_claim_version_key")
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([claimId])
+  @@index([coverageId])
+}
+
+model PatientPayment {
+  id                         String                   @id @default(cuid())
+  paymentNumber              String                   @unique @default("")
+  status                     String                   @default("pending")
+  transitionVersion          Int                      @default(1)
+  operationKeyHash           String                   @unique @default("")
+  requestHash                String                   @default("")
+  actorReference             String                   @default("")
+  facility                   Facility                 @relation("PatientPayment_facility", fields: [facilityId], references: [id])
+  facilityId                 String                   @map("facility")
+  patient                    Patient                  @relation("PatientPayment_patient", fields: [patientId], references: [id])
+  patientId                  String                   @map("patient")
+  claim                      InsuranceClaim?          @relation("PatientPayment_claim", fields: [claimId], references: [id])
+  claimId                    String?                  @map("claim")
+  installation               IntegrationInstallation? @relation("PatientPayment_installation", fields: [installationId], references: [id])
+  installationId             String?                  @map("installation")
+  amountCents                Int
+  refundedAmountCents        Int                      @default(0)
+  currency                   String                   @default("USD")
+  method                     String
+  externalReference          String                   @default("")
+  receivedAt                 DateTime?
+  failedAt                   DateTime?
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @default(now()) @updatedAt
+  from_PatientRefund_payment PatientRefund[]          @relation("PatientRefund_payment")
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([claimId])
+  @@index([installationId])
+  @@index([externalReference])
+}
+
+model PatientRefund {
+  id                String                   @id @default(cuid())
+  refundNumber      String                   @unique @default("")
+  status            String                   @default("pending")
+  transitionVersion Int                      @default(1)
+  operationKeyHash  String                   @unique @default("")
+  requestHash       String                   @default("")
+  actorReference    String                   @default("")
+  facility          Facility                 @relation("PatientRefund_facility", fields: [facilityId], references: [id])
+  facilityId        String                   @map("facility")
+  patient           Patient                  @relation("PatientRefund_patient", fields: [patientId], references: [id])
+  patientId         String                   @map("patient")
+  payment           PatientPayment           @relation("PatientRefund_payment", fields: [paymentId], references: [id])
+  paymentId         String                   @map("payment")
+  installation      IntegrationInstallation? @relation("PatientRefund_installation", fields: [installationId], references: [id])
+  installationId    String?                  @map("installation")
+  amountCents       Int
+  reasonCode        String                   @default("")
+  externalReference String                   @default("")
+  completedAt       DateTime?
+  failedAt          DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([paymentId])
+  @@index([installationId])
+}
+
+model InventoryItem {
+  id                          String              @id @default(cuid())
+  sku                         String              @default("")
+  name                        String              @default("")
+  unit                        String              @default("")
+  status                      String              @default("active")
+  transitionVersion           Int                 @default(1)
+  quantityOnHand              Int                 @default(0)
+  quantityReserved            Int                 @default(0)
+  reorderPoint                Int                 @default(0)
+  operationKeyHash            String              @unique @default("")
+  requestHash                 String              @default("")
+  actorReference              String              @default("")
+  facility                    Facility            @relation("InventoryItem_facility", fields: [facilityId], references: [id])
+  facilityId                  String              @map("facility")
+  createdAt                   DateTime            @default(now())
+  updatedAt                   DateTime            @default(now()) @updatedAt
+  from_InventoryMovement_item InventoryMovement[] @relation("InventoryMovement_item")
+
+  @@unique([facilityId, sku], map: "InventoryItem_facility_sku_key")
+  @@index([facilityId])
+}
+
+model InventoryMovement {
+  id                String        @id @default(cuid())
+  movementNumber    String        @unique @default("")
+  operationKeyHash  String        @unique @default("")
+  requestHash       String        @default("")
+  movementType      String
+  quantityDelta     Int
+  resultingOnHand   Int
+  reservedDelta     Int           @default(0)
+  resultingReserved Int
+  reasonCode        String        @default("")
+  facility          Facility      @relation("InventoryMovement_facility", fields: [facilityId], references: [id])
+  facilityId        String        @map("facility")
+  item              InventoryItem @relation("InventoryMovement_item", fields: [itemId], references: [id])
+  itemId            String        @map("item")
+  prescription      Prescription? @relation("InventoryMovement_prescription", fields: [prescriptionId], references: [id])
+  prescriptionId    String?       @map("prescription")
+  procedure         Procedure?    @relation("InventoryMovement_procedure", fields: [procedureId], references: [id])
+  procedureId       String?       @map("procedure")
+  actorReference    String        @default("")
+  occurredAt        DateTime      @default(now())
+
+  @@index([facilityId])
+  @@index([itemId])
+  @@index([prescriptionId])
+  @@index([procedureId])
+}
+
+model CommunicationPreference {
+  id                String    @id @default(cuid())
+  channel           String
+  purpose           String
+  status            String    @default("allowed")
+  transitionVersion Int       @default(1)
+  operationKeyHash  String    @unique @default("")
+  requestHash       String    @default("")
+  facility          Facility  @relation("CommunicationPreference_facility", fields: [facilityId], references: [id])
+  facilityId        String    @map("facility")
+  patient           Patient   @relation("CommunicationPreference_patient", fields: [patientId], references: [id])
+  patientId         String    @map("patient")
+  actorReference    String    @default("")
+  reasonCode        String    @default("")
+  changedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@unique([facilityId, patientId, channel, purpose], map: "CommunicationPreference_scope_key")
+  @@index([facilityId])
+  @@index([patientId])
+}
+
+model CommunicationTemplate {
+  id                           String           @id @default(cuid())
+  templateKey                  String           @default("")
+  name                         String           @default("")
+  channel                      String
+  status                       String           @default("active")
+  version                      Int              @default(1)
+  transitionVersion            Int              @default(1)
+  operationKeyHash             String           @unique @default("")
+  requestHash                  String           @default("")
+  actorReference               String           @default("")
+  facility                     Facility         @relation("CommunicationTemplate_facility", fields: [facilityId], references: [id])
+  facilityId                   String           @map("facility")
+  subjectTemplate              String           @default("")
+  bodyTemplate                 String           @default("")
+  createdAt                    DateTime         @default(now())
+  updatedAt                    DateTime         @default(now()) @updatedAt
+  from_PatientMessage_template PatientMessage[] @relation("PatientMessage_template")
+
+  @@unique([facilityId, templateKey], map: "CommunicationTemplate_facility_key")
+  @@index([facilityId])
+}
+
+model BedReservation {
+  id                String     @id @default(cuid())
+  reservationNumber String     @unique @default("")
+  status            String     @default("active")
+  transitionVersion Int        @default(1)
+  operationKeyHash  String     @unique @default("")
+  requestHash       String     @default("")
+  facility          Facility   @relation("BedReservation_facility", fields: [facilityId], references: [id])
+  facilityId        String     @map("facility")
+  patient           Patient    @relation("BedReservation_patient", fields: [patientId], references: [id])
+  patientId         String     @map("patient")
+  bed               Bed        @relation("BedReservation_bed", fields: [bedId], references: [id])
+  bedId             String     @map("bed")
+  admission         Admission? @relation("BedReservation_admission", fields: [admissionId], references: [id])
+  admissionId       String?    @map("admission")
+  actorReference    String     @default("")
+  reasonCode        String     @default("")
+  expiresAt         DateTime
+  releasedAt        DateTime?
+  consumedAt        DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([bedId])
+  @@index([admissionId])
+}
+
+model IntegrationInstallation {
+  id                                           String                       @id @default(cuid())
+  installationKey                              String                       @unique @default("")
+  name                                         String                       @default("")
+  kind                                         String
+  status                                       String                       @default("active")
+  transitionVersion                            Int                          @default(1)
+  operationKeyHash                             String                       @unique @default("")
+  requestHash                                  String                       @default("")
+  facility                                     Facility                     @relation("IntegrationInstallation_facility", fields: [facilityId], references: [id])
+  facilityId                                   String                       @map("facility")
+  endpointUrl                                  String                       @default("")
+  allowedEventTypes                            Json?
+  signingSecretCiphertext                      String                       @default("")
+  signingSecretIv                              String                       @default("")
+  signingSecretTag                             String                       @default("")
+  keyVersion                                   Int                          @default(1)
+  actorReference                               String                       @default("")
+  lastSuccessAt                                DateTime?
+  lastErrorAt                                  DateTime?
+  lastErrorCode                                String                       @default("")
+  createdAt                                    DateTime                     @default(now())
+  updatedAt                                    DateTime                     @default(now()) @updatedAt
+  from_PatientMessage_installation             PatientMessage[]             @relation("PatientMessage_installation")
+  from_ClinicalOutboxEvent_installation        ClinicalOutboxEvent[]        @relation("ClinicalOutboxEvent_installation")
+  from_PatientPayment_installation             PatientPayment[]             @relation("PatientPayment_installation")
+  from_PatientRefund_installation              PatientRefund[]              @relation("PatientRefund_installation")
+  from_MachineCredential_installation          MachineCredential[]          @relation("MachineCredential_installation")
+  from_IntegrationDeliveryAttempt_installation IntegrationDeliveryAttempt[] @relation("IntegrationDeliveryAttempt_installation")
+  from_IntegrationWebhookReceipt_installation  IntegrationWebhookReceipt[]  @relation("IntegrationWebhookReceipt_installation")
+
+  @@unique([facilityId, installationKey], map: "IntegrationInstallation_facility_key")
+  @@index([facilityId])
+}
+
+model MachineCredential {
+  id                  String                  @id @default(cuid())
+  name                String                  @default("")
+  keyPrefix           String                  @unique @default("")
+  transitionVersion   Int                     @default(1)
+  operationKeyHash    String                  @unique @default("")
+  requestHash         String                  @default("")
+  actorReference      String                  @default("")
+  secretDigest        String                  @unique @default("")
+  scopes              Json?
+  status              String                  @default("active")
+  facility            Facility                @relation("MachineCredential_facility", fields: [facilityId], references: [id])
+  facilityId          String                  @map("facility")
+  installation        IntegrationInstallation @relation("MachineCredential_installation", fields: [installationId], references: [id])
+  installationId      String                  @map("installation")
+  createdBy           User                    @relation("MachineCredential_createdBy", fields: [createdById], references: [id])
+  createdById         String                  @map("createdBy")
+  createdAt           DateTime                @default(now())
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  lastUsedAt          DateTime?
+  lastUsedFingerprint String                  @default("")
+
+  @@index([facilityId])
+  @@index([installationId])
+  @@index([createdById])
+}
+
+model IntegrationDeliveryAttempt {
+  id             String                  @id @default(cuid())
+  attemptKey     String                  @unique @default("")
+  facility       Facility                @relation("IntegrationDeliveryAttempt_facility", fields: [facilityId], references: [id])
+  facilityId     String                  @map("facility")
+  installation   IntegrationInstallation @relation("IntegrationDeliveryAttempt_installation", fields: [installationId], references: [id])
+  installationId String                  @map("installation")
+  outboxEvent    ClinicalOutboxEvent     @relation("IntegrationDeliveryAttempt_outboxEvent", fields: [outboxEventId], references: [id])
+  outboxEventId  String                  @map("outboxEvent")
+  attemptNumber  Int
+  status         String
+  responseStatus Int?
+  errorCode      String                  @default("")
+  responseDigest String                  @default("")
+  startedAt      DateTime
+  completedAt    DateTime
+
+  @@unique([outboxEventId, installationId, attemptNumber], map: "IntegrationDeliveryAttempt_event_attempt_key")
+  @@index([facilityId])
+  @@index([installationId])
+  @@index([outboxEventId])
+}
+
+model IntegrationWebhookReceipt {
+  id             String                  @id @default(cuid())
+  receiptKey     String                  @unique @default("")
+  eventId        String                  @default("")
+  eventType      String                  @default("")
+  requestDigest  String                  @default("")
+  status         String
+  facility       Facility                @relation("IntegrationWebhookReceipt_facility", fields: [facilityId], references: [id])
+  facilityId     String                  @map("facility")
+  installation   IntegrationInstallation @relation("IntegrationWebhookReceipt_installation", fields: [installationId], references: [id])
+  installationId String                  @map("installation")
+  receivedAt     DateTime                @default(now())
+  processedAt    DateTime?
+  errorCode      String                  @default("")
+
+  @@index([facilityId])
+  @@index([installationId])
+}
+
+model ClinicalDocument {
+  id                  String            @id @default(cuid())
+  documentNumber      String            @unique @default("")
+  version             Int               @default(1)
+  status              String            @default("draft")
+  transitionVersion   Int               @default(1)
+  operationKeyHash    String            @unique @default("")
+  requestHash         String            @default("")
+  facility            Facility          @relation("ClinicalDocument_facility", fields: [facilityId], references: [id])
+  facilityId          String            @map("facility")
+  patient             Patient           @relation("ClinicalDocument_patient", fields: [patientId], references: [id])
+  patientId           String            @map("patient")
+  encounter           Encounter         @relation("ClinicalDocument_encounter", fields: [encounterId], references: [id])
+  encounterId         String            @map("encounter")
+  author              Provider          @relation("ClinicalDocument_author", fields: [authorId], references: [id])
+  authorId            String            @map("author")
+  supersedes          ClinicalDocument? @relation("ClinicalDocument_supersedes", fields: [supersedesId], references: [id])
+  supersedesId        String?           @unique @map("supersedes")
+  supersedingDocument ClinicalDocument? @relation("ClinicalDocument_supersedes")
+  documentType        String            @default("")
+  title               String            @default("")
+  content             String            @default("")
+  contentHash         String            @default("")
+  actorReference      String            @default("")
+  signedAt            DateTime?
+  signedBy            User?             @relation("ClinicalDocument_signedBy", fields: [signedById], references: [id])
+  signedById          String?           @map("signedBy")
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([authorId])
+  @@index([signedById])
+}
+
+model Specimen {
+  id                String       @id @default(cuid())
+  specimenNumber    String       @unique @default("")
+  status            String       @default("collected")
+  transitionVersion Int          @default(1)
+  operationKeyHash  String       @unique @default("")
+  requestHash       String       @default("")
+  facility          Facility     @relation("Specimen_facility", fields: [facilityId], references: [id])
+  facilityId        String       @map("facility")
+  patient           Patient      @relation("Specimen_patient", fields: [patientId], references: [id])
+  patientId         String       @map("patient")
+  encounter         Encounter    @relation("Specimen_encounter", fields: [encounterId], references: [id])
+  encounterId       String       @map("encounter")
+  medicalOrder      MedicalOrder @relation("Specimen_medicalOrder", fields: [medicalOrderId], references: [id])
+  medicalOrderId    String       @map("medicalOrder")
+  specimenType      String       @default("")
+  actorReference    String       @default("")
+  collectedAt       DateTime
+  receivedAt        DateTime?
+  disposedAt        DateTime?
+  rejectionReason   String       @default("")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([medicalOrderId])
+}
+
+model RetentionPolicy {
+  id                               String                 @id @default(cuid())
+  recordType                       String                 @default("")
+  retentionDays                    Int
+  status                           String                 @default("active")
+  transitionVersion                Int                    @default(1)
+  operationKeyHash                 String                 @unique @default("")
+  requestHash                      String                 @default("")
+  actorReference                   String                 @default("")
+  facility                         Facility               @relation("RetentionPolicy_facility", fields: [facilityId], references: [id])
+  facilityId                       String                 @map("facility")
+  createdAt                        DateTime               @default(now())
+  updatedAt                        DateTime               @default(now()) @updatedAt
+  from_RetentionDisposition_policy RetentionDisposition[] @relation("RetentionDisposition_policy")
+
+  @@unique([facilityId, recordType], map: "RetentionPolicy_facility_record_key")
+  @@index([facilityId])
+}
+
+model RetentionDisposition {
+  id                String          @id @default(cuid())
+  dispositionNumber String          @unique @default("")
+  operationKeyHash  String          @unique @default("")
+  requestHash       String          @default("")
+  facility          Facility        @relation("RetentionDisposition_facility", fields: [facilityId], references: [id])
+  facilityId        String          @map("facility")
+  patient           Patient?        @relation("RetentionDisposition_patient", fields: [patientId], references: [id])
+  patientId         String?         @map("patient")
+  policy            RetentionPolicy @relation("RetentionDisposition_policy", fields: [policyId], references: [id])
+  policyId          String          @map("policy")
+  recordType        String          @default("")
+  aggregateType     String          @default("")
+  aggregateId       String          @default("")
+  decision          String
+  reasonCode        String          @default("")
+  actorReference    String          @default("")
+  cutoffAt          DateTime
+  reviewedAt        DateTime        @default(now())
+
+  @@index([facilityId])
+  @@index([patientId])
+  @@index([policyId])
+  @@index([aggregateId])
+}
+
+model RecordHold {
+  id                String    @id @default(cuid())
+  holdNumber        String    @unique @default("")
+  aggregateType     String    @default("")
+  aggregateId       String    @default("")
+  status            String    @default("active")
+  transitionVersion Int       @default(1)
+  operationKeyHash  String    @unique @default("")
+  requestHash       String    @default("")
+  facility          Facility  @relation("RecordHold_facility", fields: [facilityId], references: [id])
+  facilityId        String    @map("facility")
+  patient           Patient?  @relation("RecordHold_patient", fields: [patientId], references: [id])
+  patientId         String?   @map("patient")
+  reasonCode        String    @default("")
+  notes             String    @default("")
+  actorReference    String    @default("")
+  placedAt          DateTime  @default(now())
+  releasedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@index([aggregateId])
+  @@index([facilityId])
+  @@index([patientId])
+}
+
+model ImportBatch {
+  id                String    @id @default(cuid())
+  batchNumber       String    @unique @default("")
+  importType        String
+  status            String    @default("previewed")
+  transitionVersion Int       @default(1)
+  operationKeyHash  String    @unique @default("")
+  requestHash       String    @default("")
+  sourceHash        String    @default("")
+  facility          Facility  @relation("ImportBatch_facility", fields: [facilityId], references: [id])
+  facilityId        String    @map("facility")
+  rowCount          Int       @default(0)
+  errorCount        Int       @default(0)
+  preview           Json?
+  appliedIds        Json?
+  actorReference    String    @default("")
+  appliedAt         DateTime?
+  rolledBackAt      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@index([facilityId])
+}
+
+model ExportJob {
+  id                String    @id @default(cuid())
+  jobNumber         String    @unique @default("")
+  exportType        String
+  status            String    @default("queued")
+  transitionVersion Int       @default(1)
+  operationKeyHash  String    @unique @default("")
+  requestHash       String    @default("")
+  facility          Facility  @relation("ExportJob_facility", fields: [facilityId], references: [id])
+  facilityId        String    @map("facility")
+  requestedBy       User      @relation("ExportJob_requestedBy", fields: [requestedById], references: [id])
+  requestedById     String    @map("requestedBy")
+  format            String
+  filters           Json?
+  objectKey         String    @default("")
+  resultDigest      String    @default("")
+  accessTokenDigest String    @default("")
+  resultCiphertext  String    @default("")
+  resultIv          String    @default("")
+  resultTag         String    @default("")
+  actorReference    String    @default("")
+  expiresAt         DateTime
+  readyAt           DateTime?
+  consumedAt        DateTime?
+  errorCode         String    @default("")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@index([facilityId])
+  @@index([requestedById])
+}
+
+model ExternalIdentityLink {
+  id               String   @id @default(cuid())
+  linkNumber       String   @unique @default("")
+  facility         Facility @relation("ExternalIdentityLink_facility", fields: [facilityId], references: [id])
+  facilityId       String   @map("facility")
+  system           String   @default("")
+  resourceType     String   @default("")
+  externalId       String   @default("")
+  localType        String   @default("")
+  localId          String   @default("")
+  status           String   @default("active")
+  operationKeyHash String   @unique @default("")
+  requestHash      String   @default("")
+  actorReference   String   @default("")
+  createdAt        DateTime @default(now())
+
+  @@unique([facilityId, system, resourceType, externalId], map: "ExternalIdentityLink_external_key")
+  @@index([facilityId])
+  @@index([localId])
+}
+
+model RequestRateLimitBucket {
+  id        String   @id @default(cuid())
+  startedAt DateTime
+  count     Int
+  updatedAt DateTime
+
+  @@index([updatedAt])
+}
+
+model PasswordResetRequest {
+  id               String    @id @default(cuid())
+  tokenDigest      String    @unique @default("")
+  accountDigest    String    @default("")
+  status           String    @default("pending")
+  user             User      @relation("PasswordResetRequest_user", fields: [userId], references: [id])
+  userId           String    @map("user")
+  expiresAt        DateTime
+  mailSentAt       DateTime?
+  redeemedAt       DateTime?
+  supersededAt     DateTime?
+  deliveryFailedAt DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([accountDigest])
+  @@index([status])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([userId, status, expiresAt], map: "PasswordResetRequest_user_status_expiry_idx")
 }

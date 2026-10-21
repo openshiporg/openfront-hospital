@@ -1,18 +1,36 @@
 {
-  "name": "weekday-keystone",
+  "name": "openfront-hospital",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "keystone build --no-ui && npm run migrate && next dev",
     "build": "keystone build --no-ui && npm run migrate && next build",
     "start": "next start",
-    "lint": "next lint",
+    "worker:outbox": "node scripts/run-outbox-worker.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --pretty false",
+    "validate:onboarding-seed": "node scripts/validate-onboarding-seed.mjs",
+    "validate:onboarding-runtime": "node scripts/validate-onboarding-runtime.mjs",
+    "validate:graphql-smoke": "node scripts/validate-graphql-smoke.mjs",
+    "validate:graphql-runtime": "node scripts/validate-graphql-runtime.mjs",
+    "validate:public-flow-runtime": "node scripts/validate-public-flow-runtime.mjs",
+    "validate:clinical-lifecycle-runtime": "node scripts/validate-clinical-lifecycle-runtime.mjs",
+    "validate:scheduling-runtime": "node scripts/validate-scheduling-runtime.mjs",
+    "validate:registration-runtime": "node scripts/validate-registration-runtime.mjs",
+    "validate:care-queue-runtime": "node scripts/validate-care-queue-runtime.mjs",
+    "validate:controlled-operations-runtime": "node scripts/validate-controlled-operations-runtime.mjs",
+    "validate:operational-fabric-runtime": "node scripts/validate-operational-fabric-runtime.mjs",
+    "validate:access-runtime": "node scripts/validate-access-runtime.mjs",
+    "validate:identity-security-runtime": "node --import tsx scripts/validate-identity-security-runtime.mjs",
+    "test:security": "node --import tsx --test features/dashboard/lib/sameOriginCookieFetch.test.ts features/dashboard/lib/safeDashboardPath.test.ts features/dashboard/lib/getBaseUrl.test.ts features/dashboard/middleware.test.ts features/dashboard/actions/authFeedback.test.ts features/dashboard/screens/ResetPage/resetLinkState.test.ts features/storefront/screens/intake/intakeLinkState.test.ts features/storefront/screens/intake/intakeSubmissionFeedback.test.ts features/storefront/screens/intake/intakeSubmissionFormContract.test.ts features/storefront/screens/booking/appointmentRequestFeedback.test.ts features/storefront/screens/booking/appointmentRequestFormContract.test.ts features/storefront/lib/careServices.test.ts features/lib/hospitalBrandTheme.test.ts features/platform/store-settings/lib/storefrontSettings.test.ts features/storefront/design/brandThemeContracts.test.ts features/storefront/design/responsiveContracts.test.ts features/platform/onboarding/lib/onboardingReadiness.test.ts features/keystone/access.test.ts features/keystone/security/intakeAccess.test.ts features/keystone/security/phiReadAudit.test.ts features/keystone/security/sessionPolicy.test.ts features/keystone/security/runtimeConfig.test.ts features/keystone/security/graphqlSecurity.test.ts features/keystone/security/operatorQueryContracts.test.ts features/platform/operations/lib/selectorSearch.test.ts features/platform/lib/worklistPagination.test.ts features/keystone/mutations/booking/requestAppointment.test.ts features/keystone/integrations/endpointPolicy.test.ts features/keystone/portability/inventoryCsv.test.ts features/keystone/portability/exportBounds.test.ts features/keystone/mutations/scheduling/schedulePolicy.test.ts features/keystone/mutations/scheduling/facilityTime.test.ts features/keystone/mutations/registration/registrationPolicy.test.ts features/keystone/mutations/onboarding/onboardingRegistrationPolicy.test.ts features/keystone/mutations/clinical/encounterPolicy.test.ts features/keystone/lib/careQueueHooks.test.ts features/keystone/lib/controlledClinicalHooks.test.ts",
+    "validate:static": "npm run validate:onboarding-seed && npm run validate:graphql-smoke && npm run test:security && npm run typecheck && npm run lint -- --quiet",
     "migrate:gen": "keystone build --no-ui && tsx features/keystone/view-order/generate-view-order.ts && keystone prisma migrate dev",
-    "migrate": "prisma migrate deploy"
+    "migrate": "prisma migrate deploy",
+    "test:source-r1": "node --import tsx --test tests/hospital-sol-r1.test.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.13",
-    "@openrouter/ai-sdk-provider": "^2.0.2",
     "@ai-sdk/react": "^3.0.51",
     "@graphql-tools/schema": "^10.0.23",
     "@keystone-6/auth": "^8.1.0",
@@ -20,6 +38,7 @@
     "@keystone-6/document-renderer": "^1.1.2",
     "@keystone-6/fields-document": "^9.1.1",
     "@modelcontextprotocol/sdk": "^1.15.1",
+    "@openrouter/ai-sdk-provider": "^2.0.2",
     "@prisma/client": "6.5.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -54,7 +73,6 @@
     "@tanstack/react-query-devtools": "^5.90.2",
     "@tanstack/react-table": "^8.21.2",
     "@types/nodemailer": "^6.4.17",
-    "@vercel/mcp-adapter": "^0.11.2",
     "ai": "^6.0.49",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -71,7 +89,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.511.0",
     "marked": "^16.1.1",
-    "next": "^16.0.10",
+    "next": "^16.2.11",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.5",
     "pluralize": "^8.0.0",
@@ -103,7 +121,7 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.0.10",
+    "eslint-config-next": "16.2.11",
     "node-fetch": "^3.3.2",
     "prisma": "6.5.0",
     "tailwindcss": "^4",
@@ -117,8 +135,10 @@
   "overrides": {
     "react": "^19.2.2",
     "react-dom": "^19.2.2",
+    "postcss": "8.5.18",
+    "sharp": "0.35.0",
     "@keystone-6/core": {
-      "next": "14.2.35"
+      "next": "15.5.21"
     }
   }
 }

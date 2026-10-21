@@ -1,0 +1,9 @@
+# Configure a separate Railway service to use this file as its config path.
+# It calls the app's secret-gated outbox endpoint and owns no public routes.
+[build]
+buildCommand = "true"
+
+[deploy]
+startCommand = "npm run worker:outbox"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

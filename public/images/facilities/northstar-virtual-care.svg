@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 800" role="img" aria-labelledby="title desc">
+  <title id="title">Northstar Virtual Care</title>
+  <desc id="desc">Illustration of a Northstar Family Care virtual visit workspace.</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dceae4"/><stop offset="1" stop-color="#f0e3d4"/></linearGradient></defs>
+  <rect width="1400" height="800" fill="url(#bg)"/>
+  <rect x="160" y="120" width="1080" height="610" rx="42" fill="#f8f6ef"/>
+  <rect x="246" y="196" width="908" height="430" rx="24" fill="#243b3d"/>
+  <rect x="290" y="240" width="554" height="342" rx="18" fill="#b9d3ca"/>
+  <circle cx="567" cy="366" r="92" fill="#bd7957"/>
+  <path d="M475 360c-5-82 33-138 96-138 69 0 107 53 98 135-30-23-48-53-57-90-35 45-81 76-137 93Z" fill="#28312f"/>
+  <path d="M390 582c20-105 78-158 177-158s157 53 177 158H390Z" fill="#f5f1e8"/>
+  <rect x="878" y="240" width="232" height="154" rx="16" fill="#486f68"/>
+  <circle cx="994" cy="298" r="34" fill="#d39a72"/><path d="M942 374c8-53 43-80 52-80s44 27 52 80H942Z" fill="#f5f1e8"/>
+  <rect x="878" y="428" width="232" height="154" rx="16" fill="#e6d4bd"/>
+  <path d="M925 505h138M994 461v88" stroke="#315f59" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="700" cy="678" r="18" fill="#315f59"/>
+</svg>

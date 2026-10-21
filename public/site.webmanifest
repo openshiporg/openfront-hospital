@@ -1,0 +1,16 @@
+{
+  "name": "Hospital patient services",
+  "short_name": "Hospital",
+  "description": "Request appointments and complete one-time pre-visit intake.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f4e9",
+  "theme_color": "#356b63",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

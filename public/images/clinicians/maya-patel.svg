@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Dr. Maya Patel</title>
+  <desc id="desc">Editorial portrait illustration of Dr. Maya Patel.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dcebe4"/><stop offset="1" stop-color="#b9d4c7"/></linearGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#faf8f1"/><stop offset="1" stop-color="#e9e5da"/></linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <circle cx="654" cy="144" r="86" fill="#f2cf78" opacity=".55"/>
+  <path d="M110 800c12-179 122-286 290-286s278 107 290 286H110Z" fill="url(#coat)"/>
+  <path d="M286 526c26 58 202 58 228 0l-42-70H328l-42 70Z" fill="#a56548"/>
+  <ellipse cx="400" cy="332" rx="145" ry="174" fill="#bd7957"/>
+  <path d="M257 322c-4-120 52-209 147-209 105 0 164 83 146 217-32-18-62-62-76-108-52 75-126 108-217 100Z" fill="#28312f"/>
+  <path d="M274 310c-18 12-24 40-13 65 10 24 32 36 49 26l-8-89-28-2Zm252 0c18 12 24 40 13 65-10 24-32 36-49 26l8-89 28-2Z" fill="#bd7957"/>
+  <path d="M343 353c18-12 38-12 57 0m0 0c18-12 38-12 57 0" fill="none" stroke="#28312f" stroke-width="9" stroke-linecap="round"/>
+  <path d="M364 423c23 18 49 18 72 0" fill="none" stroke="#7d3f37" stroke-width="9" stroke-linecap="round"/>
+  <path d="M328 526 400 615l72-89 72 274H256l72-274Z" fill="#f7f4eb"/>
+  <path d="M400 615v185" stroke="#b7b3aa" stroke-width="6"/>
+  <path d="M331 565c-52 33-58 116-16 157m154-157c52 33 58 116 16 157" fill="none" stroke="#315f59" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="315" cy="722" r="18" fill="#315f59"/>
+</svg>

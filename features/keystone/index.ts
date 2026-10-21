@@ -2,17 +2,12 @@ import { createAuth } from "@keystone-6/auth";
 import { config } from "@keystone-6/core";
 import "dotenv/config";
 import { models } from "./models";
-import { statelessSessions } from "@keystone-6/core/session";
 import { extendGraphqlSchema } from "./mutations";
-import { sendPasswordResetEmail } from "./lib/mail";
+import { createSessionStrategy } from "./security/sessionPolicy";
+import { validateProductionEnvironment } from "./security/runtimeConfig";
 
+validateProductionEnvironment();
 const databaseURL = process.env.DATABASE_URL || "file:./keystone.db";
-
-const sessionConfig = {
-  maxAge: 60 * 60 * 24 * 360, // How long they stay signed in?
-  secret:
-    process.env.SESSION_SECRET || "this secret should only be used in testing",
-};
 
 const {
   S3_BUCKET_NAME: bucketName = "keystone-test",
@@ -26,42 +21,34 @@ const { withAuth } = createAuth({
   listKey: "User",
   identityField: "email",
   secretField: "password",
-  initFirstItem: {
-    fields: ["name", "email", "password"],
-    itemData: {
-      role: {
-        create: {
-          name: "Admin",
-          canCreateTodos: true,
-          canManageAllTodos: true,
-          canSeeOtherPeople: true,
-          canEditOtherPeople: true,
-          canManagePeople: true,
-          canManageRoles: true,
-          canAccessDashboard: true,
-        },
-      },
-    },
-  },
-  passwordResetLink: {
-    async sendToken(args) {
-      // send the email
-      await sendPasswordResetEmail(args.token, args.identity);
-    },
-  },
+  // Public Keystone bootstrap and password-reset mutations are deliberately not
+  // enabled. Repository-owned, rate-limited routes provide both workflows.
   sessionData: `
     name
     email
+    securityVersion
     role {
       id
       name
-      canCreateTodos
-      canManageAllTodos
+      canManageAppointments
+      canManageScheduling
+      canManagePatients
+      canManageProviders
+      canManageIntake
+      canManageCommunications
+      canManageBilling
+      canManageInventory
+      canManageIntegrations
+      canManageDataPortability
+      canManageRetention
+      canViewReports
+      canManageOnboarding
       canSeeOtherPeople
       canEditOtherPeople
       canManagePeople
       canManageRoles
       canAccessDashboard
+      canAccessAllClinicalData
     }
   `,
 });
@@ -89,7 +76,7 @@ export default withAuth(
     ui: {
       isAccessAllowed: ({ session }) => session?.data.role?.canAccessDashboard ?? false,
     },
-    session: statelessSessions(sessionConfig),
+    session: createSessionStrategy(),
     graphql: {
       extendGraphqlSchema,
     },

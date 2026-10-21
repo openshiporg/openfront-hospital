@@ -1,22 +1,19 @@
-'use server' 
+import { createTransport } from "nodemailer";
 
-import { createTransport, getTestMessageUrl } from "nodemailer";
-
-// Utility function to get base URL for emails
-function getBaseUrlForEmails(): string {
-  if (process.env.SMTP_STORE_LINK) {
-    return process.env.SMTP_STORE_LINK;
+export function getBaseUrlForEmails(): string {
+  const configured = String(process.env.SMTP_STORE_LINK || '').trim()
+  let url: URL
+  try { url = new URL(configured) } catch { throw new Error('Canonical email link URL is not configured') }
+  if ((process.env.NODE_ENV === 'production' && url.protocol !== 'https:') || url.username || url.password || url.search || url.hash) {
+    throw new Error('Canonical email link URL is invalid')
   }
-  
-  // Fallback warning - this should be set in production
-  console.warn('SMTP_STORE_LINK not set. Please add SMTP_STORE_LINK to your environment variables for email links to work properly.');
-  return '';
+  return url.toString().replace(/\/$/, '')
 }
 
 const transport = createTransport({
-  // @ts-ignore
   host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
+  port: Number(process.env.SMTP_PORT),
+  secure: Number(process.env.SMTP_PORT) === 465,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
@@ -68,10 +65,12 @@ export async function sendPasswordResetEmail(resetToken: string, to: string, bas
     from: process.env.SMTP_FROM,
     subject: "Your password reset token!",
     html: passwordResetEmail({
-      url: `${frontendUrl}/dashboard/reset?token=${resetToken}`,
+      // URL fragments are not sent in HTTP requests or access logs. The reset
+      // form reads and immediately removes this fragment in the browser.
+      url: `${frontendUrl}/dashboard/reset#token=${encodeURIComponent(resetToken)}`,
     }),
   });
-  if (process.env.MAIL_USER?.includes("ethereal.email")) {
-    console.log(`📧 Message Sent!  Preview it at ${getTestMessageUrl(info as any)}`);
-  }
+  // Never log transport preview URLs: password-reset tokens are embedded in
+  // those URLs. Delivery observability belongs in the mail provider.
+  void info
 }

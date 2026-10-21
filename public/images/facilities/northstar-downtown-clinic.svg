@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 800" role="img" aria-labelledby="title desc">
+  <title id="title">Northstar Downtown Clinic</title>
+  <desc id="desc">Street view illustration of Northstar Downtown Clinic.</desc>
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d9e9eb"/><stop offset="1" stop-color="#f5efe3"/></linearGradient></defs>
+  <rect width="1400" height="800" fill="url(#sky)"/>
+  <circle cx="1160" cy="144" r="80" fill="#f2c667" opacity=".8"/>
+  <rect y="656" width="1400" height="144" fill="#8f9c94"/>
+  <path d="M180 656V238h1040v418H180Z" fill="#f4f0e8"/>
+  <path d="M136 260h1128l-76-104H212l-76 104Z" fill="#315f59"/>
+  <rect x="258" y="320" width="222" height="174" fill="#a8c5c3" stroke="#315f59" stroke-width="12"/>
+  <rect x="918" y="320" width="222" height="174" fill="#a8c5c3" stroke="#315f59" stroke-width="12"/>
+  <rect x="570" y="302" width="260" height="354" fill="#e0e5de"/>
+  <rect x="620" y="390" width="160" height="266" fill="#315f59"/>
+  <circle cx="744" cy="525" r="10" fill="#f0c46b"/>
+  <path d="M650 235h100v100H650Z" fill="#fff" opacity=".9"/><path d="M700 252v66M667 285h66" stroke="#315f59" stroke-width="16" stroke-linecap="round"/>
+  <path d="M66 656c25-147 97-222 216-222s191 75 216 222H66Z" fill="#6d927f"/><path d="M902 656c25-147 97-222 216-222s191 75 216 222H902Z" fill="#6d927f"/>
+  <path d="M700 656 622 800h156l-78-144Z" fill="#d7c4a6"/>
+</svg>

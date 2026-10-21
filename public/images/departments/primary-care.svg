@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Northstar primary care department</title>
+  <desc id="desc">A calm Northstar Family Care consultation room prepared for a primary care visit.</desc>
+  <defs><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#eef5f0"/><stop offset="1" stop-color="#d7e5dc"/></linearGradient></defs>
+  <rect width="1200" height="720" fill="url(#wall)"/>
+  <rect y="536" width="1200" height="184" fill="#c7b59d"/>
+  <rect x="94" y="92" width="430" height="318" rx="8" fill="#f9fbf7" stroke="#315f59" stroke-width="12"/>
+  <path d="M309 150v201M208 250h202" stroke="#83a99b" stroke-width="18" stroke-linecap="round"/>
+  <rect x="678" y="184" width="400" height="245" rx="24" fill="#f8f5ed"/>
+  <rect x="720" y="221" width="316" height="104" rx="18" fill="#d8e7df"/>
+  <path d="M739 429h278l43 107H696l43-107Z" fill="#795f4e"/>
+  <rect x="752" y="536" width="28" height="118" fill="#5a473b"/><rect x="976" y="536" width="28" height="118" fill="#5a473b"/>
+  <rect x="128" y="470" width="244" height="66" rx="18" fill="#315f59"/>
+  <rect x="158" y="536" width="25" height="106" fill="#233f3b"/><rect x="318" y="536" width="25" height="106" fill="#233f3b"/>
+  <circle cx="560" cy="490" r="70" fill="#8fb4a6"/><rect x="548" y="508" width="24" height="128" fill="#315f59"/>
+  <path d="M560 473c-38-72-19-121 28-148 10 58 1 107-28 148Zm-8 8c-71-34-91-81-74-132 46 36 70 80 74 132Z" fill="#4c7d70"/>
+</svg>
