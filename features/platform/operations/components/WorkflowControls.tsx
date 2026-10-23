@@ -1,15 +1,13 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type LabelHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { DeviceTimeNotice } from '@/features/platform/components/DeviceTimeNotice'
 import { deviceLocalDateTimeToIso } from '@/features/platform/lib/deviceDateTime'
 import { useDraftExitGuard } from '@/features/platform/lib/useDraftExitGuard'
 import { Loader2 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Notice, Pill, Track, fieldClass, labelClass } from '@/features/platform/components/ward'
 import { FacilitySearchField } from '@/features/platform/facilities/components/FacilitySearchField'
 import * as actions from '../actions/workflows'
 import { recoverLabCommand } from '../actions/labResults'
@@ -37,7 +35,22 @@ type OperationFormProps = {
   accessibleFacilityCount?: number
 }
 
-const selectClassName = 'h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const selectClassName = fieldClass
+
+function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={cn(fieldClass, className)} />
+}
+
+function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={cn(fieldClass, 'h-auto min-h-20 py-2', className)} />
+}
+
+function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
+  return <label {...props} className={cn(labelClass, className)} />
+}
+
+/** Search-field state line: small, muted, wraps. */
+const hintClass = 'text-xs text-muted-foreground'
 
 function operationFieldId(formId: string, fieldName: string) {
   return `${formId}--field-${fieldName}`
@@ -184,7 +197,7 @@ function SearchableField({
           : 'Search ward, room, or bed number'
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -210,10 +223,10 @@ function SearchableField({
         <option value="">{requiresPatient ? 'Select facility and patient first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : `Select ${field.label.toLowerCase()}`}</option>
         {visibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {resultCount > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matches. Add more characters to narrow results.</p>}
-      {(field.name === 'patientId' || field.name === 'encounterId') && options.length === 25 && resultCount === options.length && <p className="text-xs text-muted-foreground">Showing up to 25 matches. Add more characters to narrow results.</p>}
-      {requiresPatient && <p role="status" className="text-xs text-muted-foreground">Select a facility and patient before searching {coverageSearch ? 'coverage' : 'encounters'}.</p>}
-      {error && <p role="status" className="text-xs text-muted-foreground">{error}</p>}
+      {resultCount > options.length && <p className={hintClass}>Showing {options.length} of {resultCount} matches.</p>}
+      {(field.name === 'patientId' || field.name === 'encounterId') && options.length === 25 && resultCount === options.length && <p className={hintClass}>Showing up to 25 matches.</p>}
+      {requiresPatient && <p role="status" className={hintClass}>Select a facility and patient before searching {coverageSearch ? 'coverage' : 'encounters'}.</p>}
+      {error && <p role="status" className={hintClass}>{error}</p>}
     </div>
   )
 }
@@ -270,7 +283,7 @@ function AdmissionPatientSearchField({
   const noMatches = !pending && !unavailable && Boolean(facilityId) && search.trim().length >= 2 && resultCount === 0
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -306,9 +319,9 @@ function AdmissionPatientSearchField({
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a patient'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {resultCount > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matching active patients in this facility. Add more characters to narrow results.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Patient search is unavailable for this session. Admission authority or facility/patient scope could not be verified; no empty result is being inferred.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active patients were found in the selected accessible facility.</p>}
+      {resultCount > options.length && <p className={hintClass}>Showing {options.length} of {resultCount} matching active patients in this facility.</p>}
+      {unavailable && <p role="status" className={hintClass}>Patient search is unavailable for this session. Admission authority or facility/patient scope could not be verified; no empty result is being inferred.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching active patients were found in the selected accessible facility.</p>}
     </div>
   )
 }
@@ -373,7 +386,7 @@ function LabTestSearchField({
   const noMatches = !pending && !unavailable && search.trim().length >= 2 && resultCount === 0
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -406,10 +419,10 @@ function LabTestSearchField({
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a lab test'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {pending && <p role="status" className="text-xs text-muted-foreground">Searching active lab tests…</p>}
-      {resultCount > options.length && <p role="status" className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matching active lab tests. Add more characters to narrow results.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Lab-test search is unavailable for this session; clinical fulfillment authority or the accessible catalog could not be verified. No empty result is being inferred.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active lab tests were found in the accessible catalog.</p>}
+      {pending && <p role="status" className={hintClass}>Searching active lab tests…</p>}
+      {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching active lab tests.</p>}
+      {unavailable && <p role="status" className={hintClass}>Lab-test search is unavailable for this session; clinical fulfillment authority or the accessible catalog could not be verified.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching active lab tests were found in the accessible catalog.</p>}
     </div>
   )
 }
@@ -478,7 +491,7 @@ function LabOrderSearchField({
   const noMatches = !pending && !denied && !unavailable && hasContext && search.trim().length >= 2 && resultCount === 0
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -515,11 +528,11 @@ function LabOrderSearchField({
         <option value="">{!hasContext ? 'Select a facility, patient, and encounter first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a laboratory order'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {pending && <p role="status" className="text-xs text-muted-foreground">Searching active laboratory orders in this encounter…</p>}
-      {resultCount > options.length && <p role="status" className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matching active laboratory orders. Add more characters to narrow results.</p>}
-      {denied && <p role="status" className="text-xs text-muted-foreground">Laboratory-order search is denied for this session or selected scope. No empty result is being inferred.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Laboratory-order search is temporarily unavailable; facility, patient, encounter, or candidate data could not be verified. No empty result is being inferred.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active laboratory orders were found in the selected facility, patient, and encounter.</p>}
+      {pending && <p role="status" className={hintClass}>Searching active laboratory orders in this encounter…</p>}
+      {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching active laboratory orders.</p>}
+      {denied && <p role="status" className={hintClass}>Laboratory-order search is denied for this session or selected scope.</p>}
+      {unavailable && <p role="status" className={hintClass}>Laboratory-order search is temporarily unavailable; facility, patient, encounter, or candidate data could not be verified.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching active laboratory orders were found in the selected facility, patient, and encounter.</p>}
     </div>
   )
 }
@@ -592,7 +605,7 @@ function MedicationOrderSearchField({
   const noMatches = !pending && !denied && !unavailable && hasContext && search.trim().length >= 2 && resultCount === 0
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -622,12 +635,12 @@ function MedicationOrderSearchField({
         <option value="">No related medication order (optional)</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {hasContext && search.trim().length === 1 && <p role="status" className="text-xs text-muted-foreground">Enter at least 2 characters to search, or leave this optional field blank.</p>}
-      {pending && <p role="status" className="text-xs text-muted-foreground">Searching eligible medication orders… You may leave this optional field blank.</p>}
-      {resultCount > options.length && <p role="status" className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matching medication orders. Add more characters to narrow results.</p>}
-      {denied && <p role="status" className="text-xs text-muted-foreground">Medication-order search is denied for this session or selected scope. The optional field may remain blank.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Medication-order search is unavailable; clinical authority, scope, or candidates could not be verified. The optional field may remain blank.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching eligible medication orders were found in this scope. The field may remain blank.</p>}
+      {hasContext && search.trim().length === 1 && <p role="status" className={hintClass}>Enter at least 2 characters to search.</p>}
+      {pending && <p role="status" className={hintClass}>Searching eligible medication orders…</p>}
+      {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching medication orders.</p>}
+      {denied && <p role="status" className={hintClass}>Medication-order search is denied for this session or selected scope.</p>}
+      {unavailable && <p role="status" className={hintClass}>Medication-order search is unavailable; clinical authority, scope, or candidates could not be verified.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching eligible medication orders were found in this scope.</p>}
     </div>
   )
 }
@@ -700,7 +713,7 @@ function ProcedureOrderSearchField({
   const noMatches = !pending && !denied && !unavailable && hasContext && search.trim().length >= 2 && resultCount === 0
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -730,12 +743,12 @@ function ProcedureOrderSearchField({
         <option value="">No related procedure order (optional)</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {hasContext && search.trim().length === 1 && <p role="status" className="text-xs text-muted-foreground">Enter at least 2 characters to search, or leave this optional field blank.</p>}
-      {pending && <p role="status" className="text-xs text-muted-foreground">Searching eligible procedure orders… You may leave this optional field blank.</p>}
-      {resultCount > options.length && <p role="status" className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matching procedure orders. Add more characters to narrow results.</p>}
-      {denied && <p role="status" className="text-xs text-muted-foreground">Procedure-order search is denied for this session or selected scope. The optional field may remain blank.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Procedure-order search is unavailable; clinical authority, scope, or candidates could not be verified. The optional field may remain blank.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching eligible procedure orders were found in this scope. The field may remain blank.</p>}
+      {hasContext && search.trim().length === 1 && <p role="status" className={hintClass}>Enter at least 2 characters to search.</p>}
+      {pending && <p role="status" className={hintClass}>Searching eligible procedure orders…</p>}
+      {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching procedure orders.</p>}
+      {denied && <p role="status" className={hintClass}>Procedure-order search is denied for this session or selected scope.</p>}
+      {unavailable && <p role="status" className={hintClass}>Procedure-order search is unavailable; clinical authority, scope, or candidates could not be verified.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching eligible procedure orders were found in this scope.</p>}
     </div>
   )
 }
@@ -797,7 +810,7 @@ function CorrectableLabResultSearchField({ id }: { id: string }) {
   const noMatches = !pending && !denied && !unavailable && search.trim().length >= 2 && resultCount === 0
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -827,11 +840,11 @@ function CorrectableLabResultSearchField({ id }: { id: string }) {
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a correction target'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {pending && <p role="status" className="text-xs text-muted-foreground">Searching non-superseded final, acknowledged, or corrected results…</p>}
-      {resultCount > options.length && <p role="status" className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matching correction targets. Add more characters to narrow results.</p>}
-      {denied && <p role="status" className="text-xs text-muted-foreground">Lab-result search is denied for this session. No empty result is being inferred.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Lab-result search is unavailable; correction authority or the accessible candidate list could not be verified. No empty result is being inferred.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching non-superseded final, acknowledged, or corrected results were found in the accessible list.</p>}
+      {pending && <p role="status" className={hintClass}>Searching non-superseded final, acknowledged, or corrected results…</p>}
+      {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching correction targets.</p>}
+      {denied && <p role="status" className={hintClass}>Lab-result search is denied for this session.</p>}
+      {unavailable && <p role="status" className={hintClass}>Lab-result search is unavailable; correction authority or the accessible candidate list could not be verified.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching non-superseded final, acknowledged, or corrected results were found in the accessible list.</p>}
     </div>
   )
 }
@@ -893,7 +906,7 @@ function ClinicianSearchField({
   const noMatches = !pending && !unavailable && Boolean(facilityId) && search.trim().length >= 2 && resultCount === 0
 
   return (
-    <div className="space-y-2">
+    <div className="grid min-w-0 gap-1.5">
       <Input
         id={`${id}-search`}
         type="search"
@@ -929,10 +942,10 @@ function ClinicianSearchField({
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a clinician'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {pending && <p role="status" className="text-xs text-muted-foreground">Searching active clinicians in this facility…</p>}
-      {resultCount > options.length && <p role="status" className="text-xs text-muted-foreground">Showing {options.length} of {resultCount} matching active clinicians in this facility. Add more characters to narrow results.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Clinician search is unavailable for this session; clinical fulfillment authority, active facility access, or the accessible clinician list could not be verified. No empty result is being inferred.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active clinicians were found in the selected accessible facility.</p>}
+      {pending && <p role="status" className={hintClass}>Searching active clinicians in this facility…</p>}
+      {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching active clinicians in this facility.</p>}
+      {unavailable && <p role="status" className={hintClass}>Clinician search is unavailable for this session; clinical fulfillment authority, active facility access, or the accessible clinician list could not be verified.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching active clinicians were found in the selected accessible facility.</p>}
     </div>
   )
 }
@@ -1035,17 +1048,19 @@ function OperationForm({ title, description, fields, submitLabel, onSubmit, reco
   )
 
   return (
-    <details className="group rounded-lg border bg-card" open={expanded}>
-      <summary className="cursor-pointer list-none px-4 py-3 marker:hidden">
-        <span id={titleId} className="block font-medium">{title}</span>
-        <span id={descriptionId} className="mt-1 block text-sm text-muted-foreground">{description}</span>
+    <details className="group min-w-0 rounded-xl border bg-card" open={expanded}>
+      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3 px-4 py-3 marker:hidden [&::-webkit-details-marker]:hidden">
+        <span id={titleId} className="min-w-0 text-sm font-semibold text-foreground">{title}</span>
+        <span id={descriptionId} className="sr-only">{description}</span>
+        <span aria-hidden="true" className="shrink-0 font-mono text-xs text-muted-foreground group-open:hidden">+</span>
+        <span aria-hidden="true" className="hidden shrink-0 font-mono text-xs text-muted-foreground group-open:inline">−</span>
       </summary>
       <form
         ref={formRef}
         onChange={() => setDirty(true)}
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="grid gap-4 border-t p-4 md:grid-cols-2"
+        className="grid min-w-0 gap-4 border-t p-4 sm:grid-cols-2"
         onSubmit={async event => {
           event.preventDefault()
           const formData = new FormData(event.currentTarget)
@@ -1096,7 +1111,7 @@ function OperationForm({ title, description, fields, submitLabel, onSubmit, reco
         {fields.map(field => {
           const fieldId = operationFieldId(formId, field.name)
           return (
-            <div key={`${field.name}:${formResetVersion}:${['lab-order-search', 'medication-order-search', 'procedure-order-search'].includes(field.kind || '') ? `${scopeContext.facilityId}:${scopeContext.patientId}:${scopeContext.encounterId}` : field.name === 'patientId' ? scopeContext.facilityId : ['encounterId', 'coverageId'].includes(field.name) ? `${scopeContext.facilityId}:${scopeContext.patientId}` : ['attendingProviderId', 'orderingProviderId', 'providerId', 'bedId', 'bedVersion', 'labTestId', 'clinicianId'].includes(field.name) ? scopeContext.facilityId : ''}`} className={field.kind === 'textarea' ? 'space-y-2 md:col-span-2' : 'space-y-2'}>
+            <div key={`${field.name}:${formResetVersion}:${['lab-order-search', 'medication-order-search', 'procedure-order-search'].includes(field.kind || '') ? `${scopeContext.facilityId}:${scopeContext.patientId}:${scopeContext.encounterId}` : field.name === 'patientId' ? scopeContext.facilityId : ['encounterId', 'coverageId'].includes(field.name) ? `${scopeContext.facilityId}:${scopeContext.patientId}` : ['attendingProviderId', 'orderingProviderId', 'providerId', 'bedId', 'bedVersion', 'labTestId', 'clinicianId'].includes(field.name) ? scopeContext.facilityId : ''}`} className={field.kind === 'textarea' ? 'grid min-w-0 gap-1.5 sm:col-span-2' : 'grid min-w-0 gap-1.5'}>
               {field.kind !== 'facility' && <Label htmlFor={fieldId}>{field.label}{field.required === false ? ' (optional)' : ''}</Label>}
               <FieldControl
                 field={field}
@@ -1114,10 +1129,10 @@ function OperationForm({ title, description, fields, submitLabel, onSubmit, reco
           )
         })}
         </fieldset>
-        {missingFacility && <p role="status" className="text-sm text-muted-foreground md:col-span-2">No accessible active facility is available for this session.</p>}
-        {missingRequiredOptions && !missingFacility && <p role="status" className="text-sm text-muted-foreground md:col-span-2">Required workspace records are not available for this action.</p>}
-        {error && <p role="alert" className="text-sm text-destructive md:col-span-2">{error}</p>}
-        {savedRequest && recoverOriginal && <div className="space-y-2 md:col-span-2"><p className="text-xs">Exact original command is retained in memory. Editing and a new key are blocked while its acknowledgement is unknown. Reload may lose this private body; use the owned server receipt rather than guessing it.</p><Button type="button" variant="outline" disabled={pending} onClick={async () => {
+        {missingFacility && <Notice role="status" className="sm:col-span-2">No accessible active facility is available for this session.</Notice>}
+        {missingRequiredOptions && !missingFacility && <Notice role="status" className="sm:col-span-2">Required workspace records are not available for this action.</Notice>}
+        {error && <Notice tone="bad" role="alert" className="sm:col-span-2">{error}</Notice>}
+        {savedRequest && recoverOriginal && <div className="grid min-w-0 gap-2 sm:col-span-2"><Notice tone="warn" role="status">Original command held in memory; editing is locked until its receipt is verified. Reloading may lose it.</Notice><Track className="justify-self-start"><Pill type="button" disabled={pending} onClick={async () => {
           setPending(true)
           try {
             const response = await recoverOriginal(savedRequest)
@@ -1130,15 +1145,17 @@ function OperationForm({ title, description, fields, submitLabel, onSubmit, reco
             }
           } catch { setError('Recovery unavailable; keep the same command and identity.') }
           finally { setPending(false) }
-        }}>Read-only original receipt recovery</Button></div>}
-        {labReadback != null && <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded border p-3 text-xs md:col-span-2">{JSON.stringify(labReadback, null, 2)}</pre>}
-        {savedRequest && !recoverOriginal && <p role="status" className="text-xs md:col-span-2">The original command is retained in memory. Retry it exactly; reconcile its original server receipt before starting a separate command. Reload can lose this private draft.</p>}
-        {success && <p role="status" className="text-sm text-emerald-700 md:col-span-2">{success}</p>}
-        <div className="md:col-span-2">
-          <Button disabled={pending || missingRequiredOptions} type="submit">
-            {pending && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {savedRequest ? 'Retry exact original command' : submitLabel}
-          </Button>
+        }}>Read-only original receipt recovery</Pill></Track></div>}
+        {labReadback != null && <pre className="max-h-96 min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/40 p-3 font-mono text-xs sm:col-span-2">{JSON.stringify(labReadback, null, 2)}</pre>}
+        {savedRequest && !recoverOriginal && <Notice tone="warn" role="status" className="sm:col-span-2">Original command held in memory. Retry it exactly and reconcile its receipt before a separate command. Reloading may lose it.</Notice>}
+        {success && <Notice tone="ok" role="status" className="sm:col-span-2">{success}</Notice>}
+        <div className="sm:col-span-2">
+          <Track>
+            <Pill variant="primary" disabled={pending || missingRequiredOptions} type="submit">
+              {pending && <Loader2 className="animate-spin" />}
+              {savedRequest ? 'Retry exact original command' : submitLabel}
+            </Pill>
+          </Track>
         </div>
       </form>
     </details>
@@ -1196,7 +1213,7 @@ export function BedReservationReleaseForm({ id, version }: { id: string; version
   const [locked, setLocked] = useState(false)
   const original = useRef<{ id: string; version: number; reason: string; key: string } | null>(null)
   const exitGuard = useDraftExitGuard(Boolean(reason) || locked, locked)
-  return <form className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row" onSubmit={async event => {
+  return <form className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" onSubmit={async event => {
     event.preventDefault()
     if (pending) return
     original.current ||= { id, version, reason, key: `hospital-ui-${crypto.randomUUID()}` }
@@ -1211,15 +1228,15 @@ export function BedReservationReleaseForm({ id, version }: { id: string; version
   }}>
     {exitGuard}
     <Label className="sr-only" htmlFor={`reservation-reason-${id}`}>Release reason</Label>
-    <Input id={`reservation-reason-${id}`} name="reasonCode" required maxLength={80} placeholder="Release reason" disabled={pending || locked} value={reason} onChange={event => setReason(event.target.value)} />
-    <Button disabled={pending} size="sm" variant="outline">{locked ? 'Retry original release' : 'Release reservation'}</Button>
-    {error && <span role="alert" className="text-xs text-destructive sm:basis-full">{error}</span>}
+    <Input id={`reservation-reason-${id}`} name="reasonCode" required maxLength={80} placeholder="Release reason" className="sm:w-auto sm:flex-1" disabled={pending || locked} value={reason} onChange={event => setReason(event.target.value)} />
+    <Track className="self-start sm:self-auto"><Pill type="submit" size="sm" disabled={pending}>{locked ? 'Retry original release' : 'Release reservation'}</Pill></Track>
+    {error && <Notice tone="bad" role="alert" className="text-xs sm:basis-full">{error}</Notice>}
   </form>
 }
 
 export function ClinicalCreateForms({ options }: { options: OperationsWorkspaceOptions }) {
   return (
-    <div className="grid gap-3 xl:grid-cols-2">
+    <div className="grid min-w-0 gap-3 xl:grid-cols-2">
       <OperationForm
         title="Record an order coordination item"
         description="Record operational order status for an accessible encounter. This does not transmit an order or replace the authoritative clinical system."
@@ -1412,10 +1429,11 @@ function InlineAction({ label, onRun, onComplete, variant = 'outline' }: { label
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   return (
-    <span className="inline-flex flex-col items-start gap-1">
-      <Button
+    <span className="inline-flex min-w-0 flex-col items-start gap-1">
+      <Track>
+      <Pill
         size="sm"
-        variant={variant}
+        variant={variant === 'default' ? 'primary' : 'raised'}
         disabled={pending}
         onClick={async () => {
           setPending(true)
@@ -1431,10 +1449,11 @@ function InlineAction({ label, onRun, onComplete, variant = 'outline' }: { label
           }
         }}
       >
-        {pending && <Loader2 className="mr-1 size-3 animate-spin" />}
+        {pending && <Loader2 className="animate-spin" />}
         {label}
-      </Button>
-      {error && <span role="alert" className="max-w-48 text-xs text-destructive">{error}</span>}
+      </Pill>
+      </Track>
+      {error && <span role="alert" className="max-w-56 break-words text-xs text-red-700 dark:text-red-300">{error}</span>}
     </span>
   )
 }
@@ -1467,7 +1486,7 @@ export function AdmissionDischargeForm({ id, version }: { id: string; version: n
   const operationKeys = useOperationKeys()
   return (
     <form
-      className="mt-3 flex flex-col gap-2 sm:flex-row"
+      className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"
       onSubmit={async event => {
           event.preventDefault()
           const formData = new FormData(event.currentTarget)
@@ -1492,9 +1511,9 @@ export function AdmissionDischargeForm({ id, version }: { id: string; version: n
       }}
     >
       <Label className="sr-only" htmlFor={`discharge-${id}`}>Discharge disposition</Label>
-      <Input id={`discharge-${id}`} name="dischargeDisposition" required maxLength={500} placeholder="Discharge disposition" />
-      <Button size="sm" disabled={pending}>Discharge</Button>
-      {error && <span role="alert" className="text-xs text-destructive sm:basis-full">{error}</span>}
+      <Input id={`discharge-${id}`} name="dischargeDisposition" required maxLength={500} placeholder="Discharge disposition" className="sm:w-auto sm:flex-1" />
+      <Track className="self-start sm:self-auto"><Pill type="submit" size="sm" variant="primary" disabled={pending}>Discharge</Pill></Track>
+      {error && <Notice tone="bad" role="alert" className="text-xs sm:basis-full">{error}</Notice>}
     </form>
   )
 }
@@ -1505,7 +1524,7 @@ export function AdmissionTransferForm({ id, version, facilityId }: { id: string;
   const operationKeys = useOperationKeys()
   return (
     <form
-      className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+      className="mt-3 grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-start"
       onSubmit={async event => {
           event.preventDefault()
           const formData = new FormData(event.currentTarget)
@@ -1540,8 +1559,8 @@ export function AdmissionTransferForm({ id, version, facilityId }: { id: string;
       />
       <Label className="sr-only" htmlFor={`transfer-reason-${id}`}>Transfer reason</Label>
       <Input id={`transfer-reason-${id}`} name="reasonCode" required maxLength={80} placeholder="Transfer reason" />
-      <Button size="sm" variant="outline" disabled={pending || !facilityId}>Transfer</Button>
-      {error && <span role="alert" className="text-xs text-destructive sm:col-span-3">{error}</span>}
+      <Track className="self-start"><Pill type="submit" size="sm" disabled={pending || !facilityId}>Transfer</Pill></Track>
+      {error && <Notice tone="bad" role="alert" className="text-xs sm:col-span-3">{error}</Notice>}
     </form>
   )
 }

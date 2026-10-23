@@ -23,16 +23,10 @@ export function IntakeSubmissionForm({ intakeForm }: { intakeForm: PatientIntake
 
   if (result?.type === 'success') {
     return (
-      <div
-        ref={feedbackRef}
-        role="status"
-        aria-live="polite"
-        tabIndex={-1}
-        className="sf-notice sf-notice--success"
-      >
+      <div ref={feedbackRef} role="status" aria-live="polite" tabIndex={-1} className="sf-receipt">
         <p className="sf-eyebrow">Intake receipt</p>
-        <h2 style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>Intake submitted</h2>
-        <p style={{ marginTop: 'var(--space-sm)', lineHeight: 1.6 }}>{result.message}</p>
+        <h2 className="sf-step-title sf-titleline"><span aria-hidden="true" className="sf-dot sf-dot--ok" /><span>Intake submitted</span></h2>
+        <p>{result.message}</p>
       </div>
     )
   }
@@ -103,17 +97,9 @@ export function IntakeSubmissionForm({ intakeForm }: { intakeForm: PatientIntake
         })
       }}
     >
-      <div>
-        <p className="sf-eyebrow">Pre-visit details</p>
-        <h2 className="sf-display" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-xl)' }}>
-          Complete intake
-        </h2>
-        <p style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
-          This is not an emergency form. If you are experiencing an emergency, call emergency services immediately.
-        </p>
-      </div>
+      <h2 className="sf-step-title">Complete intake</h2>
 
-      <fieldset className="sf-fieldset" style={{ marginTop: 'var(--space-lg)' }}>
+      <fieldset className="sf-fieldset">
         <legend className="sf-legend">Contact and insurance</legend>
         <div className="sf-grid-2">
           <label className="sf-field">
@@ -156,7 +142,7 @@ export function IntakeSubmissionForm({ intakeForm }: { intakeForm: PatientIntake
               className="sf-input"
             />
           </label>
-          <label className="sf-field" style={{ gridColumn: '1 / -1' }}>
+          <label className="sf-field sf-span-2">
             <span className="sf-label">Member ID</span>
             <input
               name="insuranceMemberId"
@@ -167,7 +153,7 @@ export function IntakeSubmissionForm({ intakeForm }: { intakeForm: PatientIntake
         </div>
       </fieldset>
 
-      <fieldset className="sf-fieldset" style={{ marginTop: 'var(--space-lg)' }}>
+      <fieldset className="sf-fieldset">
         <legend className="sf-legend">Visit information</legend>
         <label className="sf-field">
           <span className="sf-label">Main reason for your visit</span>
@@ -179,58 +165,42 @@ export function IntakeSubmissionForm({ intakeForm }: { intakeForm: PatientIntake
             className="sf-textarea"
           />
         </label>
-        <label className="sf-field" style={{ marginTop: 'var(--space-md)' }}>
+        <label className="sf-field">
           <span className="sf-label">Current symptoms or updates</span>
           <textarea name="symptoms" rows={4} className="sf-textarea" />
         </label>
-        <div className="sf-grid-2" style={{ marginTop: 'var(--space-md)' }}>
+        <div className="sf-grid-2">
           <label className="sf-field">
             <span className="sf-label">Current medications</span>
             <textarea name="medications" rows={5} className="sf-textarea" />
-            <span style={{ marginTop: 'var(--space-2xs)', display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-ink-3)' }}>
-              One per line.
-            </span>
+            <span className="sf-hint">One per line</span>
           </label>
           <label className="sf-field">
             <span className="sf-label">Allergies</span>
             <textarea name="allergies" rows={5} className="sf-textarea" />
-            <span style={{ marginTop: 'var(--space-2xs)', display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-ink-3)' }}>
-              One per line.
-            </span>
+            <span className="sf-hint">One per line</span>
           </label>
         </div>
       </fieldset>
 
-      <label
-        className="sf-notice sf-notice--info"
-        style={{ marginTop: 'var(--space-lg)', display: 'flex', gap: 'var(--space-sm)', alignItems: 'flex-start', cursor: 'pointer' }}
-      >
-        <input required type="checkbox" name="consentToContact" style={{ marginTop: '0.2rem' }} />
+      <label className="sf-check">
+        <input required type="checkbox" name="consentToContact" />
         <span>I confirm this information is accurate and consent to the clinic contacting me about this appointment.</span>
       </label>
 
-      <button
-        disabled={isPending}
-        className="sf-btn sf-btn--primary sf-btn--block"
-        style={{ marginTop: 'var(--space-lg)' }}
-        type="submit"
-      >
-        {isPending ? 'Submitting intake…' : 'Submit intake'}
-      </button>
+      <div className="sf-track sf-track--block">
+        <button disabled={isPending} className="sf-pill sf-pill--primary" type="submit">
+          {isPending ? 'Submitting intake…' : 'Submit intake'}
+        </button>
+      </div>
 
       {result?.type === 'error' && (
-        <div
-          ref={feedbackRef}
-          role="alert"
-          aria-live="assertive"
-          tabIndex={-1}
-          className="sf-notice sf-notice--error"
-          style={{ marginTop: 'var(--space-md)' }}
-        >
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>
-            {result.outcome === 'correctable' ? 'Review the intake form' : 'Submission not verified'}
-          </h2>
-          <p style={{ marginTop: 'var(--space-xs)' }}>{result.message}</p>
+        <div ref={feedbackRef} role="alert" aria-live="assertive" tabIndex={-1} className="sf-notice sf-notice--error">
+          <span aria-hidden="true" className="sf-dot sf-dot--bad" />
+          <div className="sf-notice__body">
+            <p className="sf-notice__title">{result.outcome === 'correctable' ? 'Review the intake form' : 'Submission not verified'}</p>
+            <p>{result.message}</p>
+          </div>
         </div>
       )}
     </form>

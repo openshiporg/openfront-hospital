@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
+import { Dot, EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
 import { getHospitalBranding } from '@/features/storefront/lib/data/branding'
 
@@ -7,52 +7,61 @@ export async function ProvidersPage() {
   const [profile, providers] = await Promise.all([getHospitalBranding(), getBookableProviders()])
 
   return (
-    <StorefrontShell profile={profile}>
-      <header className="sf-page-hero sf-reveal">
-        <div className="sf-container sf-page-hero__grid">
+    <StorefrontShell profile={profile} current="providers">
+      <header className="sf-pagehead">
+        <div className="sf-container sf-pagehead__inner sf-reveal">
           <div>
-            <p className="sf-eyebrow">The {profile.shortName} care team</p>
-            <h1 className="sf-display sf-display--hero" style={{ marginTop: '1rem', maxWidth: '10ch' }}>Care feels different when people work together.</h1>
-            <p className="sf-lead">Meet the clinicians currently accepting online requests for primary care, follow-up, and behavioral health visits.</p>
+            <p className="sf-eyebrow">{profile.shortName}</p>
+            <h1 className="sf-display sf-display--page">Care team</h1>
+            <p className="sf-pagehead__count">{providers.length} {providers.length === 1 ? 'clinician' : 'clinicians'} accepting requests</p>
           </div>
-          <div className="sf-page-hero__aside">
-            <p><strong>{providers.length} clinicians accepting requests</strong></p>
-            <p style={{ marginTop: '.6rem' }}>Every appointment request is reviewed by clinic staff. Choose a listed visit type to begin.</p>
-          </div>
+          <EmergencyNotice />
         </div>
       </header>
 
-      <div className="sf-page-photo"><img src={profile.media.clinic} alt="A calm, naturally lit clinic waiting area" /></div>
-
-      <section className="sf-container" style={{ paddingTop: '2rem' }}><EmergencyNotice /></section>
-
-      <section className="sf-container sf-providers" aria-label="Bookable clinicians">
+      <section className="sf-container" aria-label="Clinicians" style={{ paddingTop: 'var(--space-lg)' }}>
         {providers.length === 0 ? (
-          <div className="sf-empty"><h2 className="sf-empty__title">No providers are listed yet</h2><p className="sf-empty__text">Active providers and their visit types will appear here once the clinic schedule is configured.</p></div>
-        ) : providers.map((provider) => (
-          <article key={provider.id} className="sf-provider">
-            <div className="sf-provider__portrait-wrap">
-              {provider.imagePath ? <img className="sf-provider__portrait" src={provider.imagePath} alt={provider.imageAltText || `Representative portrait for ${provider.displayName}`} /> : <div className="sf-provider__initials" aria-hidden="true">{(provider.firstName?.[0] || '') + (provider.lastName?.[0] || '')}</div>}
-            </div>
-            <div className="sf-provider__body">
-              <p className="sf-eyebrow">{provider.credentials || `${profile.shortName} clinician`}</p>
-              <h2 className="sf-display sf-provider__name" style={{ marginTop: '1rem' }}>{provider.displayName}</h2>
-              {provider.specialty && <p className="sf-provider__specialty">{provider.specialty}</p>}
-              {provider.locationName && <p className="sf-provider__location">{provider.locationName}</p>}
-              {provider.bio && <p className="sf-provider__bio">{provider.bio}</p>}
-              {provider.appointmentTypes.length > 0 ? (
-                <div className="sf-provider__visits">
-                  <p className="sf-eyebrow">Available visits</p>
-                  <ul className="sf-provider__visit-list">
-                    {provider.appointmentTypes.map((visitType) => (
-                      <li key={visitType.id}><Link className="sf-provider__visit" href={`/book/${visitType.slug}?providerId=${provider.id}`}><span className="sf-provider__visit-name">{visitType.name} <span className="sf-arrow">→</span></span><span className="sf-provider__visit-meta">{visitType.durationMinutes ? `${visitType.durationMinutes} min` : ''}{visitType.formattedPrice ? ` · ${visitType.formattedPrice}` : ''}</span></Link></li>
-                    ))}
-                  </ul>
-                </div>
-              ) : <p className="sf-provider__bio">No bookable visit types are configured for this provider yet.</p>}
-            </div>
-          </article>
-        ))}
+          <div className="sf-empty"><h2 className="sf-empty__title">No clinicians are accepting online requests</h2></div>
+        ) : (
+          <ul className="sf-people">
+            {providers.map(provider => {
+              const accepting = provider.appointmentTypes.length > 0
+              return (
+                <li key={provider.id} className="sf-person">
+                  <div className="sf-person__photo">
+                    {provider.imagePath
+                      ? <img src={provider.imagePath} alt={provider.imageAltText || `Portrait of ${provider.displayName}`} loading="lazy" />
+                      : <div className="sf-person__initials" aria-hidden="true">{(provider.firstName?.[0] || '') + (provider.lastName?.[0] || '')}</div>}
+                  </div>
+                  <div className="sf-person__body">
+                    <h2 className="sf-person__name sf-titleline">
+                      <Dot tone={accepting ? 'ok' : undefined} />
+                      <span><span className="sf-sr">{accepting ? 'Accepting requests' : 'No online visits'}: </span>{provider.displayName}</span>
+                    </h2>
+                    <p className="sf-person__meta">
+                      {provider.credentials && <span>{provider.credentials}</span>}
+                      {provider.specialty && <span>{provider.specialty}</span>}
+                      {provider.locationName && <span>{provider.locationName}</span>}
+                    </p>
+                    {provider.bio && <p className="sf-person__bio">{provider.bio}</p>}
+                    {accepting ? (
+                      <ul className="sf-person__visits" aria-label={`Visits with ${provider.displayName}`}>
+                        {provider.appointmentTypes.map(visitType => (
+                          <li key={visitType.id}>
+                            <Link className="sf-person__visit" href={`/book/${visitType.slug}?providerId=${provider.id}`}>
+                              <span>{visitType.name} <span className="sf-arrow">→</span></span>
+                              <span className="sf-mono">{[visitType.durationMinutes ? `${visitType.durationMinutes} min` : '', visitType.formattedPrice || ''].filter(Boolean).join(' · ')}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : <p className="sf-person__bio sf-muted">No online visits</p>}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </section>
     </StorefrontShell>
   )

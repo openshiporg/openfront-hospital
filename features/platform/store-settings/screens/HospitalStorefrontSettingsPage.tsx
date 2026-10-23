@@ -1,5 +1,6 @@
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
+import { Notice, WardBody, WardHeader } from '@/features/platform/components/ward'
 import { getHospitalStorefrontSettings } from '@/features/platform/store-settings/actions/storefrontSettings'
 import { emptyHospitalStorefrontSettings } from '@/features/platform/store-settings/lib/storefrontSettings'
 import { HospitalStorefrontSettingsForm } from './HospitalStorefrontSettingsForm'
@@ -21,13 +22,13 @@ export async function HospitalStorefrontSettingsPage() {
       <PageContainer
         title="Storefront settings"
         breadcrumbs={breadcrumbs}
-        header={<div><p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Permission required</p><h1 className="mt-2 text-3xl font-semibold">Storefront settings</h1></div>}
+        header={<WardHeader title="Storefront settings" tone="warn" status="Permission required" meta="Permission required" />}
       >
-        <div className="px-4 pb-8 md:px-6">
-          <div role="alert" className="rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950">
+        <WardBody>
+          <Notice role="alert" tone="warn">
             Storefront identity and theme changes require healthcare setup authority. No settings were changed.
-          </div>
-        </div>
+          </Notice>
+        </WardBody>
       </PageContainer>
     )
   }
@@ -45,27 +46,26 @@ export async function HospitalStorefrontSettingsPage() {
       title="Storefront settings"
       breadcrumbs={breadcrumbs}
       header={(
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Patient front door</p>
-          <h1 className="mt-2 text-3xl font-semibold">Storefront settings</h1>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Manage verified public identity, scheduling contact details, and an approved visual theme. Available services remain derived from active visit types and providers; emergency, booking-confirmation, intake, and privacy language is not editable here.
-          </p>
-        </div>
+        <WardHeader
+          title="Storefront settings"
+          tone={!profile ? 'warn' : profile.status === 'active' ? 'ok' : 'idle'}
+          status={!profile ? 'No profile' : profile.status === 'active' ? 'Live' : 'Inactive'}
+          meta={!profile ? 'No public profile' : profile.status === 'active' ? 'Live' : 'Inactive profile'}
+        />
       )}
     >
-      <div className="px-4 pb-8 md:px-6">
+      <WardBody>
         {!profile ? (
-          <div role="status" className="mb-4 rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950">
-            No primary public profile exists. Saving verified identity will create the active primary profile; generic unconfigured storefront copy remains in use until then.
-          </div>
+          <Notice role="status" tone="warn">
+            No primary public profile exists. Saving will create it; the storefront uses generic copy until then.
+          </Notice>
         ) : profile.status !== 'active' ? (
-          <div role="status" className="mb-4 rounded-lg border p-4 text-sm text-muted-foreground">
-            The primary profile is inactive. Saving will preserve that state, so the public storefront will continue using its generic fallback.
-          </div>
+          <Notice role="status">
+            The primary profile is inactive. Saving keeps it inactive, so the storefront continues using its generic fallback.
+          </Notice>
         ) : null}
         <HospitalStorefrontSettingsForm initialSettings={initialSettings} />
-      </div>
+      </WardBody>
     </PageContainer>
   )
 }

@@ -1,7 +1,24 @@
 import Link from 'next/link'
 
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type * as React from 'react'
+
+import {
+  Board,
+  BoardRow,
+  Code,
+  EmptyBoard,
+  Notice,
+  Pill,
+  Readout,
+  ReadoutStrip,
+  StatusTag,
+  Track,
+  WardBody,
+  WardHeader,
+  WardSection,
+  statusLabel,
+  toneForStatus,
+} from '@/features/platform/components/ward'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import { BoundedDataNotice } from '@/features/platform/components/BoundedDataNotice'
@@ -651,7 +668,7 @@ export default async function ClinicalFulfillmentPage({ searchParams }: PageProp
     getOperationsWorkspaceOptions().catch(() => null),
   ])
   if (!fulfillment || !options) {
-    return <><WorkspaceLoadError title="Clinical fulfillment" description="Clinical work items or required selectors may be incomplete." breadcrumbs={breadcrumbs} /><section className="px-4 pb-8 md:px-6"><LabResultReadbackPanel /></section></>
+    return <><WorkspaceLoadError title="Clinical fulfillment" description="Clinical work items or required selectors may be incomplete." breadcrumbs={breadcrumbs} /><section className="px-4 pb-10 md:px-6"><LabResultReadbackPanel /></section></>
   }
   const { ordersQueue, resultsQueue, prescriptionsQueue, proceduresQueue, carePlansQueue } = fulfillment
   const orderRows: Row[] = ordersQueue.page?.state === 'ready' ? ordersQueue.page.orders : []
@@ -660,8 +677,8 @@ export default async function ClinicalFulfillmentPage({ searchParams }: PageProp
   const procedureRows: Row[] = proceduresQueue.page?.state === 'ready' ? proceduresQueue.page.procedures : []
   const carePlanRows: Row[] = carePlansQueue.page?.state === 'ready' ? carePlansQueue.page.carePlans : []
   const groups: Array<{ kind: QueueKind; title: string; label: string; rows: Row[]; count: number | null }> = [
-    { kind: 'order', title: 'Orders', label: 'orders', rows: orderRows, count: ordersQueue.totalCount },
     { kind: 'result', title: 'Results', label: 'results', rows: resultRows, count: resultsQueue.totalCount },
+    { kind: 'order', title: 'Orders', label: 'orders', rows: orderRows, count: ordersQueue.totalCount },
     { kind: 'prescription', title: 'Prescriptions', label: 'prescriptions', rows: prescriptionRows, count: prescriptionsQueue.totalCount },
     { kind: 'procedure', title: 'Procedures', label: 'procedures', rows: procedureRows, count: proceduresQueue.totalCount },
     { kind: 'carePlan', title: 'Care plans', label: 'care plans', rows: carePlanRows, count: carePlansQueue.totalCount },
@@ -675,59 +692,56 @@ export default async function ClinicalFulfillmentPage({ searchParams }: PageProp
       title="Clinical fulfillment"
       breadcrumbs={breadcrumbs}
       header={(
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Clinical work queues</p>
-          <h1 className="mt-2 text-3xl font-semibold">Clinical fulfillment</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Track operational records and external/manual status evidence. This workspace does not prescribe, transmit orders, perform procedures, validate lab truth, or provide medical advice.</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border px-2.5 py-1">Open tasks: {totalTasks ?? 'Unavailable'}</span>
-            <span className="rounded-full border px-2.5 py-1">Active encounters shown: {options.encounters.length}</span>
-          </div>
-        </div>
+        <WardHeader
+          eyebrow="Clinical work queues"
+          title="Clinical fulfillment"
+          tone={totalTasks === null ? 'bad' : totalTasks > 0 ? 'warn' : 'ok'}
+          status={totalTasks === null ? 'Task counts unavailable' : `${totalTasks} open tasks`}
+          meta={<>Active encounters shown {options.encounters.length}</>}
+        />
       )}
     >
-      <div className="space-y-5 px-4 pb-8 md:px-6">
+      <WardBody>
         <BoundedDataNotice messages={options.notices} />
-        <LabResultReadbackPanel />
-        <ClinicalCreateForms options={options} />
-        <div className="grid gap-4 xl:grid-cols-2">
+        <ReadoutStrip>
+          {groups.map(({ kind, title, count }) => (
+            <Readout key={kind} label={title} tone={count === null ? 'bad' : count > 0 ? (kind === 'result' ? 'warn' : 'accent') : 'ok'} value={count ?? '—'} sub={count === null ? 'Unavailable' : undefined} />
+          ))}
+        </ReadoutStrip>
+        <div className="grid min-w-0 gap-6 xl:grid-cols-2">
           {groups.map(({ kind, title, label, rows, count }) => (
-            <Card key={kind}>
-              <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{count ?? 'Unavailable'} open {count === 1 ? 'item' : 'items'} total, oldest first; 25 per page.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {kind === 'order' && ordersQueue.state === 'denied' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>This order cursor is stale or outside the orders accessible to this session. No order record was loaded.</p><Link href={medicalOrderCursorHref(null, null, preservedForOrders)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first orders page</Link></div>}
-                {kind === 'order' && ordersQueue.state === 'stale' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>The order cursor is malformed or stale. Return to the first page to continue.</p><Link href={medicalOrderCursorHref(null, null, preservedForOrders)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first orders page</Link></div>}
-                {kind === 'order' && ordersQueue.state === 'unavailable' && <p role="alert" className="text-sm text-destructive">The active orders and their count could not be verified. No empty queue is being inferred.</p>}
-                {kind === 'order' && ordersQueue.state === 'inconsistent' && <div role="alert" className="space-y-2 text-sm text-destructive"><p>Order rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</p><Link href={medicalOrderCursorHref(null, null, preservedForOrders)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first orders page</Link></div>}
-                {kind === 'order' && ordersQueue.state === 'empty' && ordersQueue.page?.state === 'empty' && ordersQueue.page.totalCount === 0 && ordersQueue.direction === 'first' && <p role="status" className="text-sm text-muted-foreground">No current tasks.</p>}
-                {kind === 'order' && ordersQueue.state === 'empty' && ordersQueue.page?.state === 'empty' && ordersQueue.page.totalCount > 0 && <p role="status" className="text-sm text-muted-foreground">No active orders are available on this side of the cursor.</p>}
-                {kind === 'result' && resultsQueue.state === 'denied' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>This lab-result cursor is stale or outside the lab results accessible to this session. No lab-result record was loaded.</p><Link href={labResultCursorHref(null, null, preservedForResults)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first results page</Link></div>}
-                {kind === 'result' && resultsQueue.state === 'stale' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>The lab-result cursor is malformed or stale. Return to the first page to continue.</p><Link href={labResultCursorHref(null, null, preservedForResults)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first results page</Link></div>}
-                {kind === 'result' && resultsQueue.state === 'unavailable' && <p role="alert" className="text-sm text-destructive">The active lab results and their count could not be verified. No empty queue is being inferred.</p>}
-                {kind === 'result' && resultsQueue.state === 'inconsistent' && <div role="alert" className="space-y-2 text-sm text-destructive"><p>Lab-result rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</p><Link href={labResultCursorHref(null, null, preservedForResults)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first results page</Link></div>}
-                {kind === 'result' && resultsQueue.state === 'empty' && resultsQueue.page?.state === 'empty' && resultsQueue.page.totalCount === 0 && resultsQueue.direction === 'first' && <p role="status" className="text-sm text-muted-foreground">No current tasks.</p>}
-                {kind === 'result' && resultsQueue.state === 'empty' && resultsQueue.page?.state === 'empty' && resultsQueue.page.totalCount > 0 && <p role="status" className="text-sm text-muted-foreground">No active lab results are available on this side of the cursor.</p>}
-                {kind === 'prescription' && prescriptionsQueue.state === 'denied' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>This prescription cursor is stale or outside the prescriptions accessible to this session. No prescription record was loaded.</p><Link href={prescriptionCursorHref(null, null, preservedForPrescriptions)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first prescriptions page</Link></div>}
-                {kind === 'prescription' && prescriptionsQueue.state === 'stale' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>The prescription cursor is malformed or stale. Return to the first page to continue.</p><Link href={prescriptionCursorHref(null, null, preservedForPrescriptions)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first prescriptions page</Link></div>}
-                {kind === 'prescription' && prescriptionsQueue.state === 'unavailable' && <p role="alert" className="text-sm text-destructive">The active prescriptions and their count could not be verified. No empty queue is being inferred.</p>}
-                {kind === 'prescription' && prescriptionsQueue.state === 'inconsistent' && <div role="alert" className="space-y-2 text-sm text-destructive"><p>Prescription rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</p><Link href={prescriptionCursorHref(null, null, preservedForPrescriptions)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first prescriptions page</Link></div>}
-                {kind === 'prescription' && prescriptionsQueue.state === 'empty' && prescriptionsQueue.page?.state === 'empty' && prescriptionsQueue.page.totalCount === 0 && prescriptionsQueue.direction === 'first' && <p role="status" className="text-sm text-muted-foreground">No current tasks.</p>}
-                {kind === 'prescription' && prescriptionsQueue.state === 'empty' && prescriptionsQueue.page?.state === 'empty' && prescriptionsQueue.page.totalCount > 0 && <p role="status" className="text-sm text-muted-foreground">No prescriptions are available on this side of the cursor.</p>}
-                {kind === 'procedure' && proceduresQueue.state === 'denied' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>This procedure cursor is stale or outside the procedures accessible to this session. No procedure record was loaded.</p><Link href={procedureCursorHref(null, null, preservedForProcedures)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first procedures page</Link></div>}
-                {kind === 'procedure' && proceduresQueue.state === 'stale' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>The procedure cursor is malformed or stale. Return to the first page to continue.</p><Link href={procedureCursorHref(null, null, preservedForProcedures)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first procedures page</Link></div>}
-                {kind === 'procedure' && proceduresQueue.state === 'unavailable' && <p role="alert" className="text-sm text-destructive">The active procedures and their count could not be verified. No empty queue is being inferred.</p>}
-                {kind === 'procedure' && proceduresQueue.state === 'inconsistent' && <div role="alert" className="space-y-2 text-sm text-destructive"><p>Procedure rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</p><Link href={procedureCursorHref(null, null, preservedForProcedures)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first procedures page</Link></div>}
-                {kind === 'procedure' && proceduresQueue.state === 'empty' && proceduresQueue.page?.state === 'empty' && proceduresQueue.page.totalCount === 0 && proceduresQueue.direction === 'first' && <p role="status" className="text-sm text-muted-foreground">No current tasks.</p>}
-                {kind === 'carePlan' && carePlansQueue.state === 'denied' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>This care-plan cursor is stale or outside the care plans accessible to this session. No care plan record was loaded.</p><Link href={carePlanCursorHref(null, null, preservedForCarePlans)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first care plans page</Link></div>}
-                {kind === 'carePlan' && carePlansQueue.state === 'stale' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>The care-plan cursor is malformed or stale. Return to the first page to continue.</p><Link href={carePlanCursorHref(null, null, preservedForCarePlans)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first care plans page</Link></div>}
-                {kind === 'carePlan' && carePlansQueue.state === 'unavailable' && <p role="alert" className="text-sm text-destructive">The active care plans and their count could not be verified. No empty queue is being inferred.</p>}
-                {kind === 'carePlan' && carePlansQueue.state === 'inconsistent' && <div role="alert" className="space-y-2 text-sm text-destructive"><p>Care-plan rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</p><Link href={carePlanCursorHref(null, null, preservedForCarePlans)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first care plans page</Link></div>}
-                {kind === 'carePlan' && carePlansQueue.state === 'empty' && carePlansQueue.page?.state === 'empty' && carePlansQueue.page.totalCount === 0 && carePlansQueue.direction === 'first' && <p role="status" className="text-sm text-muted-foreground">No current tasks.</p>}
-                {kind === 'carePlan' && carePlansQueue.state === 'empty' && carePlansQueue.page?.state === 'empty' && carePlansQueue.page.totalCount > 0 && <p role="status" className="text-sm text-muted-foreground">No care plans are available on this side of the cursor.</p>}
-                {rows.map(row => {
+            <WardSection key={kind} id={`queue-${kind}`} title={title} count={count ?? undefined} className={kind === 'result' ? 'xl:col-span-2' : undefined}>
+              <div className="space-y-3">
+                {kind === 'order' && ordersQueue.state === 'denied' && <CursorReset role="status" href={medicalOrderCursorHref(null, null, preservedForOrders)} label="First orders page">This order cursor is stale or outside the orders accessible to this session. No order record was loaded.</CursorReset>}
+                {kind === 'order' && ordersQueue.state === 'stale' && <CursorReset role="status" href={medicalOrderCursorHref(null, null, preservedForOrders)} label="First orders page">The order cursor is malformed or stale.</CursorReset>}
+                {kind === 'order' && ordersQueue.state === 'unavailable' && <Notice tone="bad" role="alert">The active orders and their count could not be verified. No empty queue is being inferred.</Notice>}
+                {kind === 'order' && ordersQueue.state === 'inconsistent' && <CursorReset role="alert" href={medicalOrderCursorHref(null, null, preservedForOrders)} label="First orders page">Order rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</CursorReset>}
+                {kind === 'order' && ordersQueue.state === 'empty' && ordersQueue.page?.state === 'empty' && ordersQueue.page.totalCount === 0 && ordersQueue.direction === 'first' && <div role="status"><EmptyBoard title="No current tasks" /></div>}
+                {kind === 'order' && ordersQueue.state === 'empty' && ordersQueue.page?.state === 'empty' && ordersQueue.page.totalCount > 0 && <Notice role="status">No active orders on this side of the cursor.</Notice>}
+                {kind === 'result' && resultsQueue.state === 'denied' && <CursorReset role="status" href={labResultCursorHref(null, null, preservedForResults)} label="First results page">This lab-result cursor is stale or outside the lab results accessible to this session. No lab-result record was loaded.</CursorReset>}
+                {kind === 'result' && resultsQueue.state === 'stale' && <CursorReset role="status" href={labResultCursorHref(null, null, preservedForResults)} label="First results page">The lab-result cursor is malformed or stale.</CursorReset>}
+                {kind === 'result' && resultsQueue.state === 'unavailable' && <Notice tone="bad" role="alert">The active lab results and their count could not be verified. No empty queue is being inferred.</Notice>}
+                {kind === 'result' && resultsQueue.state === 'inconsistent' && <CursorReset role="alert" href={labResultCursorHref(null, null, preservedForResults)} label="First results page">Lab-result rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</CursorReset>}
+                {kind === 'result' && resultsQueue.state === 'empty' && resultsQueue.page?.state === 'empty' && resultsQueue.page.totalCount === 0 && resultsQueue.direction === 'first' && <div role="status"><EmptyBoard title="No current tasks" /></div>}
+                {kind === 'result' && resultsQueue.state === 'empty' && resultsQueue.page?.state === 'empty' && resultsQueue.page.totalCount > 0 && <Notice role="status">No active lab results on this side of the cursor.</Notice>}
+                {kind === 'prescription' && prescriptionsQueue.state === 'denied' && <CursorReset role="status" href={prescriptionCursorHref(null, null, preservedForPrescriptions)} label="First prescriptions page">This prescription cursor is stale or outside the prescriptions accessible to this session. No prescription record was loaded.</CursorReset>}
+                {kind === 'prescription' && prescriptionsQueue.state === 'stale' && <CursorReset role="status" href={prescriptionCursorHref(null, null, preservedForPrescriptions)} label="First prescriptions page">The prescription cursor is malformed or stale.</CursorReset>}
+                {kind === 'prescription' && prescriptionsQueue.state === 'unavailable' && <Notice tone="bad" role="alert">The active prescriptions and their count could not be verified. No empty queue is being inferred.</Notice>}
+                {kind === 'prescription' && prescriptionsQueue.state === 'inconsistent' && <CursorReset role="alert" href={prescriptionCursorHref(null, null, preservedForPrescriptions)} label="First prescriptions page">Prescription rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</CursorReset>}
+                {kind === 'prescription' && prescriptionsQueue.state === 'empty' && prescriptionsQueue.page?.state === 'empty' && prescriptionsQueue.page.totalCount === 0 && prescriptionsQueue.direction === 'first' && <div role="status"><EmptyBoard title="No current tasks" /></div>}
+                {kind === 'prescription' && prescriptionsQueue.state === 'empty' && prescriptionsQueue.page?.state === 'empty' && prescriptionsQueue.page.totalCount > 0 && <Notice role="status">No prescriptions on this side of the cursor.</Notice>}
+                {kind === 'procedure' && proceduresQueue.state === 'denied' && <CursorReset role="status" href={procedureCursorHref(null, null, preservedForProcedures)} label="First procedures page">This procedure cursor is stale or outside the procedures accessible to this session. No procedure record was loaded.</CursorReset>}
+                {kind === 'procedure' && proceduresQueue.state === 'stale' && <CursorReset role="status" href={procedureCursorHref(null, null, preservedForProcedures)} label="First procedures page">The procedure cursor is malformed or stale.</CursorReset>}
+                {kind === 'procedure' && proceduresQueue.state === 'unavailable' && <Notice tone="bad" role="alert">The active procedures and their count could not be verified. No empty queue is being inferred.</Notice>}
+                {kind === 'procedure' && proceduresQueue.state === 'inconsistent' && <CursorReset role="alert" href={procedureCursorHref(null, null, preservedForProcedures)} label="First procedures page">Procedure rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</CursorReset>}
+                {kind === 'procedure' && proceduresQueue.state === 'empty' && proceduresQueue.page?.state === 'empty' && proceduresQueue.page.totalCount === 0 && proceduresQueue.direction === 'first' && <div role="status"><EmptyBoard title="No current tasks" /></div>}
+                {kind === 'carePlan' && carePlansQueue.state === 'denied' && <CursorReset role="status" href={carePlanCursorHref(null, null, preservedForCarePlans)} label="First care plans page">This care-plan cursor is stale or outside the care plans accessible to this session. No care plan record was loaded.</CursorReset>}
+                {kind === 'carePlan' && carePlansQueue.state === 'stale' && <CursorReset role="status" href={carePlanCursorHref(null, null, preservedForCarePlans)} label="First care plans page">The care-plan cursor is malformed or stale.</CursorReset>}
+                {kind === 'carePlan' && carePlansQueue.state === 'unavailable' && <Notice tone="bad" role="alert">The active care plans and their count could not be verified. No empty queue is being inferred.</Notice>}
+                {kind === 'carePlan' && carePlansQueue.state === 'inconsistent' && <CursorReset role="alert" href={carePlanCursorHref(null, null, preservedForCarePlans)} label="First care plans page">Care-plan rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</CursorReset>}
+                {kind === 'carePlan' && carePlansQueue.state === 'empty' && carePlansQueue.page?.state === 'empty' && carePlansQueue.page.totalCount === 0 && carePlansQueue.direction === 'first' && <div role="status"><EmptyBoard title="No current tasks" /></div>}
+                {kind === 'carePlan' && carePlansQueue.state === 'empty' && carePlansQueue.page?.state === 'empty' && carePlansQueue.page.totalCount > 0 && <Notice role="status">No care plans on this side of the cursor.</Notice>}
+                {rows.length > 0 && <Board>{rows.map(row => {
                   const toStatus = nextStatus(kind, row.status)
                   const typedRow = row as Row & {
                     orderNumber?: string
@@ -739,23 +753,25 @@ export default async function ClinicalFulfillmentPage({ searchParams }: PageProp
                   }
                   const reference = typedRow.orderNumber ?? typedRow.resultNumber ?? typedRow.prescriptionNumber ?? typedRow.procedureNumber ?? typedRow.title
                   return (
-                    <div key={row.id} className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="font-medium">{reference}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {row.patient?.displayName ?? 'Restricted patient'}
-                          {typedRow.version ? ` · version ${typedRow.version}` : ''}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {kind === 'result' && <LabResultReadbackPanel resultId={row.id} />}
-                        <Badge>{row.status.replaceAll('_', ' ')}</Badge>
+                    <BoardRow
+                      key={row.id}
+                      tone={toneForStatus(row.status)}
+                      status={statusLabel(row.status)}
+                      title={reference ? <Code className="text-sm font-semibold text-foreground">{reference}</Code> : 'Untitled'}
+                      meta={<>
+                        <span>{row.patient?.displayName ?? 'Restricted patient'}</span>
+                        {typedRow.version ? <span>Version {typedRow.version}</span> : null}
+                      </>}
+                      aside={<>
+                        <StatusTag status={row.status} />
                         {toStatus && <TransitionButton kind={kind} id={row.id} toStatus={toStatus} version={row.transitionVersion} />}
-                      </div>
-                    </div>
+                      </>}
+                    >
+                      {kind === 'result' ? <LabResultReadbackPanel resultId={row.id} /> : null}
+                    </BoardRow>
                   )
-                })}
-                {kind !== 'order' && kind !== 'result' && kind !== 'prescription' && kind !== 'procedure' && kind !== 'carePlan' && !rows.length && <p role="status" className="text-sm text-muted-foreground">{count ? `This page no longer contains accessible ${label}.` : 'No current tasks.'}</p>}
+                })}</Board>}
+                {kind !== 'order' && kind !== 'result' && kind !== 'prescription' && kind !== 'procedure' && kind !== 'carePlan' && !rows.length && <Notice role="status">{count ? `This page no longer contains accessible ${label}.` : 'No current tasks.'}</Notice>}
                 {kind === 'order'
                   ? ordersQueue.page && (ordersQueue.state === 'ready' || ordersQueue.state === 'empty') && ordersQueue.page.state !== 'inconsistent'
                     ? <MedicalOrderCursorPagination page={ordersQueue.page} direction={ordersQueue.direction} cursorId={ordersQueue.cursorId} preservedQueueState={preservedForOrders} />
@@ -775,11 +791,28 @@ export default async function ClinicalFulfillmentPage({ searchParams }: PageProp
                         : carePlansQueue.page && (carePlansQueue.state === 'ready' || carePlansQueue.state === 'empty') && carePlansQueue.page.state !== 'inconsistent'
                           ? <CarePlanCursorPagination page={carePlansQueue.page} direction={carePlansQueue.direction} cursorId={carePlansQueue.cursorId} preservedQueueState={preservedForCarePlans} />
                           : null}
-              </CardContent>
-            </Card>
+              </div>
+            </WardSection>
           ))}
         </div>
-      </div>
+        <WardSection id="clinical-tools" title="Record and look up">
+          <div className="flex min-w-0 flex-col gap-3">
+            <ClinicalCreateForms options={options} />
+            <LabResultReadbackPanel />
+          </div>
+        </WardSection>
+      </WardBody>
     </PageContainer>
+  )
+}
+
+function CursorReset({ role, href, label, children }: { role: 'alert' | 'status'; href: string; label: string; children: React.ReactNode }) {
+  return (
+    <Notice tone={role === 'alert' ? 'bad' : 'warn'} role={role}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span>{children}</span>
+        <Track><Pill asChild size="sm"><Link href={href}>{label}</Link></Pill></Track>
+      </div>
+    </Notice>
   )
 }

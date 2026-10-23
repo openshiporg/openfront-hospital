@@ -1,3 +1,5 @@
+import { Board, EmptyBoard, WardSection } from '@/features/platform/components/ward'
+
 export function ReportList({
   title,
   emptyText,
@@ -10,21 +12,18 @@ export function ReportList({
   renderItem: (item: any) => React.ReactNode
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="border-b px-5 py-4">
-        <h2 className="text-sm font-semibold">{title}</h2>
-      </div>
+    <WardSection title={title} count={items.length}>
       {items.length === 0 ? (
-        <p className="p-5 text-sm text-muted-foreground">{emptyText}</p>
+        <EmptyBoard title={emptyText} className="py-6" />
       ) : (
-        <div className="divide-y">
+        <Board>
           {items.map((item) => (
-            <div key={item.id} className="px-5 py-4">
+            <div key={item.id} className="min-w-0 px-4 py-3 md:px-5">
               {renderItem(item)}
             </div>
           ))}
-        </div>
+        </Board>
       )}
-    </section>
+    </WardSection>
   )
 }

@@ -1,20 +1,32 @@
-import { Loader2 } from 'lucide-react'
-
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
+import { Board, WardBody, WardHeader } from './ward'
 
 export function PlatformWorkspaceLoading() {
   return (
     <PageContainer
       title="Loading workspace"
       breadcrumbs={[{ type: 'link', label: 'Dashboard', href: '/dashboard' }, { type: 'page', label: 'Platform' }]}
-      header={<div><p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Loading scoped data</p><h1 className="mt-2 text-3xl font-semibold">Preparing operator workspace</h1></div>}
+      header={<WardHeader title="Loading…" tone="idle" />}
     >
-      <div className="px-4 pb-8 md:px-6">
-        <div role="status" aria-live="polite" className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
-          Loading permission-scoped records. No empty queue or zero count is being inferred.
+      <WardBody>
+        <div role="status" aria-live="polite" className="sr-only">Loading records</div>
+        <div aria-hidden="true" className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border md:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index} className="bg-card px-4 py-3 md:px-5 md:py-4">
+              <div className="h-2.5 w-16 rounded bg-muted motion-safe:animate-pulse" />
+              <div className="mt-3 h-6 w-10 rounded bg-muted motion-safe:animate-pulse" />
+            </div>
+          ))}
         </div>
-      </div>
+        <Board>
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} aria-hidden="true" className="px-4 py-4 md:px-5">
+              <div className="h-3 w-1/3 min-w-32 rounded bg-muted motion-safe:animate-pulse" />
+              <div className="mt-2 h-2.5 w-1/2 min-w-40 rounded bg-muted/70 motion-safe:animate-pulse" />
+            </div>
+          ))}
+        </Board>
+      </WardBody>
     </PageContainer>
   )
 }

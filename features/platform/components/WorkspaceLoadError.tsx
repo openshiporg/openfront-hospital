@@ -1,6 +1,5 @@
-import { AlertTriangle } from 'lucide-react'
-
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
+import { Notice, WardBody, WardHeader } from './ward'
 
 export function WorkspaceLoadError({
   title,
@@ -15,22 +14,14 @@ export function WorkspaceLoadError({
     <PageContainer
       title={title}
       breadcrumbs={breadcrumbs}
-      header={(
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Data unavailable</p>
-          <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
-        </div>
-      )}
+      header={<WardHeader title={title} tone="bad" status="Unavailable" meta="Data unavailable" />}
     >
-      <div className="px-4 pb-8 md:px-6">
-        <div role="alert" className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <div>
-            <p className="font-medium">The workspace could not be loaded.</p>
-            <p className="mt-1">{description} No zero count or empty queue is being inferred. Refresh or contact an administrator.</p>
-          </div>
-        </div>
-      </div>
+      <WardBody>
+        <Notice tone="bad" role="alert">
+          <p className="font-medium">This workspace could not be loaded.</p>
+          <p className="mt-0.5 opacity-90">{description} Counts are not shown as zero. Refresh to try again.</p>
+        </Notice>
+      </WardBody>
     </PageContainer>
   )
 }

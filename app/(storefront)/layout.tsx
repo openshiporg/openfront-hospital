@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import { DM_Sans, Fraunces } from 'next/font/google'
+import { Atkinson_Hyperlegible, JetBrains_Mono, Newsreader } from 'next/font/google'
 import { getHospitalBranding } from '@/features/storefront/lib/data/branding'
 import { practiceProfile } from '@/features/storefront/lib/practice'
 import '@/features/storefront/design/storefront.css'
 
-const heading = Fraunces({ variable: '--font-fraunces', subsets: ['latin'], axes: ['SOFT', 'WONK', 'opsz'] })
-const body = DM_Sans({ variable: '--font-dm-sans', subsets: ['latin'] })
+const display = Newsreader({ variable: '--font-newsreader', subsets: ['latin'], axes: ['opsz'] })
+const body = Atkinson_Hyperlegible({ variable: '--font-atkinson', subsets: ['latin'], weight: ['400', '700'] })
+const mono = JetBrains_Mono({ variable: '--font-jetbrains', subsets: ['latin'] })
 export const dynamic = 'force-dynamic'
 export async function generateMetadata(): Promise<Metadata> {
   const profile = await getHospitalBranding().catch(() => practiceProfile)
@@ -17,5 +18,5 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`${heading.variable} ${body.variable}`}>{children}</div>
+  return <div className={`${display.variable} ${body.variable} ${mono.variable}`}>{children}</div>
 }

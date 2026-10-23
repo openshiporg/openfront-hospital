@@ -1,9 +1,8 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Notice, Pill, Track, fieldClass } from '@/features/platform/components/ward'
 import { loadLabResult } from '../actions/labResults'
 
 export function LabResultReadbackPanel({ resultId }: { resultId?: string }) {
@@ -22,17 +21,20 @@ export function LabResultReadbackPanel({ resultId }: { resultId?: string }) {
     } catch { setError('Scoped result readback unavailable. Retain the original command identity.') }
     finally { setPending(false) }
   }
-  return <details className="rounded-lg border p-3">
-    <summary className="cursor-pointer font-medium">Authorized result / original receipt / correction lineage</summary>
-    <p className="my-2 text-xs text-muted-foreground">Retired catalog tests do not erase accepted operational evidence. Current clinical authority and each related scope are checked separately. Original acknowledgement is not current status or laboratory certification. Other-operator and legacy original bodies may be unavailable.</p>
-    <form className="flex flex-wrap gap-2" action={() => load()}>
-      <Label className="sr-only" htmlFor={id}>Result ID from the work item</Label>
-      <Input id={id} required maxLength={128} value={lookup} disabled={pending} onChange={event => { setLookup(event.target.value); setReadback(null) }} placeholder="Result ID from original work item" />
-      <Button size="sm" variant="outline" disabled={pending}>{pending ? 'Checking current scope…' : 'Read scoped result'}</Button>
-    </form>
-    {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
-    {readback != null && <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-3 text-xs">{JSON.stringify(readback, null, 2)}</pre>}
-    {nextVersion && <Button size="sm" variant="outline" disabled={pending} onClick={() => load(nextVersion)}>Older owned transition receipts</Button>}
-    <p className="mt-2 text-xs text-muted-foreground">Correction links are independently filtered IDs, not permission to load another result. Read that ID separately. These receipts are not complete clinical history. Private values are not saved to browser storage by this workspace.</p>
+  return <details className="group rounded-xl border bg-card">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+      Result readback and correction lineage
+      <span aria-hidden="true" className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+    </summary>
+    <div className="space-y-3 border-t px-4 py-3">
+      <form className="flex min-w-0 flex-wrap items-center gap-2" action={() => load()}>
+        <label className="sr-only" htmlFor={id}>Result ID from the work item</label>
+        <input id={id} required maxLength={128} value={lookup} disabled={pending} onChange={event => { setLookup(event.target.value); setReadback(null) }} placeholder="Result ID" className={cn(fieldClass, 'w-auto flex-1 basis-48')} />
+        <Track><Pill type="submit" size="sm" disabled={pending}>{pending ? 'Checking scope…' : 'Read result'}</Pill></Track>
+      </form>
+      {error && <Notice tone="bad" role="alert">{error}</Notice>}
+      {readback != null && <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-3 font-mono text-xs">{JSON.stringify(readback, null, 2)}</pre>}
+      {nextVersion && <Track><Pill size="sm" disabled={pending} onClick={() => load(nextVersion)}>Older transition receipts</Pill></Track>}
+    </div>
   </details>
 }

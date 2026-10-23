@@ -1,9 +1,22 @@
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import { BoundedDataNotice } from '@/features/platform/components/BoundedDataNotice'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
+import {
+  Board,
+  BoardRow,
+  Code,
+  EmptyBoard,
+  Readout,
+  ReadoutStrip,
+  StatusTag,
+  WardBody,
+  WardHeader,
+  WardSection,
+  Wristband,
+  toneForStatus,
+  statusLabel,
+} from '@/features/platform/components/ward'
 import type { OperationsOption } from '@/features/platform/operations/types'
 import { CareQueueControls } from '../components/CareQueueControls'
 
@@ -74,6 +87,46 @@ function formatFacilityTime(value: string, timeZone?: string | null) {
   }).format(new Date(value))
 }
 
+const LANES = [
+  { status: 'waiting', title: 'Waiting' },
+  { status: 'called', title: 'Called' },
+  { status: 'in_care', title: 'In care' },
+] as const
+
+/** Time-sensitive first, then oldest arrival (query already returns oldest first). */
+function byUrgency(tickets: Ticket[]) {
+  return tickets
+    .map((ticket, index) => ({ ticket, index }))
+    .sort((a, b) => Number(b.ticket.priority === 'time_sensitive') - Number(a.ticket.priority === 'time_sensitive') || a.index - b.index)
+    .map(entry => entry.ticket)
+}
+
+function TicketRow({ ticket }: { ticket: Ticket }) {
+  const urgent = ticket.priority === 'time_sensitive'
+  return (
+    <BoardRow
+      tone={urgent && ticket.status === 'waiting' ? 'bad' : toneForStatus(ticket.status)}
+      status={statusLabel(ticket.status)}
+      title={<span className="inline-flex flex-wrap items-center gap-2">
+        <Wristband name={ticket.patient?.displayName ?? 'Restricted patient'} identifier={ticket.appointment?.appointmentNumber || undefined} />
+        {urgent && <span className="rounded-full border border-red-500/30 bg-red-500/5 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300">Time sensitive</span>}
+      </span>}
+      meta={<>
+        <span>Arrived {formatFacilityTime(ticket.arrivedAt, ticket.facility?.timeZone)}</span>
+        <span>{ticket.facility?.name || 'Facility unavailable'}</span>
+        <span>{ticket.reasonCode.replaceAll('_', ' ')}</span>
+        {!urgent && <span>Priority: {ticket.priority ? ticket.priority.replaceAll('_', ' ') : 'unavailable'}</span>}
+        <Code>{ticket.ticketNumber}</Code>
+        {ticket.encounter?.encounterNumber && <Code>{ticket.encounter.encounterNumber}</Code>}
+      </>}
+      aside={<div className="flex min-w-0 flex-col items-start gap-2 sm:max-w-sm sm:items-end">
+        <StatusTag status={ticket.status} />
+        <CareQueueControls ticket={ticket} />
+      </div>}
+    />
+  )
+}
+
 export default async function CareQueuePage() {
   const breadcrumbs = [
     { type: 'link' as const, label: 'Dashboard', href: '/dashboard' },
@@ -87,54 +140,48 @@ export default async function CareQueuePage() {
     value: appointment.id,
     label: `${appointment.status === 'checked_in' ? 'Already checked in · reconcile' : 'Confirmed'} · ${appointment.appointmentNumber} · ${appointment.patient?.displayName || 'Patient'} · ${appointment.provider?.displayName || 'Provider'} · ${formatFacilityTime(appointment.startsAt, appointment.facility?.timeZone)}`,
   }))
+  const lanes = LANES.map(lane => ({ ...lane, tickets: byUrgency(data.careQueueTickets.filter(ticket => ticket.status === lane.status)) }))
+  const urgentWaiting = data.careQueueTickets.filter(ticket => ticket.status === 'waiting' && ticket.priority === 'time_sensitive').length
 
   return (
     <PageContainer
       title="Care queue"
       breadcrumbs={breadcrumbs}
       header={(
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Arrival and handoff</p>
-          <h1 className="mt-2 text-3xl font-semibold">Care queue</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Move arrivals from waiting to called, in care, and complete with a consistent handoff history.</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border px-2.5 py-1">Active queue: {data.careQueueTicketsCount}</span>
-            <span className="rounded-full border px-2.5 py-1">Arrival / handoff candidates: {appointmentOptions.length}</span>
-          </div>
-        </div>
+        <WardHeader
+          title="Care queue"
+          tone={data.careQueueTicketsCount > 0 ? 'accent' : 'idle'}
+          meta={<span className="font-mono text-xs tabular-nums">{data.careQueueTicketsCount} active · {appointmentOptions.length} to arrive</span>}
+        />
       )}
     >
-      <div className="space-y-5 px-4 pb-8 md:px-6">
+      <WardBody>
         <BoundedDataNotice messages={[
           ...(data.careQueueTicketsCount > data.careQueueTickets.length ? [`Care queue: showing the first ${data.careQueueTickets.length} of ${data.careQueueTicketsCount} active tickets.`] : []),
           ...(data.appointmentsCount > data.appointments.length ? [`Arrivals: checking the first ${data.appointments.length} of ${data.appointmentsCount} confirmed or checked-in appointments for a missing queue handoff.`] : []),
         ]} />
-        <CareQueueControls appointments={appointmentOptions} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Active queue</CardTitle>
-            <CardDescription>Oldest arrivals appear first.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {!data.careQueueTickets.length && <p className="text-sm text-muted-foreground">No active queue tickets.</p>}
-            {data.careQueueTickets.map(ticket => (
-              <div key={ticket.id} className="flex flex-col gap-3 rounded-lg border p-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="font-medium">{ticket.patient?.displayName ?? 'Restricted patient'} · {ticket.appointment?.appointmentNumber}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {ticket.facility?.name || 'Facility unavailable'} · Operational priority: {ticket.priority || 'unavailable'} · {ticket.ticketNumber} · arrived {formatFacilityTime(ticket.arrivedAt, ticket.facility?.timeZone)} · {ticket.reasonCode.replaceAll('_', ' ')}
-                  </p>
-                  {ticket.encounter?.encounterNumber && <p className="mt-1 text-xs text-muted-foreground">{ticket.encounter.encounterNumber}</p>}
-                </div>
-                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                  <Badge>{ticket.status.replaceAll('_', ' ')}</Badge>
-                  <CareQueueControls ticket={ticket} />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+
+        <ReadoutStrip>
+          <Readout label="Waiting" value={lanes[0].tickets.length} tone={lanes[0].tickets.length ? 'warn' : 'idle'} sub={urgentWaiting ? `${urgentWaiting} time sensitive` : undefined} />
+          <Readout label="Called" value={lanes[1].tickets.length} tone={lanes[1].tickets.length ? 'info' : 'idle'} />
+          <Readout label="In care" value={lanes[2].tickets.length} tone={lanes[2].tickets.length ? 'ok' : 'idle'} />
+          <Readout label="To arrive" value={appointmentOptions.length} />
+        </ReadoutStrip>
+
+        <WardSection title="Record arrival" count={appointmentOptions.length} id="care-queue-arrival">
+          <CareQueueControls appointments={appointmentOptions} />
+        </WardSection>
+
+        {!data.careQueueTickets.length
+          ? <EmptyBoard title="No active queue tickets." />
+          : lanes.filter(lane => lane.tickets.length).map(lane => (
+            <WardSection key={lane.status} title={lane.title} count={lane.tickets.length} id={`care-queue-${lane.status}`}>
+              <Board>
+                {lane.tickets.map(ticket => <TicketRow key={ticket.id} ticket={ticket} />)}
+              </Board>
+            </WardSection>
+          ))}
+      </WardBody>
     </PageContainer>
   )
 }

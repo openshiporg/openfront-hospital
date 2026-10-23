@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react'
 
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { fieldClass } from '@/features/platform/components/ward'
 import { searchAccessibleFacilities } from '../actions/searchFacilities'
 import type { FacilitySearchResult } from '../actions/searchFacilities'
 
-const selectClassName = 'h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 type FacilityOption = FacilitySearchResult['facilities'][number]
 
@@ -79,58 +77,61 @@ export function FacilitySearchField({
     : options
   const noMatches = !disabled && !pending && !unavailable && search.trim().length >= 2 && options.length === 0
   const status = disabled
-    ? 'No accessible active facility is available for this session.'
+    ? 'No active facility available.'
     : unavailable
-      ? 'Facility search is unavailable for this session. Access could not be verified; no empty result is being inferred.'
+      ? 'Facility search unavailable.'
       : pending
-        ? 'Searching accessible facilities…'
+        ? 'Searching…'
         : search.trim().length < 2
-          ? 'Enter at least 2 characters to search accessible active facilities.'
+          ? 'Type 2+ characters to search.'
           : noMatches
-            ? 'No matching accessible active facilities were found.'
+            ? 'No matching facilities.'
             : ''
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={`${id}-search`}>{label}</Label>
-      <Input
-        id={`${id}-search`}
-        type="search"
-        value={search}
-        onChange={event => {
-          setSearch(event.target.value)
-          if (selected) {
-            setSelected(null)
-            onSelect?.('')
-          }
-        }}
-        placeholder="Search facility name or location"
-        aria-label={`Search ${label.toLowerCase()} name or location`}
-        maxLength={100}
-        disabled={disabled || accessibleFacilityCount === 0}
-      />
-      <select
-        id={id}
-        name={name}
-        required={required}
-        className={selectClassName}
-        value={selected?.id || ''}
-        aria-label={label}
-        disabled={disabled || accessibleFacilityCount === 0}
-        onChange={event => {
-          const next = visibleOptions.find(option => option.id === event.target.value) || null
-          setSelected(next)
-          onSelect?.(next?.id || '')
-        }}
-      >
-        <option value="">{selected ? 'Change facility' : 'Select a searched facility'}</option>
-        {visibleOptions.map(option => {
-          const location = [option.city, option.region].filter(Boolean).join(', ')
-          return <option key={option.id} value={option.id}>{[option.name || 'Facility', location].filter(Boolean).join(' · ')}</option>
-        })}
-      </select>
-      {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching accessible facilities. Add more characters to narrow results.</p>}
-      {status && <p role="status" className="text-xs text-muted-foreground">{status}</p>}
+    <div className="grid min-w-0 gap-1.5">
+      <label htmlFor={`${id}-search`} className="text-xs font-medium text-muted-foreground">{label}</label>
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+        <input
+          id={`${id}-search`}
+          type="search"
+          value={search}
+          onChange={event => {
+            setSearch(event.target.value)
+            if (selected) {
+              setSelected(null)
+              onSelect?.('')
+            }
+          }}
+          placeholder="Search facility"
+          aria-label={`Search ${label.toLowerCase()} name or location`}
+          maxLength={100}
+          disabled={disabled || accessibleFacilityCount === 0}
+          className={fieldClass}
+        />
+        <select
+          id={id}
+          name={name}
+          required={required}
+          className={fieldClass}
+          value={selected?.id || ''}
+          aria-label={label}
+          disabled={disabled || accessibleFacilityCount === 0}
+          onChange={event => {
+            const next = visibleOptions.find(option => option.id === event.target.value) || null
+            setSelected(next)
+            onSelect?.(next?.id || '')
+          }}
+        >
+          <option value="">{selected ? 'Change facility' : 'Select facility'}</option>
+          {visibleOptions.map(option => {
+            const location = [option.city, option.region].filter(Boolean).join(', ')
+            return <option key={option.id} value={option.id}>{[option.name || 'Facility', location].filter(Boolean).join(' · ')}</option>
+          })}
+        </select>
+      </div>
+      {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count}. Keep typing to narrow.</p>}
+      {status && <p role="status" className={`text-xs ${unavailable ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}>{status}</p>}
     </div>
   )
 }

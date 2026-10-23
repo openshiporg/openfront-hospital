@@ -1,14 +1,26 @@
 import Link from 'next/link';
-import { Activity, Bed as BedIcon, ClipboardList, FileText, FlaskConical, HeartPulse, Hospital, Pill, Stethoscope } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageContainer } from '@/features/dashboard/components/PageContainer';
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient';
 import { BoundedDataNotice } from '@/features/platform/components/BoundedDataNotice';
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError';
+import {
+  Actions,
+  Board,
+  BoardRow,
+  Code,
+  EmptyBoard,
+  Pill,
+  Readout,
+  ReadoutStrip,
+  StatusTag,
+  WardBody,
+  WardHeader,
+  WardSection,
+  Wristband,
+  toneForStatus,
+  statusLabel,
+} from '@/features/platform/components/ward';
 
 type ClinicalOperationsData = {
   encounters: Array<{ id: string; encounterNumber: string; status: string; chiefComplaint?: string | null; patient?: { displayName: string } | null; provider?: { displayName: string } | null; department?: { name: string } | null }>;
@@ -60,14 +72,6 @@ function money(cents?: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((cents ?? 0) / 100);
 }
 
-function StatCard({ icon: Icon, label, value, description }: { icon: any; label: string; value: string; description: string }) {
-  return <Card><CardContent className="p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-sm text-muted-foreground">{label}</p><div className="mt-2 text-3xl font-semibold tracking-tight">{value}</div><p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p></div><div className="rounded-2xl bg-muted p-3 text-muted-foreground"><Icon className="size-5" /></div></div></CardContent></Card>;
-}
-
-function EmptyRow({ colSpan, label }: { colSpan: number; label: string }) {
-  return <TableRow><TableCell colSpan={colSpan} className="py-8 text-center text-sm text-muted-foreground">{label}</TableCell></TableRow>;
-}
-
 export default async function ClinicalOperationsPage() {
   const breadcrumbs = [{ type: 'link' as const, label: 'Dashboard', href: '/dashboard' }, { type: 'page' as const, label: 'Clinical Operations' }];
   const response = await keystoneClient<ClinicalOperationsData>(clinicalOperationsQuery);
@@ -109,48 +113,216 @@ export default async function ClinicalOperationsPage() {
   ] as const;
   const sampleNotices = boundedSamples.filter(([, loaded, total]) => total > loaded).map(([label, loaded, total]) => `Recent ${label}: showing ${loaded} of ${total} accessible records.`);
 
+  const occupiedBeds = beds.filter((bed) => /occupied/i.test(bed.status)).length;
+  const activeEncounters = encounters.filter((encounter) => ['open', 'in_progress'].includes(encounter.status)).length;
+
   return (
     <PageContainer
       title="Clinical Operations"
       header={
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-[0.22em] text-muted-foreground">Patient-operations records</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Clinical Operations</h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">Inspect bounded operational records. External clinical, pharmacy, laboratory, payer, and financial systems remain the source of truth.</p>
-          </div>
-          <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href="/dashboard/platform/patients">Patients</Link></Button><Button asChild><Link href="/dashboard/platform/encounters">Manage encounters</Link></Button></div>
-        </div>
+        <WardHeader
+          title="Clinical operations"
+          meta={<span className="font-mono text-xs tabular-nums">{data.facilitiesCount} facilities · {data.cliniciansCount} clinicians</span>}
+          actions={
+            <Actions>
+              <Pill asChild><Link href="/dashboard/platform/patients">Patients</Link></Pill>
+              <Pill asChild variant="primary"><Link href="/dashboard/platform/encounters">Manage encounters</Link></Pill>
+            </Actions>
+          }
+        />
       }
       breadcrumbs={breadcrumbs}
     >
-      <div className="space-y-6 px-4 pb-8 md:px-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard icon={Hospital} label="Facility map" value={String(facilityRows)} description="Exact accessible count: facilities, departments, wards, rooms, and beds." />
-          <StatCard icon={Stethoscope} label="Care coordination" value={String(careRows)} description="Exact accessible count: encounters, admissions, clinicians, and care-plan evidence." />
-          <StatCard icon={HeartPulse} label="Operational evidence" value={String(clinicalRows)} description="Exact accessible count: vitals and externally governed coordination records." />
-          <StatCard icon={FlaskConical} label="External evidence" value={String(diagnosticsRows)} description="Exact accessible count: lab and claim-shaped operational evidence." />
-        </div>
+      <WardBody>
+        <ReadoutStrip>
+          <Readout label="Facility map" value={facilityRows} sub={`${data.facilitiesCount} facilities · ${data.bedsCount} beds`} />
+          <Readout label="Care coordination" value={careRows} sub={`${data.encountersCount} encounters · ${data.admissionsCount} admissions`} tone="info" />
+          <Readout label="Operational records" value={clinicalRows} sub={`${data.medicalOrdersCount} orders · ${data.prescriptionsCount} Rx`} />
+          <Readout label="External records" value={diagnosticsRows} sub={`${data.labResultsCount} results · ${data.insuranceClaimsCount} claims`} />
+        </ReadoutStrip>
 
         <BoundedDataNotice messages={sampleNotices} />
 
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Card className="min-w-0"><CardHeader><CardTitle>Care timeline</CardTitle><CardDescription>Encounters, admissions, and care plans connected to patients and providers.</CardDescription></CardHeader><CardContent className="space-y-4">
-            <div className="rounded-lg border"><Table><TableHeader><TableRow><TableHead>Encounter</TableHead><TableHead>Patient</TableHead><TableHead>Provider</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{encounters.length ? encounters.map((encounter) => <TableRow key={encounter.id}><TableCell><div className="font-mono text-xs">{encounter.encounterNumber}</div><div className="text-xs text-muted-foreground">{encounter.chiefComplaint || 'No complaint'}</div></TableCell><TableCell>{encounter.patient?.displayName ?? 'No patient'}</TableCell><TableCell>{encounter.provider?.displayName ?? 'No provider'}</TableCell><TableCell><Badge variant={encounter.status === 'closed' ? 'default' : 'secondary'}>{encounter.status}</Badge></TableCell></TableRow>) : <EmptyRow colSpan={4} label="No encounters found." />}</TableBody></Table></div>
-            <div className="grid gap-3 md:grid-cols-2">{admissions.map((admission) => <div key={admission.id} className="rounded-lg border p-4"><BedIcon className="mb-2 size-4 text-muted-foreground" /><div className="font-mono text-sm">{admission.admissionNumber}</div><p className="text-sm text-muted-foreground">{admission.status} · {admission.patient?.displayName ?? 'No patient'} · room {admission.room?.roomNumber ?? '—'} bed {admission.bed?.bedNumber ?? '—'}</p></div>)}{carePlans.map((plan) => <div key={plan.id} className="rounded-lg border p-4"><ClipboardList className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{plan.title}</div><p className="text-sm text-muted-foreground">{plan.status} · {plan.patient?.displayName ?? 'No patient'} · {plan.provider?.displayName ?? 'No provider'}</p></div>)}</div>
-          </CardContent></Card>
+        <WardSection title="Facilities" count={data.facilitiesCount} id="clinical-facilities">
+          {facilities.length ? (
+            <Board>
+              {facilities.map((facility) => (
+                <BoardRow
+                  key={facility.id}
+                  tone={toneForStatus(facility.status)}
+                  status={statusLabel(facility.status)}
+                  title={facility.name}
+                  meta={<>
+                    <span>{statusLabel(facility.facilityType)}</span>
+                    <span>{facility.city || 'No city'}</span>
+                    <span>{facility.departments.length ? facility.departments.map((department) => department.name).join(', ') : 'No departments'}</span>
+                  </>}
+                  aside={facility.images[0]?.imagePath ? <img src={facility.images[0].imagePath} alt={facility.images[0].altText || facility.name} className="h-12 w-20 rounded-md border object-cover" /> : undefined}
+                />
+              ))}
+            </Board>
+          ) : <EmptyBoard title="No facilities found." />}
+        </WardSection>
 
-          <Card className="min-w-0"><CardHeader><CardTitle>Facility, beds, and clinicians</CardTitle><CardDescription>Facilities, departments, wards, rooms, beds, and clinicians for capacity and staffing.</CardDescription></CardHeader><CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">{facilities.map((facility) => <div key={facility.id} className="overflow-hidden rounded-lg border">{facility.images[0]?.imagePath && <img src={facility.images[0].imagePath} alt={facility.images[0].altText || facility.name} className="h-32 w-full object-cover" />}<div className="p-4"><Hospital className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{facility.name}</div><p className="text-sm text-muted-foreground">{facility.facilityType} · {facility.status} · {facility.city || 'No city'}</p></div></div>)}{departments.map((department) => <div key={department.id} className="overflow-hidden rounded-lg border">{department.images[0]?.imagePath && <img src={department.images[0].imagePath} alt={department.images[0].altText || department.name} className="h-32 w-full object-cover" />}<div className="p-4"><Hospital className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{department.name}</div><p className="text-sm text-muted-foreground">{department.code || 'No code'} · {department.status}</p></div></div>)}{wards.map((ward) => <div key={ward.id} className="rounded-lg border p-4"><Hospital className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{ward.name}</div><p className="text-sm text-muted-foreground">floor {ward.floor || '—'} · cap {ward.capacity ?? 0} · {ward.department?.name ?? 'No department'}</p></div>)}{rooms.map((room) => <div key={room.id} className="rounded-lg border p-4"><BedIcon className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">Room {room.roomNumber}</div><p className="text-sm text-muted-foreground">{room.roomType} · {room.status} · {room.ward?.name ?? 'No ward'}</p></div>)}{beds.map((bed) => <div key={bed.id} className="rounded-lg border p-4"><BedIcon className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">Bed {bed.bedNumber}</div><p className="text-sm text-muted-foreground">{bed.status} · room {bed.room?.roomNumber ?? '—'} · {bed.currentPatient?.displayName ?? 'No patient'}</p></div>)}{clinicians.map((clinician) => <div key={clinician.id} className="overflow-hidden rounded-lg border">{clinician.images[0]?.imagePath && <img src={clinician.images[0].imagePath} alt={clinician.images[0].altText || clinician.displayName} className="h-32 w-full object-cover" />}<div className="p-4"><Stethoscope className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{clinician.displayName}</div><p className="text-sm text-muted-foreground">{clinician.clinicianType} · {clinician.department?.name ?? 'No department'}</p><Badge className="mt-2" variant={clinician.active ? 'default' : 'secondary'}>{clinician.active ? 'Active' : 'Inactive'}</Badge></div></div>)}</div>
-          </CardContent></Card>
+        <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+          <WardSection title="Encounters" count={data.encountersCount} id="clinical-encounters">
+            {encounters.length ? (
+              <Board>
+                {encounters.map((encounter) => (
+                  <BoardRow
+                    key={encounter.id}
+                    tone={toneForStatus(encounter.status)}
+                    status={statusLabel(encounter.status)}
+                    title={<Wristband name={encounter.patient?.displayName ?? 'No patient'} identifier={encounter.encounterNumber} />}
+                    meta={<>
+                      <span>{encounter.provider?.displayName ?? 'No provider'}</span>
+                      {encounter.department?.name && <span>{encounter.department.name}</span>}
+                      <span>{encounter.chiefComplaint || 'No complaint'}</span>
+                    </>}
+                    aside={<StatusTag status={encounter.status} />}
+                  />
+                ))}
+              </Board>
+            ) : <EmptyBoard title="No encounters found." />}
+            {activeEncounters > 0 && <p className="mt-2 text-xs text-muted-foreground">{activeEncounters} of {encounters.length} recent still active</p>}
+          </WardSection>
+
+          <WardSection title="Admissions and care plans" count={data.admissionsCount + data.carePlansCount} id="clinical-admissions">
+            {admissions.length || carePlans.length ? (
+              <Board>
+                {admissions.map((admission) => (
+                  <BoardRow
+                    key={admission.id}
+                    tone={toneForStatus(admission.status)}
+                    status={statusLabel(admission.status)}
+                    title={<Wristband name={admission.patient?.displayName ?? 'No patient'} identifier={admission.admissionNumber} />}
+                    meta={<><span>Room {admission.room?.roomNumber ?? '—'}</span><span>Bed {admission.bed?.bedNumber ?? '—'}</span></>}
+                    aside={<StatusTag status={admission.status} />}
+                  />
+                ))}
+                {carePlans.map((plan) => (
+                  <BoardRow
+                    key={plan.id}
+                    tone={toneForStatus(plan.status)}
+                    status={statusLabel(plan.status)}
+                    title={plan.title}
+                    meta={<><span>Care plan</span><span>{plan.patient?.displayName ?? 'No patient'}</span><span>{plan.provider?.displayName ?? 'No provider'}</span></>}
+                    aside={<StatusTag status={plan.status} />}
+                  />
+                ))}
+              </Board>
+            ) : <EmptyBoard title="No admissions or care plans found." />}
+          </WardSection>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Card className="min-w-0"><CardHeader><CardTitle>Operational clinical records</CardTitle><CardDescription>Recent manually recorded status evidence. This does not prescribe, transmit orders, perform procedures, or provide medical advice.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 md:grid-cols-2">{vitalSigns.map((vital) => <div key={vital.id} className="rounded-lg border p-4"><Activity className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{vital.patient?.displayName ?? 'No patient'}</div><p className="text-sm text-muted-foreground">Temp {vital.temperatureTenthsC != null ? `${(vital.temperatureTenthsC / 10).toFixed(1)}°C` : vital.temperatureC != null ? `${vital.temperatureC}°C` : '—'} · BP {vital.systolicBp ?? '—'}/{vital.diastolicBp ?? '—'} · HR {vital.heartRate ?? '—'} · O₂ {vital.oxygenSaturation ?? '—'}%</p></div>)}{medicalOrders.map((order) => <div key={order.id} className="rounded-lg border p-4"><ClipboardList className="mb-2 size-4 text-muted-foreground" /><div className="font-mono text-sm">{order.orderNumber}</div><p className="text-sm text-muted-foreground">{order.orderType} · {order.status} · {order.patient?.displayName ?? 'No patient'}</p></div>)}{prescriptions.map((rx) => <div key={rx.id} className="rounded-lg border p-4"><Pill className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{rx.medicationName}</div><p className="text-sm text-muted-foreground">{rx.prescriptionNumber} · {rx.dosage || 'No dose'} · {rx.frequency || 'No frequency'}</p></div>)}{procedures.map((procedure) => <div key={procedure.id} className="rounded-lg border p-4"><Stethoscope className="mb-2 size-4 text-muted-foreground" /><div className="font-medium">{procedure.procedureName}</div><p className="text-sm text-muted-foreground">{procedure.procedureNumber} · {procedure.status} · {procedure.patient?.displayName ?? 'No patient'}</p></div>)}</div></CardContent></Card>
+        <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+          <WardSection title="Wards, rooms and beds" count={data.wardsCount + data.roomsCount + data.bedsCount} id="clinical-capacity">
+            {beds.length > 0 && <p className="mb-2 text-xs text-muted-foreground"><span className="font-mono tabular-nums text-foreground">{occupiedBeds}</span> of {beds.length} recent beds occupied</p>}
+            {wards.length || rooms.length || beds.length ? (
+              <Board>
+                {wards.map((ward) => (
+                  <BoardRow key={ward.id} tone={toneForStatus(ward.status)} status={statusLabel(ward.status)} title={ward.name}
+                    meta={<><span>Ward</span><span>Floor {ward.floor || '—'}</span><span>Capacity {ward.capacity ?? 0}</span><span>{ward.department?.name ?? 'No department'}</span></>} />
+                ))}
+                {rooms.map((room) => (
+                  <BoardRow key={room.id} tone={toneForStatus(room.status)} status={statusLabel(room.status)} title={`Room ${room.roomNumber}`}
+                    meta={<><span>{statusLabel(room.roomType)}</span><span>{room.ward?.name ?? 'No ward'}</span></>} aside={<StatusTag status={room.status} />} />
+                ))}
+                {beds.map((bed) => (
+                  <BoardRow key={bed.id} tone={toneForStatus(bed.status)} status={statusLabel(bed.status)} title={`Bed ${bed.bedNumber}`}
+                    meta={<><span>Room {bed.room?.roomNumber ?? '—'}</span><span>{bed.currentPatient?.displayName ?? 'No patient'}</span></>} aside={<StatusTag status={bed.status} />} />
+                ))}
+              </Board>
+            ) : <EmptyBoard title="No wards, rooms or beds found." />}
+          </WardSection>
 
-          <Card className="min-w-0"><CardHeader><CardTitle>External lab and claim records</CardTitle><CardDescription>Recorded operational status only; this does not validate laboratory truth, payer acceptance, adjudication, or payment.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="rounded-lg border"><Table><TableHeader><TableRow><TableHead>LabTest</TableHead><TableHead>Specimen</TableHead><TableHead>Turnaround</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{labTests.length ? labTests.map((test) => <TableRow key={test.id}><TableCell><div className="font-medium">{test.name}</div><div className="text-xs text-muted-foreground">{test.code || 'No code'} · {test.category || 'No category'}</div></TableCell><TableCell>{test.specimenType || '—'}</TableCell><TableCell>{test.turnaroundHours ?? 0}h</TableCell><TableCell><Badge variant={test.active ? 'default' : 'secondary'}>{test.active ? 'Active' : 'Inactive'}</Badge></TableCell></TableRow>) : <EmptyRow colSpan={4} label="No lab tests found." />}</TableBody></Table></div><div className="grid gap-3 md:grid-cols-2">{labResults.map((result) => <div key={result.id} className="rounded-lg border p-4"><FlaskConical className="mb-2 size-4 text-muted-foreground" /><div className="font-mono text-sm">{result.resultNumber}</div><p className="text-sm text-muted-foreground">{result.status} · {result.abnormalFlag} · {result.labTest?.name ?? 'No test'}</p></div>)}{insuranceClaims.map((claim) => <div key={claim.id} className="rounded-lg border p-4"><FileText className="mb-2 size-4 text-muted-foreground" /><div className="font-mono text-sm">{claim.claimNumber}</div><p className="text-sm text-muted-foreground">{claim.status} · {claim.payerName || 'No payer'} · billed {money(claim.billedAmountCents)} / paid {money(claim.paidAmountCents)}</p></div>)}</div></CardContent></Card>
+          <WardSection title="Departments and clinicians" count={data.departmentsCount + data.cliniciansCount} id="clinical-staff">
+            {departments.length || clinicians.length ? (
+              <Board>
+                {departments.map((department) => (
+                  <BoardRow key={department.id} tone={toneForStatus(department.status)} status={statusLabel(department.status)} title={department.name}
+                    meta={<><span>Department</span><Code>{department.code || 'No code'}</Code>{department.phone && <span>{department.phone}</span>}</>}
+                    aside={department.images[0]?.imagePath ? <img src={department.images[0].imagePath} alt={department.images[0].altText || department.name} className="h-10 w-16 rounded-md border object-cover" /> : undefined} />
+                ))}
+                {clinicians.map((clinician) => (
+                  <BoardRow key={clinician.id} tone={clinician.active ? 'ok' : 'idle'} status={clinician.active ? 'Active' : 'Inactive'} title={clinician.displayName}
+                    meta={<><span>{statusLabel(clinician.clinicianType)}</span><span>{clinician.department?.name ?? 'No department'}</span><span>{clinician.active ? 'Active' : 'Inactive'}</span></>}
+                    aside={clinician.images[0]?.imagePath ? <img src={clinician.images[0].imagePath} alt={clinician.images[0].altText || clinician.displayName} className="size-10 rounded-full border object-cover" /> : undefined} />
+                ))}
+              </Board>
+            ) : <EmptyBoard title="No departments or clinicians found." />}
+          </WardSection>
         </div>
-      </div>
+
+        <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+          <WardSection title="Vitals, orders and procedures" count={clinicalRows} id="clinical-records">
+            {vitalSigns.length || medicalOrders.length || prescriptions.length || procedures.length ? (
+              <Board>
+                {vitalSigns.map((vital) => (
+                  <BoardRow key={vital.id} title={vital.patient?.displayName ?? 'No patient'}
+                    meta={<>
+                      <span>Vitals</span>
+                      <span className="font-mono tabular-nums">Temp {vital.temperatureTenthsC != null ? `${(vital.temperatureTenthsC / 10).toFixed(1)}°C` : vital.temperatureC != null ? `${vital.temperatureC}°C` : '—'}</span>
+                      <span className="font-mono tabular-nums">BP {vital.systolicBp ?? '—'}/{vital.diastolicBp ?? '—'}</span>
+                      <span className="font-mono tabular-nums">HR {vital.heartRate ?? '—'}</span>
+                      <span className="font-mono tabular-nums">O₂ {vital.oxygenSaturation ?? '—'}%</span>
+                      {vital.encounter?.encounterNumber && <Code>{vital.encounter.encounterNumber}</Code>}
+                    </>} />
+                ))}
+                {medicalOrders.map((order) => (
+                  <BoardRow key={order.id} tone={toneForStatus(order.status)} status={statusLabel(order.status)} title={<Code className="text-[13px] text-foreground">{order.orderNumber}</Code>}
+                    meta={<><span>{statusLabel(order.orderType)}</span><span>{order.patient?.displayName ?? 'No patient'}</span></>} aside={<StatusTag status={order.status} />} />
+                ))}
+                {prescriptions.map((rx) => (
+                  <BoardRow key={rx.id} tone={toneForStatus(rx.status)} status={statusLabel(rx.status)} title={rx.medicationName}
+                    meta={<><Code>{rx.prescriptionNumber}</Code><span>{rx.dosage || 'No dose'}</span><span>{rx.frequency || 'No frequency'}</span></>} aside={<StatusTag status={rx.status} />} />
+                ))}
+                {procedures.map((procedure) => (
+                  <BoardRow key={procedure.id} tone={toneForStatus(procedure.status)} status={statusLabel(procedure.status)} title={procedure.procedureName}
+                    meta={<><Code>{procedure.procedureNumber}</Code><span>{procedure.patient?.displayName ?? 'No patient'}</span></>} aside={<StatusTag status={procedure.status} />} />
+                ))}
+              </Board>
+            ) : <EmptyBoard title="No operational records found." />}
+          </WardSection>
+
+          <WardSection title="Labs and claims" count={diagnosticsRows} id="clinical-external">
+            <div className="min-w-0 overflow-x-auto rounded-xl border bg-card">
+              <table className="w-full min-w-[30rem] text-sm">
+                <thead>
+                  <tr className="border-b text-left font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+                    <th className="px-4 py-2 font-medium">Lab test</th>
+                    <th className="px-4 py-2 font-medium">Specimen</th>
+                    <th className="px-4 py-2 font-medium">Turnaround</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {labTests.length ? labTests.map((test) => (
+                    <tr key={test.id}>
+                      <td className="px-4 py-2.5"><div className="font-medium">{test.name}</div><div className="text-xs text-muted-foreground">{test.code || 'No code'} · {test.category || 'No category'}</div></td>
+                      <td className="px-4 py-2.5">{test.specimenType || '—'}</td>
+                      <td className="px-4 py-2.5 font-mono tabular-nums">{test.turnaroundHours ?? 0}h</td>
+                      <td className="px-4 py-2.5"><StatusTag status={test.active ? 'Active' : 'Inactive'} tone={test.active ? 'ok' : 'idle'} /></td>
+                    </tr>
+                  )) : <tr><td colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No lab tests found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            {(labResults.length > 0 || insuranceClaims.length > 0) && (
+              <Board className="mt-3">
+                {labResults.map((result) => (
+                  <BoardRow key={result.id} tone={/critical/i.test(String(result.abnormalFlag)) ? 'bad' : /low|high/i.test(String(result.abnormalFlag)) ? 'warn' : toneForStatus(result.status)} status={statusLabel(result.status)} title={<Code className="text-[13px] text-foreground">{result.resultNumber}</Code>}
+                    meta={<><span>{result.labTest?.name ?? 'No test'}</span><span>{statusLabel(result.abnormalFlag)}</span>{result.patient?.displayName && <span>{result.patient.displayName}</span>}</>} aside={<StatusTag status={result.status} />} />
+                ))}
+                {insuranceClaims.map((claim) => (
+                  <BoardRow key={claim.id} tone={toneForStatus(claim.status)} status={statusLabel(claim.status)} title={<Code className="text-[13px] text-foreground">{claim.claimNumber}</Code>}
+                    meta={<><span>{claim.payerName || 'No payer'}</span><span className="font-mono tabular-nums">Billed {money(claim.billedAmountCents)}</span><span className="font-mono tabular-nums">Paid {money(claim.paidAmountCents)}</span></>} aside={<StatusTag status={claim.status} />} />
+                ))}
+              </Board>
+            )}
+          </WardSection>
+        </div>
+      </WardBody>
     </PageContainer>
   );
 }

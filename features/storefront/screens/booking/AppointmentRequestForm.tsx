@@ -54,25 +54,13 @@ export function AppointmentRequestForm({
 
   if (result?.type === 'success') {
     return (
-      <div
-        ref={feedbackRef}
-        role="status"
-        aria-live="polite"
-        tabIndex={-1}
-        className="sf-notice sf-notice--success"
-        style={{ marginTop: 'var(--space-lg)' }}
-      >
-        <p className="sf-eyebrow">Appointment request receipt</p>
-        <h2 style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>Request received — not confirmed</h2>
-        <p style={{ marginTop: 'var(--space-sm)', lineHeight: 1.6 }}>{result.message}</p>
-        <p style={{ marginTop: 'var(--space-xs)', fontWeight: 600 }}>Reference: {result.reference}</p>
+      <div ref={feedbackRef} role="status" aria-live="polite" tabIndex={-1} className="sf-receipt">
+        <p className="sf-eyebrow">Request receipt</p>
+        <h2 className="sf-step-title sf-titleline"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>Received · not yet confirmed</span></h2>
+        <p className="sf-receipt__ref"><span className="sf-eyebrow">Ref</span>{result.reference}</p>
+        <p>{result.message}</p>
         {result.intakeHref && (
-          <a
-            style={{ marginTop: 'var(--space-sm)', display: 'inline-block', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}
-            href={result.intakeHref}
-          >
-            Continue to private intake
-          </a>
+          <div><div className="sf-track"><a className="sf-pill sf-pill--primary" href={result.intakeHref}>Continue to private intake <span className="sf-arrow">→</span></a></div></div>
         )}
       </div>
     )
@@ -80,7 +68,6 @@ export function AppointmentRequestForm({
 
   return (
     <form
-      style={{ marginTop: 'var(--space-lg)' }}
       className="sf-form"
       onChange={() => setDirty(true)}
       onSubmit={(event) => {
@@ -138,49 +125,51 @@ export function AppointmentRequestForm({
       }}
     >
       {exitGuard}
-      {unknown && <p role="alert" className="sf-notice sf-notice--warn">The original request outcome is unknown. Contact scheduling to reconcile it before making another request. This form will not send another request automatically.</p>}
+      {unknown && <p role="alert" className="sf-notice sf-notice--warn"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>The original request outcome is unknown. Contact scheduling to reconcile it before making another request. This form will not send another request automatically.</span></p>}
       <fieldset disabled={isPending || unknown} className="sf-fieldset">
-        <legend className="sf-legend">Choose a time</legend>
-        <div className="sf-slots">
-          {slots.slice(0, visibleSlotCount).map((slot) => (
-            <label
-              key={`${slot.providerId}-${slot.facilityId}-${slot.startsAt}`}
-              className={`sf-slot ${selectedSlotKey === slotKey(slot) ? 'sf-slot--active' : ''}`}
-            >
-              <input
-                type="radio"
-                name="startsAt"
-                value={slotKey(slot)}
-                checked={selectedSlotKey === slotKey(slot)}
-                onChange={() => setSelectedSlotKey(slotKey(slot))}
-              />
-              <span className="sf-slot__time">
-                {formatFacilitySlotTime(slot.startsAt, slot.facilityTimeZone)}
-              </span>
-              <span className="sf-slot__cap">{slot.facilityName} · {slot.facilityTimeZone} · {slot.remainingCapacity} open</span>
-            </label>
-          ))}
-        </div>
+        <legend className="sf-legend">Times</legend>
+        {slots.length === 0 ? <p className="sf-hint">Check availability to see open times.</p> : (
+          <div className="sf-slots">
+            {slots.slice(0, visibleSlotCount).map((slot) => (
+              <label
+                key={`${slot.providerId}-${slot.facilityId}-${slot.startsAt}`}
+                className={`sf-slot ${selectedSlotKey === slotKey(slot) ? 'sf-slot--active' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="startsAt"
+                  value={slotKey(slot)}
+                  checked={selectedSlotKey === slotKey(slot)}
+                  onChange={() => setSelectedSlotKey(slotKey(slot))}
+                />
+                <span className="sf-slot__time">{formatFacilitySlotTime(slot.startsAt, slot.facilityTimeZone)}</span>
+                <span className="sf-slot__cap">{slot.remainingCapacity} open · {slot.facilityName}</span>
+              </label>
+            ))}
+          </div>
+        )}
         {slots.length > visibleSlotCount && (
-          <button
-            type="button"
-            className="sf-btn sf-btn--secondary"
-            style={{ marginTop: 'var(--space-sm)' }}
-            onClick={() => setVisibleSlotCount(count => Math.min(count + 18, slots.length))}
-          >
-            Show {Math.min(18, slots.length - visibleSlotCount)} more times
-          </button>
+          <div><div className="sf-track">
+            <button type="button" className="sf-pill sf-pill--raised" onClick={() => setVisibleSlotCount(count => Math.min(count + 18, slots.length))}>
+              Show {Math.min(18, slots.length - visibleSlotCount)} more times
+            </button>
+          </div></div>
         )}
       </fieldset>
 
-      <div className="sf-notice sf-notice--info" style={{ marginTop: 'var(--space-md)' }}>
-        <strong>Selected:</strong> {appointmentType.name} with {provider?.displayName || 'the care team'}. Online
-        requests at {selectedSlot?.facilityName || 'the selected facility'} are reviewed before staff confirms them.
-        {selectedSlot?.followUpMode === 'manual' ? ' No external message is configured; staff will follow up manually.' : ' Follow-up is queued through the configured facility integration.'}
-      </div>
+      {selectedSlot && (
+        <dl className="sf-dl" aria-label="Selected request">
+          <div><dt>Visit</dt><dd>{appointmentType.name}</dd></div>
+          <div><dt>Clinician</dt><dd>{provider?.displayName || 'Care team'}</dd></div>
+          <div><dt>Time</dt><dd className="sf-mono">{formatFacilitySlotTime(selectedSlot.startsAt, selectedSlot.facilityTimeZone)}</dd></div>
+          <div><dt>Location</dt><dd>{selectedSlot.facilityName}</dd></div>
+          <div><dt>Follow-up</dt><dd>{selectedSlot.followUpMode === 'manual' ? 'By staff' : 'Automatic'}</dd></div>
+        </dl>
+      )}
 
-      <fieldset disabled={isPending || unknown} className="sf-fieldset" style={{ marginTop: 'var(--space-lg)' }}>
-        <legend className="sf-legend">Patient details</legend>
+      <h2 className="sf-step-title"><span className="sf-mono">03</span>Patient details</h2>
+      <fieldset disabled={isPending || unknown} className="sf-fieldset">
+        <legend className="sf-sr">Patient details</legend>
         <div className="sf-grid-2">
           <label className="sf-field">
             <span className="sf-label">First name</span>
@@ -210,42 +199,35 @@ export function AppointmentRequestForm({
               <option value="phone">Call me</option>
             </select>
           </label>
+          <label className="sf-field sf-span-2">
+            <span className="sf-label">Reason for visit</span>
+            <textarea name="reasonForVisit" rows={4} className="sf-textarea" />
+          </label>
         </div>
       </fieldset>
 
-      <label className="sf-field" style={{ marginTop: 'var(--space-md)' }}>
-        <span className="sf-label">Reason for visit</span>
-        <textarea disabled={isPending || unknown} name="reasonForVisit" rows={4} className="sf-textarea" />
-      </label>
-
-      <label
-        className="sf-notice sf-notice--info"
-        style={{ marginTop: 'var(--space-lg)', display: 'flex', gap: 'var(--space-sm)', alignItems: 'flex-start', cursor: 'pointer' }}
-      >
-        <input disabled={isPending || unknown} required type="checkbox" name="consentToRequest" style={{ marginTop: '0.2rem' }} />
+      <label className="sf-check">
+        <input disabled={isPending || unknown} required type="checkbox" name="consentToRequest" />
         <span>I confirm these details are accurate and ask {brandName} to contact me about this appointment request.</span>
       </label>
 
-      <button
-        disabled={isPending || unknown || !selectedSlotKey || !selectedSlot}
-        className="sf-btn sf-btn--primary sf-btn--block"
-        style={{ marginTop: 'var(--space-lg)' }}
-        type="submit"
-      >
-        {isPending ? 'Requesting appointment…' : 'Request appointment'}
-      </button>
+      <div className="sf-track sf-track--block">
+        <button
+          disabled={isPending || unknown || !selectedSlotKey || !selectedSlot}
+          className="sf-pill sf-pill--primary"
+          type="submit"
+        >
+          {isPending ? 'Requesting appointment…' : 'Request appointment'}
+        </button>
+      </div>
 
       {result?.type === 'error' && (
-        <div
-          ref={feedbackRef}
-          role="alert"
-          aria-live="assertive"
-          tabIndex={-1}
-          className="sf-notice sf-notice--error"
-          style={{ marginTop: 'var(--space-md)' }}
-        >
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Request not verified</h2>
-          <p style={{ marginTop: 'var(--space-xs)' }}>{result.message}</p>
+        <div ref={feedbackRef} role="alert" aria-live="assertive" tabIndex={-1} className="sf-notice sf-notice--error">
+          <span aria-hidden="true" className="sf-dot sf-dot--bad" />
+          <div className="sf-notice__body">
+            <p className="sf-notice__title">Request not verified</p>
+            <p>{result.message}</p>
+          </div>
         </div>
       )}
     </form>

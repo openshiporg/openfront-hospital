@@ -3,17 +3,15 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { Pill, Track, fieldClass, labelClass } from '@/features/platform/components/ward'
 import { FacilitySearchField } from '@/features/platform/facilities/components/FacilitySearchField'
 import type { OperationsOption, OperationsWorkspaceOptions } from '@/features/platform/operations/types'
 import { searchEncounterOpenPatientCandidates, searchOperationalDepartments, searchOperationalProviders } from '@/features/platform/operations/actions/workflows'
 import { openEncounter } from '../actions/transitions'
 import { EpisodeClosurePanel } from './EpisodePolicyWorkspace'
 
-const selectClassName = 'h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const selectClassName = fieldClass
+const hintClass = 'text-xs text-muted-foreground'
 
 function readOperationKey(key: string) {
   try { return sessionStorage.getItem(key) } catch { return null }
@@ -27,8 +25,8 @@ function clearOperationKey(key: string) {
 
 function SelectField({ id, name, label, options, required = true, onChange }: { id: string; name: string; label: string; options: OperationsOption[]; required?: boolean; onChange?: (value: string) => void }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}{required ? '' : ' (optional)'}</Label>
+    <div className="grid min-w-0 gap-1.5">
+      <label htmlFor={id} className={labelClass}>{label}{required ? '' : ' (optional)'}</label>
       <select id={id} name={name} required={required} className={selectClassName} defaultValue="" onChange={event => onChange?.(event.target.value)}>
         <option value="">Select {label.toLowerCase()}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -84,9 +82,10 @@ function DepartmentSearchField({ facilityId }: { facilityId: string }) {
   const noMatches = !pending && !unavailable && Boolean(facilityId) && search.trim().length >= 2 && count === 0
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={`${id}-search`}>Department (optional)</Label>
-      <Input
+    <div className="grid min-w-0 gap-1.5">
+      <label htmlFor={`${id}-search`} className={labelClass}>Department (optional)</label>
+      <input
+        className={fieldClass}
         id={`${id}-search`}
         type="search"
         value={search}
@@ -116,9 +115,9 @@ function DepartmentSearchField({ facilityId }: { facilityId: string }) {
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'No department selected (optional)' : 'Select department (optional)'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching active departments in this facility. Add characters to narrow results.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Department search is unavailable for this session. Authority or facility scope could not be verified; no empty result is being inferred.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active departments were found in the selected accessible facility.</p>}
+      {count > options.length && <p className={hintClass}>Showing {options.length} of {count} departments. Narrow the search.</p>}
+      {unavailable && <p role="status" className={hintClass}>Department search is unavailable.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching departments in this facility.</p>}
     </div>
   )
 }
@@ -170,9 +169,10 @@ function EncounterPatientSearchField({ facilityId }: { facilityId: string }) {
   const noMatches = !pending && !unavailable && Boolean(facilityId) && search.trim().length >= 2 && count === 0
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={`${id}-search`}>Patient</Label>
-      <Input
+    <div className="grid min-w-0 gap-1.5">
+      <label htmlFor={`${id}-search`} className={labelClass}>Patient</label>
+      <input
+        className={fieldClass}
         id={`${id}-search`}
         type="search"
         value={search}
@@ -203,9 +203,9 @@ function EncounterPatientSearchField({ facilityId }: { facilityId: string }) {
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search patients' : 'Select patient'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching active patients in this facility. Add characters to narrow results.</p>}
-      {unavailable && <p role="status" className="text-xs text-muted-foreground">Patient search is unavailable for this session. Authority or facility scope could not be verified; no empty result is being inferred.</p>}
-      {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active patients were found in the selected accessible facility.</p>}
+      {count > options.length && <p className={hintClass}>Showing {options.length} of {count} patients. Narrow the search.</p>}
+      {unavailable && <p role="status" className={hintClass}>Patient search is unavailable.</p>}
+      {noMatches && <p role="status" className={hintClass}>No matching patients in this facility.</p>}
     </div>
   )
 }
@@ -264,9 +264,10 @@ function ProviderSearchField({ facilityId }: { facilityId: string }) {
     : options
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={`${id}-search`}>Provider</Label>
-      <Input
+    <div className="grid min-w-0 gap-1.5">
+      <label htmlFor={`${id}-search`} className={labelClass}>Provider</label>
+      <input
+        className={fieldClass}
         id={`${id}-search`}
         type="search"
         value={search}
@@ -287,8 +288,8 @@ function ProviderSearchField({ facilityId }: { facilityId: string }) {
         <option value="">{!facilityId ? 'Select a facility first' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : pending ? 'Searching…' : 'Select provider'}</option>
         {visibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-      {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matches. Add more characters to narrow results.</p>}
-      {error && <p role="status" className="text-xs text-muted-foreground">{error}</p>}
+      {count > options.length && <p className={hintClass}>Showing {options.length} of {count} providers. Narrow the search.</p>}
+      {error && <p role="status" className={hintClass}>{error}</p>}
     </div>
   )
 }
@@ -304,14 +305,14 @@ export function OpenEncounterForm({ options }: { options: OperationsWorkspaceOpt
   const missingReferences = options.facilitiesCount === 0
 
   return (
-    <details className="rounded-lg border bg-card" open>
-      <summary className="cursor-pointer list-none px-4 py-3 marker:hidden">
-        <span className="block font-medium">Open encounter</span>
-        <span className="mt-1 block text-sm text-muted-foreground">Start an encounter for a patient, provider, and facility.</span>
+    <details className="group min-w-0 rounded-xl border bg-card" open>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold marker:hidden md:px-5 [&::-webkit-details-marker]:hidden">
+        <span>Open encounter</span>
+        <span aria-hidden className="text-xs font-normal text-muted-foreground group-open:rotate-180">▾</span>
       </summary>
       <form
         ref={formRef}
-        className="grid gap-4 border-t p-4 md:grid-cols-2"
+        className="grid min-w-0 gap-4 border-t p-4 md:grid-cols-2 md:p-5"
         action={async formData => {
           setPending(true)
           setMessage(null)
@@ -351,17 +352,19 @@ export function OpenEncounterForm({ options }: { options: OperationsWorkspaceOpt
         <ProviderSearchField key={`provider:${facilityId}:${formResetVersion}`} facilityId={facilityId} />
         <SelectField key={`appointment:${facilityId}:${formResetVersion}`} id="encounter-appointment" name="appointmentId" label="Checked-in appointment" options={options.checkedInAppointments} required={false} />
         <DepartmentSearchField key={`department:${facilityId}:${formResetVersion}`} facilityId={facilityId} />
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="encounter-chief-complaint">Reason for encounter (optional)</Label>
-          <Textarea id="encounter-chief-complaint" name="chiefComplaint" maxLength={4000} />
+        <div className="grid min-w-0 gap-1.5 md:col-span-2">
+          <label htmlFor="encounter-chief-complaint" className={labelClass}>Reason for encounter (optional)</label>
+          <textarea id="encounter-chief-complaint" name="chiefComplaint" maxLength={4000} rows={3} className={`${fieldClass} h-auto py-2`} />
         </div>
-        {missingReferences && <p role="status" className="text-sm text-muted-foreground md:col-span-2">An accessible active facility is required before opening an encounter. Search for a patient and provider after choosing the facility.</p>}
-        {message && <p role={message.type === 'error' ? 'alert' : 'status'} className={`text-sm md:col-span-2 ${message.type === 'error' ? 'text-destructive' : 'text-emerald-700'}`}>{message.text}</p>}
+        {missingReferences && <p role="status" className="text-sm text-muted-foreground md:col-span-2">No accessible active facility.</p>}
+        {message && <p role={message.type === 'error' ? 'alert' : 'status'} className={`text-sm md:col-span-2 ${message.type === 'error' ? 'text-destructive' : 'text-emerald-700 dark:text-emerald-300'}`}>{message.text}</p>}
         <div className="md:col-span-2">
-          <Button disabled={pending || missingReferences}>
-            {pending && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Open encounter
-          </Button>
+          <Track>
+            <Pill type="submit" variant="primary" disabled={pending || missingReferences}>
+              {pending && <Loader2 className="animate-spin" />}
+              Open encounter
+            </Pill>
+          </Track>
         </div>
       </form>
     </details>

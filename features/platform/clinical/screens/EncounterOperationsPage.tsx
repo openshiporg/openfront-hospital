@@ -1,9 +1,22 @@
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import { BoundedDataNotice } from '@/features/platform/components/BoundedDataNotice'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
+import {
+  Board,
+  BoardRow,
+  Code,
+  EmptyBoard,
+  Readout,
+  ReadoutStrip,
+  WardBody,
+  WardHeader,
+  WardSection,
+  Wristband,
+  statusLabel,
+  toneForStatus,
+} from '@/features/platform/components/ward'
+import { cn } from '@/lib/utils'
 import { getOperationsWorkspaceOptions } from '@/features/platform/operations/lib/getOperationsWorkspaceOptions'
 import { EpisodePolicyConfiguration, EpisodeReceiptLookup } from '../components/EpisodePolicyWorkspace'
 import { EncounterTransitionControls, OpenEncounterForm } from '../components/EncounterWorkflowControls'
@@ -49,6 +62,42 @@ const query = `
   }
 `
 
+const STAGES = [
+  { key: 'arrived', label: 'Arrived' },
+  { key: 'open', label: 'Open' },
+  { key: 'in_progress', label: 'In progress' },
+  { key: 'closed', label: 'Closed' },
+] as const
+
+/** Where an encounter sits between arrival and closure. */
+function StageTrack({ encounter }: { encounter: Encounter }) {
+  const reached = encounter.status === 'in_progress' ? 2 : encounter.status === 'closed' ? 3 : 1
+  return (
+    <ol aria-label={`Stage: ${statusLabel(encounter.status)}`} className="flex min-w-0 flex-wrap items-center gap-y-1">
+      {STAGES.map((stage, index) => {
+        const done = index < reached
+        const current = index === reached
+        return (
+          <li key={stage.key} className="flex min-w-0 flex-wrap items-center gap-y-1">
+            {index > 0 && <span aria-hidden className={cn('h-px w-3 sm:w-5', index <= reached ? 'bg-teal-600 dark:bg-teal-400' : 'bg-border')} />}
+            <span
+              aria-current={current ? 'step' : undefined}
+              className={cn(
+                'whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium',
+                current && 'bg-teal-700 text-white dark:bg-teal-500 dark:text-teal-950',
+                done && 'text-teal-700 dark:text-teal-300',
+                !done && !current && 'text-muted-foreground',
+              )}
+            >
+              {stage.label}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 export default async function EncounterOperationsPage({ searchParams }: { searchParams?: Promise<{ encounterId?: string }> } = {}) {
   const selected = searchParams ? await searchParams : {}
   const selectedEncounterId = typeof selected.encounterId === 'string' ? selected.encounterId.slice(0, 128) : ''
@@ -63,67 +112,75 @@ export default async function EncounterOperationsPage({ searchParams }: { search
   if (!response?.success || !options) {
     return <>
       <WorkspaceLoadError title="Encounters" description="Encounter work items or required selectors may be incomplete. Policy/owned receipt checks below are independent and remain permission-gated." breadcrumbs={breadcrumbs} />
-      <div className="space-y-4 px-4 pb-8 md:px-6"><EpisodePolicyConfiguration /><EpisodeReceiptLookup initialEncounterId={selectedEncounterId} /></div>
+      <WardBody><EpisodePolicyConfiguration /><EpisodeReceiptLookup initialEncounterId={selectedEncounterId} /></WardBody>
     </>
   }
   const data = response.data
+  const lanes = [
+    { status: 'open', title: 'Open', encounters: data.encounters.filter(encounter => encounter.status === 'open') },
+    { status: 'in_progress', title: 'In progress', encounters: data.encounters.filter(encounter => encounter.status === 'in_progress') },
+  ]
 
   return (
     <PageContainer
       title="Encounters"
       breadcrumbs={breadcrumbs}
       header={(
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Visit workspace</p>
-          <h1 className="mt-2 text-3xl font-semibold">Encounters</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Open visits, start care, and close completed encounters.</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border px-2.5 py-1">Open: {data.openCount}</span>
-            <span className="rounded-full border px-2.5 py-1">In progress: {data.inProgressCount}</span>
-            <span className="rounded-full border px-2.5 py-1">Closed: {data.closedCount}</span>
-          </div>
-        </div>
+        <WardHeader
+          title="Encounters"
+          tone={data.openCount + data.inProgressCount > 0 ? 'info' : 'idle'}
+          meta={<span className="font-mono text-xs tabular-nums">{data.openCount + data.inProgressCount} active</span>}
+        />
       )}
     >
-      <div className="space-y-5 px-4 pb-8 md:px-6">
+      <WardBody>
         <BoundedDataNotice messages={[
           ...options.notices,
           ...(data.openCount + data.inProgressCount > data.encounters.length
             ? [`Active encounters: showing the first ${data.encounters.length} of ${data.openCount + data.inProgressCount}.`]
             : []),
         ]} />
-        <EpisodePolicyConfiguration />
-        <EpisodeReceiptLookup initialEncounterId={selectedEncounterId} />
+
+        <ReadoutStrip>
+          <Readout label="Open" value={data.openCount} tone={data.openCount ? 'info' : 'idle'} />
+          <Readout label="In progress" value={data.inProgressCount} tone={data.inProgressCount ? 'warn' : 'idle'} />
+          <Readout label="Closed" value={data.closedCount} tone="ok" />
+        </ReadoutStrip>
+
+        {!data.encounters.length
+          ? <EmptyBoard title="No active encounters." />
+          : lanes.filter(lane => lane.encounters.length).map(lane => (
+            <WardSection key={lane.status} title={lane.title} count={lane.encounters.length} id={`encounters-${lane.status}`}>
+              <Board>
+                {lane.encounters.map(encounter => (
+                  <BoardRow
+                    key={encounter.id}
+                    tone={toneForStatus(encounter.status)}
+                    status={statusLabel(encounter.status)}
+                    title={<Wristband name={encounter.patient?.displayName ?? 'Restricted patient'} identifier={encounter.encounterNumber} />}
+                    meta={<>
+                      <span>{encounter.provider?.displayName || 'Provider'}</span>
+                      <span>{encounter.facility?.name || 'Facility'}{encounter.department?.name ? ` · ${encounter.department.name}` : ''}</span>
+                      {encounter.appointment?.appointmentNumber && <Code>{encounter.appointment.appointmentNumber}</Code>}
+                    </>}
+                    aside={<StageTrack encounter={encounter} />}
+                  >
+                    <EncounterTransitionControls encounter={encounter} />
+                  </BoardRow>
+                ))}
+              </Board>
+            </WardSection>
+          ))}
+
         <OpenEncounterForm options={options} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Active encounters</CardTitle>
-            <CardDescription>Open and in-progress encounters, oldest first.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 xl:grid-cols-2">
-            {data.encounters.map(encounter => (
-              <div key={encounter.id} className="rounded-lg border p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{encounter.patient?.displayName ?? 'Restricted patient'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {encounter.encounterNumber} · {encounter.provider?.displayName || 'Provider'}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {encounter.facility?.name || 'Facility'}
-                      {encounter.department?.name ? ` · ${encounter.department.name}` : ''}
-                      {encounter.appointment?.appointmentNumber ? ` · ${encounter.appointment.appointmentNumber}` : ''}
-                    </p>
-                  </div>
-                  <Badge>{encounter.status.replaceAll('_', ' ')}</Badge>
-                </div>
-                <EncounterTransitionControls encounter={encounter} />
-              </div>
-            ))}
-            {!data.encounters.length && <p className="text-sm text-muted-foreground">No active encounters.</p>}
-          </CardContent>
-        </Card>
-      </div>
+
+        <WardSection title="Episode closure" id="encounters-episode">
+          <div className="flex min-w-0 flex-col gap-3">
+            <EpisodeReceiptLookup initialEncounterId={selectedEncounterId} />
+            <EpisodePolicyConfiguration />
+          </div>
+        </WardSection>
+      </WardBody>
     </PageContainer>
   )
 }

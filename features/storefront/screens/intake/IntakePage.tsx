@@ -13,39 +13,38 @@ export function IntakePageContent({ intakeForm, profile }: { intakeForm: Patient
         weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
       }).format(new Date(intakeForm.appointment.startsAt))
     : 'Upcoming appointment'
+  const submitted = intakeForm.status === 'submitted' || intakeForm.status === 'reviewed'
 
   return (
     <StorefrontShell profile={profile}>
-      <section className="sf-workbench sf-reveal">
-        <div className="sf-container sf-workbench__grid">
-          <aside className="sf-rail">
-            <Link className="sf-back" href="/book">← Appointments</Link>
-            <div className="sf-panel sf-panel__pad">
-              <p className="sf-eyebrow">Patient intake</p>
-              <h1 className="sf-display sf-display--section" style={{ marginTop: 'var(--space-xs)' }}>{intakeForm.title}</h1>
-              <p style={{ marginTop: 'var(--space-sm)', color: 'var(--color-ink-2)', lineHeight: 1.65 }}>
-                Complete this pre-visit form so the clinic can prepare for your appointment and verify contact and insurance details.
-              </p>
-              <dl className="sf-dl" style={{ marginTop: 'var(--space-md)' }}>
-                <div className="sf-dl__row"><dt className="sf-dl__dt">Patient</dt><dd className="sf-dl__dd">{intakeForm.patient?.displayName || 'Patient'}</dd></div>
-                <div className="sf-dl__row"><dt className="sf-dl__dt">Visit</dt><dd className="sf-dl__dd">{intakeForm.appointment?.appointmentType?.name || 'Visit'}</dd></div>
-                <div className="sf-dl__row"><dt className="sf-dl__dt">When</dt><dd className="sf-dl__dd">{appointmentDate}</dd></div>
-                <div className="sf-dl__row"><dt className="sf-dl__dt">Status</dt><dd className="sf-dl__dd" style={{ textTransform: 'capitalize' }}>{intakeForm.status.split('_').join(' ')}</dd></div>
-              </dl>
+      <div className="sf-container sf-work">
+        <aside className="sf-work__rail sf-reveal">
+          <Link className="sf-back" href="/book"><span aria-hidden="true">←</span> Appointments</Link>
+          <div className="sf-ticket">
+            <p className="sf-eyebrow">Pre-visit intake</p>
+            <h1 className="sf-ticket__title sf-titleline">
+              <span aria-hidden="true" className={`sf-dot ${submitted ? 'sf-dot--ok' : 'sf-dot--warn'}`} />
+              <span>{intakeForm.title}</span>
+            </h1>
+            <dl className="sf-dl">
+              <div><dt>Patient</dt><dd>{intakeForm.patient?.displayName || 'Patient'}</dd></div>
+              <div><dt>Visit</dt><dd>{intakeForm.appointment?.appointmentType?.name || 'Visit'}</dd></div>
+              <div><dt>When</dt><dd>{appointmentDate}</dd></div>
+              <div><dt>Status</dt><dd style={{ textTransform: 'capitalize' }}>{intakeForm.status.split('_').join(' ')}</dd></div>
+            </dl>
+          </div>
+          <p className="sf-hint">One-time private link. Share only with the patient or caregiver.</p>
+          <EmergencyNotice />
+        </aside>
+        <section className="sf-panel sf-reveal">
+          {submitted ? (
+            <div className="sf-receipt">
+              <h2 className="sf-step-title sf-titleline"><span aria-hidden="true" className="sf-dot sf-dot--ok" /><span>Intake received</span></h2>
+              <p>This form is already submitted. Contact the clinic if anything has changed.</p>
             </div>
-            <div className="sf-notice sf-notice--info">This page uses a one-time intake link. Only share it with the patient or caregiver it belongs to.</div>
-            <EmergencyNotice />
-          </aside>
-          <section className="sf-form-surface">
-            {intakeForm.status === 'submitted' || intakeForm.status === 'reviewed' ? (
-              <div className="sf-notice sf-notice--success">
-                <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Intake received</h2>
-                <p style={{ marginTop: 'var(--space-xs)', lineHeight: 1.6 }}>This intake form has already been submitted. If anything changed, contact the clinic before your visit.</p>
-              </div>
-            ) : <IntakeSubmissionForm intakeForm={intakeForm} />}
-          </section>
-        </div>
-      </section>
+          ) : <IntakeSubmissionForm intakeForm={intakeForm} />}
+        </section>
+      </div>
     </StorefrontShell>
   )
 }

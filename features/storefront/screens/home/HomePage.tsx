@@ -1,29 +1,9 @@
 import Link from 'next/link'
-import { StorefrontShell } from '@/features/storefront/components/StorefrontShell'
+import { Dot, Sign, StorefrontShell, zoneFor } from '@/features/storefront/components/StorefrontShell'
 import { getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
-import { getHospitalBranding, type HospitalBranding } from '@/features/storefront/lib/data/branding'
+import { getHospitalBranding } from '@/features/storefront/lib/data/branding'
 import { careServiceLines } from '@/features/storefront/lib/careServices'
-import type { BookableAppointmentType } from '@/features/storefront/lib/data/booking'
-
-const pathways = (profile: HospitalBranding, appointmentTypes: BookableAppointmentType[]) =>
-  careServiceLines(appointmentTypes).map(line => ({
-    title: line.title,
-    text: line.description,
-    image: line.key === 'primary-care'
-      ? profile.media.primaryCare
-      : line.key === 'behavioral-health'
-        ? profile.media.behavioralHealth
-        : profile.media.clinic,
-    alt: `${line.title} currently represented by active appointment types`,
-    href: `/care#${line.key}`,
-  }))
-
-const patientPath = (profile: HospitalBranding) => [
-  { title: 'Choose the care you need', text: `Review real visit types, clinicians, durations, and clinic estimates from the ${profile.shortName} schedule.` },
-  { title: 'Request an available time', text: 'Select a provider and an open slot. Our staff reviews each request before it is confirmed.' },
-  { title: 'Prepare before the visit', text: 'Use your private intake link to share the details the care team needs, without creating an account.' },
-]
 
 export async function HomePage() {
   const [profile, appointmentTypes, providers] = await Promise.all([
@@ -31,108 +11,144 @@ export async function HomePage() {
     getBookableAppointmentTypes(),
     getBookableProviders(),
   ])
-  const availablePathways = pathways(profile, appointmentTypes)
-  const previewProviders = providers.filter(provider => Boolean(provider.imagePath)).slice(0, 2)
+  const serviceLines = careServiceLines(appointmentTypes)
+  const previewProviders = providers.slice(0, 3)
+  const shortestVisit = appointmentTypes.reduce<number | null>((min, type) => (min === null || type.durationMinutes < min ? type.durationMinutes : min), null)
 
   return (
     <StorefrontShell profile={profile}>
-      <section className="sf-hero sf-reveal" aria-labelledby="home-heading">
-        <div className="sf-hero__frame">
-          <img className="sf-hero__media" src={profile.media.hero} alt="A family talking with a physician during a calm consultation" />
-          <div className="sf-hero__veil" />
-          <div className="sf-container sf-hero__content">
-            <div className="sf-hero__copy">
-              <p className="sf-eyebrow">{[profile.locationName, 'Patient services'].filter(Boolean).join(' · ')}</p>
-              <h1 id="home-heading" className="sf-display sf-display--hero sf-hero__title">A clear first step into care.</h1>
-              <p className="sf-lead sf-hero__lead">Review currently bookable visit types and send a non-emergency appointment request for staff review.</p>
-              <div className="sf-hero__actions">
-                <Link className="sf-btn sf-btn--light" href="/book">Find care <span className="sf-arrow">→</span></Link>
-                <Link className="sf-btn sf-btn--secondary" href="/providers" style={{ color: 'white', borderColor: 'rgba(255,255,255,.4)' }}>Meet our care team</Link>
+      <section className="sf-hero" aria-labelledby="home-heading">
+        <div className="sf-container sf-hero__grid">
+          <div className="sf-hero__copy sf-reveal">
+            <p className="sf-eyebrow">{profile.locationName}</p>
+            <h1 id="home-heading" className="sf-display sf-display--hero sf-hero__title">{profile.name}</h1>
+            {profile.description && <p className="sf-lead">{profile.description}</p>}
+            <div>
+              <div className="sf-track">
+                <Link className="sf-pill sf-pill--primary" href="/book">Request a visit <span className="sf-arrow">→</span></Link>
+                <Link className="sf-pill" href="/providers">Care team</Link>
+                <Link className="sf-pill" href="/intake">Intake</Link>
               </div>
-              <p className="sf-hero__note">Non-emergency appointment requests are reviewed by clinic staff. No account is needed to begin.</p>
+            </div>
+            <div className="sf-hero__facts">
+              <span><Dot tone={appointmentTypes.length ? 'ok' : undefined} />{appointmentTypes.length} visit {appointmentTypes.length === 1 ? 'type' : 'types'}</span>
+              <span><Dot tone={providers.length ? 'ok' : undefined} />{providers.length} {providers.length === 1 ? 'clinician' : 'clinicians'}</span>
+              {shortestVisit !== null && <span><Dot />From {shortestVisit} min</span>}
             </div>
           </div>
-          <p className="sf-hero__caption">Available visits · staff-reviewed requests</p>
+          <div className="sf-hero__media sf-reveal">
+            <img src={profile.media.hero} alt="A family talking with a physician" />
+            {serviceLines.length > 0 && (
+              <div className="sf-hero__signs" aria-hidden="true">
+                {serviceLines.map(line => <Sign key={line.key} zone={zoneFor(line.key)} label={line.title} />)}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="sf-intro-strip">
-        <div className="sf-container sf-intro-strip__grid">
-          <p className="sf-intro-strip__aside">Public identity comes from the active organization profile; available care comes from active visit types and providers.</p>
-          <p className="sf-intro-strip__statement">Start with the care options represented here, then let staff review the request before anything is confirmed.</p>
+      <section className="sf-container" aria-labelledby="directory-heading">
+        <div className="sf-directory">
+          <div className="sf-directory__head">
+            <div>
+              <p className="sf-eyebrow">Directory</p>
+              <h2 id="directory-heading" className="sf-display sf-display--section" style={{ marginTop: '.4rem' }}>Care services</h2>
+            </div>
+            <div className="sf-track sf-track--lobby">
+              <Link className="sf-pill sf-pill--raised" href="/care">All services <span className="sf-arrow">→</span></Link>
+            </div>
+          </div>
+          {serviceLines.length === 0 ? (
+            <p className="sf-directory__empty">No visit types are open for online requests.</p>
+          ) : (
+            <ul className="sf-directory__rows">
+              {serviceLines.map(line => {
+                const zone = zoneFor(line.key)
+                return (
+                  <li key={line.key} className={`sf-directory__row ${zone.className}`}>
+                    <span className="sf-directory__code" aria-hidden="true">{zone.code}</span>
+                    <h3 className="sf-directory__title">{line.title}</h3>
+                    <div className="sf-directory__visits">
+                      {line.appointmentTypes.map(type => (
+                        <Link key={type.id} className="sf-directory__visit" href={`/book/${type.slug}`}>
+                          {type.name}<span className="sf-mono">{type.durationMinutes} min</span>
+                        </Link>
+                      ))}
+                    </div>
+                    <Link className="sf-directory__go sf-eyebrow" style={{ color: 'var(--color-lobby-ink)' }} href={`/care#${line.key}`}>Zone {zone.code} →</Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
       </section>
 
-      <section className="sf-care" aria-labelledby="care-heading">
+      <section className="sf-section" aria-labelledby="steps-heading">
         <div className="sf-container">
-          <div className="sf-section-head">
-            <div className="sf-section-head__copy">
-              <p className="sf-eyebrow">How we care</p>
-              <h2 id="care-heading" className="sf-display sf-display--section" style={{ marginTop: '1rem' }}>Care currently available through this front door.</h2>
+          <div className="sf-section__head">
+            <div>
+              <p className="sf-eyebrow">Getting seen</p>
+              <h2 id="steps-heading" className="sf-display sf-display--section">Three steps</h2>
             </div>
-            <Link className="sf-text-link" href="/care">Explore care services <span className="sf-arrow">→</span></Link>
           </div>
-          <div className="sf-care__list">
-            {availablePathways.map((pathway, index) => (
-              <article className="sf-care-card" key={pathway.title}>
-                <div className="sf-care-card__media"><img src={pathway.image} alt={pathway.alt} loading="lazy" /></div>
-                <div className="sf-care-card__body">
-                  <span className="sf-care-card__number">0{index + 1}</span>
-                  <h3 className="sf-care-card__title">{pathway.title}</h3>
-                  <p className="sf-care-card__text">{pathway.text}</p>
-                  <Link className="sf-text-link" href={pathway.href}>Explore this care <span className="sf-arrow">→</span></Link>
-                </div>
-              </article>
-            ))}
-            {availablePathways.length === 0 ? (
-              <div className="sf-empty" style={{ background: 'var(--color-paper)' }}>
-                <h3 className="sf-empty__title">No online visit types are listed yet</h3>
-                <p className="sf-empty__text">Contact scheduling for current services. No availability is implied by this storefront.</p>
-              </div>
-            ) : null}
-          </div>
+          <ol className="sf-steps">
+            <li><h3 className="sf-steps__title">Choose a visit</h3><p className="sf-muted">Visit type, clinician and location</p></li>
+            <li><h3 className="sf-steps__title">Request a time</h3><p className="sf-muted">Staff confirm every request</p></li>
+            <li><h3 className="sf-steps__title">Complete intake</h3><p className="sf-muted">Private link, no account</p></li>
+          </ol>
         </div>
       </section>
 
-      <section className="sf-team-preview" aria-labelledby="team-heading">
-        <div className="sf-container sf-team-preview__grid">
-          <div>
-            <p className="sf-eyebrow">Current care team</p>
-            <h2 id="team-heading" className="sf-display sf-display--section" style={{ marginTop: '1rem' }}>Meet the people connected to available visits.</h2>
-            <p className="sf-lead">Provider names, specialties, and visit relationships are shown from active scheduling records.</p>
-            <Link className="sf-btn sf-btn--light" href="/providers">Meet the {profile.shortName} team <span className="sf-arrow">→</span></Link>
-          </div>
-          <div className="sf-team-preview__portraits">
-            {previewProviders.map((provider) => (
-              <figure key={provider.id}>
-                <img
-                  src={provider.imagePath || ''}
-                  alt={`${provider.displayName} — ${provider.specialty || provider.credentials || `${profile.shortName} clinician`}`}
-                />
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="sf-path" aria-labelledby="path-heading">
-        <div className="sf-container sf-path__layout">
-          <div>
-            <p className="sf-eyebrow">Your next step</p>
-            <h2 id="path-heading" className="sf-display sf-display--section" style={{ marginTop: '1rem' }}>From finding care to feeling ready.</h2>
-          </div>
-          <div>
-            <ol className="sf-path__list">
-              {patientPath(profile).map((step) => <li className="sf-path__item" key={step.title}><div><h3 className="sf-path__title">{step.title}</h3><p className="sf-path__text">{step.text}</p></div></li>)}
-            </ol>
-            {appointmentTypes.length > 0 ? (
-              <div style={{ marginTop: '2rem' }}>
-                <p className="sf-eyebrow">Available now</p>
-                <div className="sf-chip-row" style={{ marginTop: '.8rem' }}>
-                  {appointmentTypes.map((type) => <Link className="sf-chip" key={type.id} href={`/book/${type.slug}`}>{type.name} · {type.durationMinutes} min</Link>)}
-                </div>
+      {previewProviders.length > 0 && (
+        <section className="sf-section" aria-labelledby="team-heading" style={{ paddingTop: 0 }}>
+          <div className="sf-container">
+            <div className="sf-section__head">
+              <div>
+                <p className="sf-eyebrow">Care team</p>
+                <h2 id="team-heading" className="sf-display sf-display--section">Accepting requests</h2>
               </div>
-            ) : null}
+              <div className="sf-track"><Link className="sf-pill sf-pill--raised" href="/providers">All clinicians <span className="sf-arrow">→</span></Link></div>
+            </div>
+            <ul className="sf-people">
+              {previewProviders.map(provider => (
+                <li key={provider.id} className="sf-person">
+                  <div className="sf-person__photo">
+                    {provider.imagePath
+                      ? <img src={provider.imagePath} alt={provider.imageAltText || provider.displayName} loading="lazy" />
+                      : <div className="sf-person__initials" aria-hidden="true">{(provider.firstName?.[0] || '') + (provider.lastName?.[0] || '')}</div>}
+                  </div>
+                  <div className="sf-person__body">
+                    <h3 className="sf-person__name sf-titleline"><Dot tone="ok" /><span><span className="sf-sr">Accepting requests: </span>{provider.displayName}</span></h3>
+                    <p className="sf-person__meta">
+                      {provider.specialty && <span>{provider.specialty}</span>}
+                      {provider.credentials && <span>{provider.credentials}</span>}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      <section id="visit" className="sf-container" aria-labelledby="visit-heading" style={{ scrollMarginTop: '6rem' }}>
+        <h2 id="visit-heading" className="sf-sr">Visit us</h2>
+        <div className="sf-place">
+          <div className="sf-place__item">
+            <span className="sf-eyebrow">Location</span>
+            <strong>{profile.locationName}</strong>
+            {profile.addressLine1 && <span>{profile.addressLine1}</span>}
+            {(profile.city || profile.region || profile.postalCode) && <span>{[profile.city, profile.region, profile.postalCode].filter(Boolean).join(', ')}</span>}
+          </div>
+          <div className="sf-place__item">
+            <span className="sf-eyebrow">Scheduling</span>
+            {profile.supportPhoneHref ? <a href={profile.supportPhoneHref}>{profile.supportPhone}</a> : <span>Phone not listed</span>}
+            {profile.supportEmailHref && <a href={profile.supportEmailHref}>{profile.supportEmail}</a>}
+          </div>
+          <div className="sf-place__item">
+            <span className="sf-eyebrow">Service area</span>
+            <strong>{profile.serviceArea}</strong>
           </div>
         </div>
       </section>

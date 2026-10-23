@@ -1,7 +1,28 @@
 import Link from 'next/link'
 
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type * as React from 'react'
+
+import { cn } from '@/lib/utils'
+import {
+  Board,
+  BoardRow,
+  Code,
+  EmptyBoard,
+  Meter,
+  Notice,
+  Pill,
+  Readout,
+  ReadoutStrip,
+  StatusTag,
+  TitleLine,
+  Track,
+  WardBody,
+  WardHeader,
+  WardSection,
+  statusLabel,
+  toneForStatus,
+  type WardTone,
+} from '@/features/platform/components/ward'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import {
@@ -398,123 +419,153 @@ export default async function InpatientOperationsPage({ searchParams }: PageProp
   const preservedForAdmissions = [bedCursor, reservationCursor].filter((cursor): cursor is InpatientCursor => cursor !== null)
   const preservedForReservations = [bedCursor, admissionCursor].filter((cursor): cursor is InpatientCursor => cursor !== null)
   const preservedForBeds = [admissionCursor, reservationCursor].filter((cursor): cursor is InpatientCursor => cursor !== null)
+  const totalBeds = bedsQueue.counts?.beds ?? null
   return (
     <PageContainer
       title="Inpatient operations"
       breadcrumbs={breadcrumbs}
       header={(
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Admission, movement, discharge</p>
-          <h1 className="mt-2 text-3xl font-semibold">Inpatient operations</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Coordinate active admissions, transfers, discharge, and bed readiness from one workspace.</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border px-2.5 py-1">Active admissions: {admissions.totalCount ?? 'Unavailable'}</span>
-            <span className="rounded-full border px-2.5 py-1">Available beds: {bedsQueue.counts?.availableBeds ?? 'Unavailable'}</span>
-            <span className="rounded-full border px-2.5 py-1">Occupied beds: {bedsQueue.counts?.occupiedBeds ?? 'Unavailable'}</span>
-            <span className="rounded-full border px-2.5 py-1">Active reservations: {reservations.totalCount ?? 'Unavailable'}</span>
-          </div>
-        </div>
+        <WardHeader
+          eyebrow="Inpatient"
+          title="Bed board"
+          tone={bedsQueue.counts ? (bedsQueue.counts.availableBeds > 0 ? 'ok' : 'warn') : 'idle'}
+          status={bedsQueue.counts ? `${bedsQueue.counts.availableBeds} beds available` : 'Bed counts unavailable'}
+          meta="Admissions, transfers, discharges and bed holds"
+        />
       )}
     >
-      <div className="space-y-5 px-4 pb-8 md:px-6">
+      <WardBody>
         <BoundedDataNotice messages={options.notices} />
-        <div className="grid gap-3 xl:grid-cols-2">
-          <AdmissionCreateForm options={options} />
-          <BedReservationCreateForm options={options} />
-        </div>
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Active admissions</CardTitle>
-              <CardDescription>Oldest active admissions first, with transfer and discharge actions in context.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {admissions.state === 'denied' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>This admission cursor is stale or outside the active admissions accessible to this session. No admission record was loaded.</p><Link href={inpatientCursorHref(null, preservedForAdmissions)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first admissions page</Link></div>}
-              {admissions.state === 'unavailable' && <p role="alert" className="text-sm text-destructive">Active admissions could not be verified. No empty queue is being inferred.</p>}
-              {admissions.state === 'stale' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>The admission cursor is malformed or stale. Return to the first page to continue.</p><Link href={inpatientCursorHref(null, preservedForAdmissions)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first admissions page</Link></div>}
-              {admissions.state === 'inconsistent' && <p role="alert" className="text-sm text-destructive">Admission rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</p>}
-              {admissions.state === 'empty' && admissions.page?.state === 'empty' && admissions.page.totalCount === 0 && admissions.direction === 'first' && <p role="status" className="text-sm text-muted-foreground">No active admissions.</p>}
-              {admissions.state === 'empty' && admissions.page?.state === 'empty' && admissions.page.totalCount > 0 && <p role="status" className="text-sm text-muted-foreground">No active admissions are available on this side of the cursor.</p>}
-              {admissions.state === 'ready' && admissions.page?.state === 'ready' && admissions.page.admissions.map((admission: Admission) => (
-                <div key={admission.id} className="rounded-lg border p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="font-medium">{admission.patient?.displayName ?? 'Restricted patient'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {admission.admissionNumber} · {admission.facility?.name || 'Facility'} · bed {admission.bed?.bedNumber ?? '—'}
-                      </p>
-                      {admission.admittedAt && <p className="mt-1 text-xs text-muted-foreground">Admitted {formatFacilityDateTime(admission.admittedAt, admission.facility?.timeZone)}</p>}
-                    </div>
-                    <Badge>{admission.status.replaceAll('_', ' ')}</Badge>
+        <ReadoutStrip>
+          <Readout label="Available beds" tone="ok" value={bedsQueue.counts?.availableBeds ?? '—'} sub={bedsQueue.counts ? undefined : 'Unavailable'} />
+          <Readout label="Occupied beds" tone="info" value={bedsQueue.counts?.occupiedBeds ?? '—'} sub={bedsQueue.counts && totalBeds ? <Meter value={bedsQueue.counts.occupiedBeds / totalBeds} tone="info" label="Occupied share" /> : bedsQueue.counts ? undefined : 'Unavailable'} />
+          <Readout label="Active admissions" tone="accent" value={admissions.totalCount ?? '—'} sub={admissions.totalCount === null ? 'Unavailable' : undefined} />
+          <Readout label="Bed holds" tone="warn" value={reservations.totalCount ?? '—'} sub={reservations.totalCount === null ? 'Unavailable' : undefined} />
+        </ReadoutStrip>
+
+        <WardSection id="bed-board" title="Beds" count={bedsQueue.totalCount ?? undefined}>
+          {bedsQueue.state === 'denied' && <CursorReset role="status" href={inpatientCursorHref(null, preservedForBeds)} label="First bed page">This bed cursor is stale or outside the beds accessible to this session. No bed record was loaded.</CursorReset>}
+          {bedsQueue.state === 'unavailable' && <Notice tone="bad" role="alert">The bed list and counts could not be verified. No empty bed board is being inferred.</Notice>}
+          {bedsQueue.state === 'stale' && <CursorReset role="status" href={inpatientCursorHref(null, preservedForBeds)} label="First bed page">The bed cursor is malformed or stale.</CursorReset>}
+          {bedsQueue.state === 'inconsistent' && <CursorReset role="alert" href={inpatientCursorHref(null, preservedForBeds)} label="First bed page">Bed rows, cursor membership, and count could not be reconciled. No empty bed board is being inferred.</CursorReset>}
+          {bedsQueue.state === 'empty' && bedsQueue.page?.state === 'empty' && bedsQueue.page.totalCount === 0 && bedsQueue.direction === 'first' && <EmptyBoard title="No accessible beds" />}
+          {bedsQueue.state === 'ready' && bedsQueue.page?.state === 'ready' && (
+            <ul className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              {bedsQueue.page.beds.map((bed: Bed) => (
+                <li key={bed.id} className={cn('flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-3', bed.status === 'available' && 'border-emerald-500/30')}>
+                  <div className="flex min-w-0 items-baseline justify-between gap-2">
+                    <TitleLine tone={bedTone(bed.status)} status={statusLabel(bed.status)} className="text-sm font-semibold text-foreground">Bed {bed.bedNumber}</TitleLine>
+                    <span className="shrink-0 text-xs text-muted-foreground">{statusLabel(bed.status)}</span>
                   </div>
-                  <AdmissionTransferForm id={admission.id} version={admission.transitionVersion} facilityId={admission.facility?.id || ''} />
-                  <AdmissionDischargeForm id={admission.id} version={admission.transitionVersion} />
-                </div>
+                  <p className="truncate pl-4 text-xs text-muted-foreground">{bed.room?.ward?.name || 'Ward'} · room {bed.room?.roomNumber || '—'}</p>
+                  <p className={cn('truncate pl-4 text-sm', bed.currentPatient?.displayName ? 'font-medium text-foreground' : 'text-muted-foreground')}>{bed.currentPatient?.displayName ?? 'Unoccupied'}</p>
+                  {bed.status === 'cleaning' && <div className="pl-4"><BedButton id={bed.id} toStatus="available" version={bed.transitionVersion} /></div>}
+                </li>
               ))}
-              {(admissions.state === 'ready' || admissions.state === 'empty') && admissions.page && admissions.page.state !== 'inconsistent' && (
-                <AdmissionCursorPagination page={admissions.page} direction={admissions.direction} cursorId={admissions.cursorId} preservedCursors={preservedForAdmissions} />
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Bed board</CardTitle>
-              <CardDescription>Current readiness and occupancy by ward and room; 25 beds visible per cursor page.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              {bedsQueue.state === 'denied' && <div role="status" className="sm:col-span-2 space-y-2 text-sm text-muted-foreground"><p>This bed cursor is stale or outside the beds accessible to this session. No bed record was loaded.</p><Link href={inpatientCursorHref(null, preservedForBeds)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first bed page</Link></div>}
-              {bedsQueue.state === 'unavailable' && <p role="alert" className="sm:col-span-2 text-sm text-destructive">The bed list and counts could not be verified. No empty bed board is being inferred.</p>}
-              {bedsQueue.state === 'stale' && <div role="status" className="sm:col-span-2 space-y-2 text-sm text-muted-foreground"><p>The bed cursor is malformed or stale. Return to the first page to continue.</p><Link href={inpatientCursorHref(null, preservedForBeds)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first bed page</Link></div>}
-              {bedsQueue.state === 'inconsistent' && <div role="alert" className="sm:col-span-2 space-y-2 text-sm text-destructive"><p>Bed rows, cursor membership, and count could not be reconciled. No empty bed board is being inferred.</p><Link href={inpatientCursorHref(null, preservedForBeds)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first bed page</Link></div>}
-              {bedsQueue.state === 'empty' && bedsQueue.page?.state === 'empty' && bedsQueue.page.totalCount === 0 && bedsQueue.direction === 'first' && <p role="status" className="sm:col-span-2 text-sm text-muted-foreground">No accessible beds.</p>}
-              {bedsQueue.state === 'ready' && bedsQueue.page?.state === 'ready' && bedsQueue.page.beds.map((bed: Bed) => (
-                <div key={bed.id} className="rounded-lg border p-3">
-                  <div className="flex justify-between gap-2">
-                    <div>
-                      <p className="font-medium">Bed {bed.bedNumber}</p>
-                      <p className="text-sm text-muted-foreground">{bed.room?.ward?.name || 'Ward'} · room {bed.room?.roomNumber || '—'}</p>
+            </ul>
+          )}
+          {(bedsQueue.state === 'ready' || bedsQueue.state === 'empty') && bedsQueue.page && bedsQueue.page.state !== 'inconsistent' && (
+            <BedCursorPagination page={bedsQueue.page} direction={bedsQueue.direction} cursorId={bedsQueue.cursorId} preservedCursors={preservedForBeds} />
+          )}
+        </WardSection>
+
+        <WardSection id="active-admissions" title="Active admissions" count={admissions.totalCount ?? undefined}>
+          <div className="space-y-3">
+            {admissions.state === 'denied' && <CursorReset role="status" href={inpatientCursorHref(null, preservedForAdmissions)} label="First admissions page">This admission cursor is stale or outside the active admissions accessible to this session. No admission record was loaded.</CursorReset>}
+            {admissions.state === 'unavailable' && <Notice tone="bad" role="alert">Active admissions could not be verified. No empty queue is being inferred.</Notice>}
+            {admissions.state === 'stale' && <CursorReset role="status" href={inpatientCursorHref(null, preservedForAdmissions)} label="First admissions page">The admission cursor is malformed or stale.</CursorReset>}
+            {admissions.state === 'inconsistent' && <Notice tone="bad" role="alert">Admission rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</Notice>}
+            {admissions.state === 'empty' && admissions.page?.state === 'empty' && admissions.page.totalCount === 0 && admissions.direction === 'first' && <EmptyBoard title="No active admissions" />}
+            {admissions.state === 'empty' && admissions.page?.state === 'empty' && admissions.page.totalCount > 0 && <Notice role="status">No active admissions on this side of the cursor.</Notice>}
+            {admissions.state === 'ready' && admissions.page?.state === 'ready' && (
+              <Board>
+                {admissions.page.admissions.map((admission: Admission) => (
+                  <BoardRow
+                    key={admission.id}
+                    tone={toneForStatus(admission.status)}
+                    status={statusLabel(admission.status)}
+                    title={<>{admission.patient?.displayName ?? 'Restricted patient'}<span className="ml-2 font-normal text-muted-foreground">Bed {admission.bed?.bedNumber ?? '—'}</span></>}
+                    meta={<>
+                      <Code>{admission.admissionNumber}</Code>
+                      <span>{admission.facility?.name || 'Facility'}</span>
+                      {admission.room?.roomNumber && <span>Room {admission.room.roomNumber}</span>}
+                      {admission.admittedAt && <span>Admitted {formatFacilityDateTime(admission.admittedAt, admission.facility?.timeZone)}</span>}
+                    </>}
+                    aside={<StatusTag status={admission.status} />}
+                  >
+                    <div className="flex min-w-0 flex-col gap-2">
+                      <AdmissionTransferForm id={admission.id} version={admission.transitionVersion} facilityId={admission.facility?.id || ''} />
+                      <AdmissionDischargeForm id={admission.id} version={admission.transitionVersion} />
                     </div>
-                    <Badge variant="secondary">{bed.status.replaceAll('_', ' ')}</Badge>
-                  </div>
-                  <p className="mt-2 text-sm">{bed.currentPatient?.displayName ?? 'Unoccupied'}</p>
-                  {bed.status === 'cleaning' && <div className="mt-2"><BedButton id={bed.id} toStatus="available" version={bed.transitionVersion} /></div>}
-                </div>
-              ))}
-              {(bedsQueue.state === 'ready' || bedsQueue.state === 'empty') && bedsQueue.page && bedsQueue.page.state !== 'inconsistent' && (
-                <BedCursorPagination page={bedsQueue.page} direction={bedsQueue.direction} cursorId={bedsQueue.cursorId} preservedCursors={preservedForBeds} className="sm:col-span-2" />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Active bed reservations</CardTitle>
-            <CardDescription>Temporary holds ordered by expiry, 25 visible per cursor page. A reservation does not admit a patient.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 xl:grid-cols-2">
-            {reservations.state === 'denied' && <div role="status" className="xl:col-span-2 space-y-2 text-sm text-muted-foreground"><p>This reservation cursor is stale or outside active reservations accessible to this session. No reservation record was loaded.</p><Link href={inpatientCursorHref(null, preservedForReservations)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first reservations page</Link></div>}
-            {reservations.state === 'unavailable' && <p role="alert" className="xl:col-span-2 text-sm text-destructive">Active reservations could not be verified. No empty queue is being inferred.</p>}
-            {reservations.state === 'stale' && <div role="status" className="xl:col-span-2 space-y-2 text-sm text-muted-foreground"><p>The reservation cursor is malformed or stale. Return to the first page to continue.</p><Link href={inpatientCursorHref(null, preservedForReservations)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first reservations page</Link></div>}
-            {reservations.state === 'inconsistent' && <div role="alert" className="xl:col-span-2 space-y-2 text-sm text-destructive"><p>Reservation rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</p><Link href={inpatientCursorHref(null, preservedForReservations)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first reservations page</Link></div>}
-            {reservations.state === 'empty' && reservations.page?.state === 'empty' && reservations.page.totalCount === 0 && reservations.direction === 'first' && <p role="status" className="xl:col-span-2 text-sm text-muted-foreground">No active bed reservations.</p>}
-            {reservations.state === 'ready' && reservations.page?.state === 'ready' && reservations.page.reservations.map((reservation: Reservation) => (
-              <div key={reservation.id} className="rounded-lg border p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{reservation.patient?.displayName ?? 'Restricted patient'} · bed {reservation.bed?.bedNumber || '—'}</p>
-                    <p className="text-sm text-muted-foreground">{reservation.reservationNumber} · {reservation.facility?.name || 'Facility'} · expires {formatFacilityDateTime(reservation.expiresAt, reservation.facility?.timeZone)}</p>
-                  </div>
-                  <Badge variant="secondary">active hold</Badge>
-                </div>
-                <BedReservationReleaseForm id={reservation.id} version={reservation.transitionVersion} />
-              </div>
-            ))}
-            {(reservations.state === 'ready' || reservations.state === 'empty') && reservations.page && reservations.page.state !== 'inconsistent' && (
-              <BedReservationCursorPagination page={reservations.page} direction={reservations.direction} cursorId={reservations.cursorId} preservedCursors={preservedForReservations} className="xl:col-span-2" />
+                  </BoardRow>
+                ))}
+              </Board>
             )}
-          </CardContent>
-        </Card>
-      </div>
+            {(admissions.state === 'ready' || admissions.state === 'empty') && admissions.page && admissions.page.state !== 'inconsistent' && (
+              <AdmissionCursorPagination page={admissions.page} direction={admissions.direction} cursorId={admissions.cursorId} preservedCursors={preservedForAdmissions} />
+            )}
+          </div>
+        </WardSection>
+
+        <WardSection id="bed-holds" title="Bed holds" count={reservations.totalCount ?? undefined}>
+          <div className="space-y-3">
+            {reservations.state === 'denied' && <CursorReset role="status" href={inpatientCursorHref(null, preservedForReservations)} label="First reservations page">This reservation cursor is stale or outside active reservations accessible to this session. No reservation record was loaded.</CursorReset>}
+            {reservations.state === 'unavailable' && <Notice tone="bad" role="alert">Active reservations could not be verified. No empty queue is being inferred.</Notice>}
+            {reservations.state === 'stale' && <CursorReset role="status" href={inpatientCursorHref(null, preservedForReservations)} label="First reservations page">The reservation cursor is malformed or stale.</CursorReset>}
+            {reservations.state === 'inconsistent' && <CursorReset role="alert" href={inpatientCursorHref(null, preservedForReservations)} label="First reservations page">Reservation rows, cursor membership, and count could not be reconciled. No empty queue is being inferred.</CursorReset>}
+            {reservations.state === 'empty' && reservations.page?.state === 'empty' && reservations.page.totalCount === 0 && reservations.direction === 'first' && <EmptyBoard title="No active bed holds" />}
+            {reservations.state === 'ready' && reservations.page?.state === 'ready' && (
+              <Board>
+                {reservations.page.reservations.map((reservation: Reservation) => (
+                  <BoardRow
+                    key={reservation.id}
+                    tone="warn"
+                    status="Active hold"
+                    title={<>{reservation.patient?.displayName ?? 'Restricted patient'}<span className="ml-2 font-normal text-muted-foreground">Bed {reservation.bed?.bedNumber || '—'}</span></>}
+                    meta={<>
+                      <Code>{reservation.reservationNumber}</Code>
+                      <span>{reservation.facility?.name || 'Facility'}</span>
+                      <span>Expires {formatFacilityDateTime(reservation.expiresAt, reservation.facility?.timeZone)}</span>
+                    </>}
+                    aside={<StatusTag status="Active hold" tone="warn" />}
+                  >
+                    <BedReservationReleaseForm id={reservation.id} version={reservation.transitionVersion} />
+                  </BoardRow>
+                ))}
+              </Board>
+            )}
+            {(reservations.state === 'ready' || reservations.state === 'empty') && reservations.page && reservations.page.state !== 'inconsistent' && (
+              <BedReservationCursorPagination page={reservations.page} direction={reservations.direction} cursorId={reservations.cursorId} preservedCursors={preservedForReservations} />
+            )}
+          </div>
+        </WardSection>
+
+        <WardSection id="admit-and-hold" title="Admit or hold a bed">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+            <AdmissionCreateForm options={options} />
+            <BedReservationCreateForm options={options} />
+          </div>
+        </WardSection>
+      </WardBody>
     </PageContainer>
+  )
+}
+
+function bedTone(status: string): WardTone {
+  if (status === 'available') return 'ok'
+  if (status === 'occupied') return 'info'
+  if (status === 'cleaning' || status === 'reserved') return 'warn'
+  if (status === 'out_of_service' || status === 'maintenance') return 'bad'
+  return toneForStatus(status)
+}
+
+function CursorReset({ role, href, label, children }: { role: 'alert' | 'status'; href: string; label: string; children: React.ReactNode }) {
+  return (
+    <Notice tone={role === 'alert' ? 'bad' : 'warn'} role={role}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span>{children}</span>
+        <Track><Pill asChild size="sm"><Link href={href}>{label}</Link></Pill></Track>
+      </div>
+    </Notice>
   )
 }

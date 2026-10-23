@@ -61,41 +61,44 @@ export function IntakeLinkPage({ profile }: { profile: HospitalBranding }) {
 
   const copy = state.kind === 'loading'
     ? {
-        title: 'Opening your private intake form…',
-        body: 'Please keep this page open while the private link is checked.',
+        title: 'Opening your intake form…',
+        body: 'Checking your private link.',
       }
     : state.kind === 'missing'
       ? {
           title: 'Private intake link required',
-          body: 'Open the complete private link sent for your appointment. If the link was copied without its private access section, request a new link from scheduling.',
+          body: 'Open the full private link sent for your appointment, or request a new one from scheduling.',
         }
       : state.kind === 'invalid'
         ? {
             title: 'Intake link is incomplete',
-            body: 'This link cannot be checked. No intake information was opened. Request a new private link from scheduling.',
+            body: 'This link cannot be checked. No intake information was opened.',
           }
         : {
             title: 'Intake could not be opened',
-            body: 'The private link may be expired, already used, or temporarily unavailable. Do not send personal information by email; contact scheduling for a new link.',
+            body: 'The link may be expired, already used, or temporarily unavailable. Contact scheduling for a new link.',
           }
 
+  const tone = state.kind === 'loading' ? 'accent' : state.kind === 'failed' ? 'bad' : 'warn'
   return (
     <StorefrontShell profile={profile}>
-      <section className="sf-container" style={{ paddingBlock: 'var(--space-2xl)' }}>
+      <section className="sf-container sf-state">
+        <p className="sf-eyebrow">Pre-visit intake</p>
         <div
           role={state.kind === 'loading' ? 'status' : 'alert'}
           aria-live="polite"
           aria-busy={state.kind === 'loading'}
-          className={`sf-notice ${state.kind === 'loading' ? '' : 'sf-notice--info'}`}
+          className="sf-receipt"
+          style={{ borderTopColor: state.kind === 'failed' ? 'var(--color-dot-bad)' : state.kind === 'loading' ? 'var(--color-accent)' : 'var(--color-dot-warn)' }}
         >
-          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 600 }}>{copy.title}</h1>
-          <p style={{ marginTop: 'var(--space-xs)', lineHeight: 1.6 }}>{copy.body}</p>
-          {state.kind === 'failed' && privateCode.current && <button className="sf-btn sf-btn--secondary" type="button" onClick={() => setRetry(value => value + 1)}>Retry opening this link</button>}
+          <h1 className="sf-step-title sf-titleline"><span aria-hidden="true" className={`sf-dot sf-dot--${tone}`} /><span>{copy.title}</span></h1>
+          <p>{copy.body}</p>
           {state.kind !== 'loading' && (
-            <p style={{ marginTop: 'var(--space-sm)', lineHeight: 1.6 }}>
-              {profile.supportPhoneHref && <><a href={profile.supportPhoneHref}>Call scheduling at {profile.supportPhone}</a>. </>}
-              <Link href="/book">Return to appointment requests</Link>.
-            </p>
+            <div className="sf-track">
+              {state.kind === 'failed' && privateCode.current && <button className="sf-pill sf-pill--raised" type="button" onClick={() => setRetry(value => value + 1)}>Retry</button>}
+              {profile.supportPhoneHref && <a className="sf-pill" href={profile.supportPhoneHref}>Call {profile.supportPhone}</a>}
+              <Link className="sf-pill" href="/book">Appointments</Link>
+            </div>
           )}
         </div>
       </section>

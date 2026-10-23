@@ -1,7 +1,22 @@
 import Link from 'next/link'
 
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Board,
+  BoardRow,
+  Code,
+  EmptyBoard,
+  Notice,
+  Pill,
+  Readout,
+  ReadoutStrip,
+  StatusTag,
+  Track,
+  WardBody,
+  WardHeader,
+  WardSection,
+  statusLabel,
+  toneForStatus,
+} from '@/features/platform/components/ward'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
@@ -105,7 +120,16 @@ export default async function ClaimsOperationsPage({ searchParams }: { searchPar
   const authority = authorityResponse.data.authenticatedItem?.role
   const mayOperateClaims = authority?.canAccessAllClinicalData === true || authority?.canManageBilling === true
   if (!mayOperateClaims) {
-    return <PageContainer title="Claims operations" breadcrumbs={breadcrumbs} header={<div><p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Permission required</p><h1 className="mt-2 text-3xl font-semibold">Claims operations</h1></div>}><div className="px-4 pb-8 md:px-6"><div role="alert" className="rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-medium">Claims workspace is unavailable for this role.</p><p className="mt-1">Billing workflow authority and facility-scoped record access are required. No empty claim queue is being inferred.</p></div></div></PageContainer>
+    return (
+      <PageContainer title="Claims operations" breadcrumbs={breadcrumbs} header={<WardHeader eyebrow="Permission required" title="Claims" tone="warn" status="Unavailable" />}>
+        <WardBody>
+          <Notice tone="warn" role="alert">
+            <p className="font-medium">Claims workspace is unavailable for this role.</p>
+            <p className="mt-1">Billing workflow authority and facility-scoped record access are required. No empty claim queue is being inferred.</p>
+          </Notice>
+        </WardBody>
+      </PageContainer>
+    )
   }
 
   const where = claimsQueueWhere()
@@ -194,54 +218,68 @@ export default async function ClaimsOperationsPage({ searchParams }: { searchPar
       title="Claims operations"
       breadcrumbs={breadcrumbs}
       header={(
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Claim preparation and follow-up</p>
-          <h1 className="mt-2 text-3xl font-semibold">Claims operations</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Track internal preparation, manual submission evidence, signed external acknowledgements, and corrections. This workspace does not adjudicate claims or confirm insurance acceptance.</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border px-2.5 py-1">Open claims: {totalCount ?? 'Unavailable'}</span>
-            <span className="rounded-full border px-2.5 py-1">Awaiting response: {submittedCount ?? 'Unavailable'}</span>
-          </div>
-        </div>
+        <WardHeader
+          eyebrow="Billing"
+          title="Claims"
+          tone={queueState === 'unavailable' || queueState === 'inconsistent' ? 'bad' : totalCount ? 'warn' : 'ok'}
+          status={totalCount === null ? 'Claim counts unavailable' : `${totalCount} open claims`}
+          meta="Preparation, submission evidence, acknowledgements and corrections"
+        />
       )}
     >
-      <div className="space-y-5 px-4 pb-8 md:px-6">
-        <ClaimCreateForm options={options} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Claim work queue</CardTitle>
-            <CardDescription>Ordered by creation time with the next available action in context.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {queueState === 'unavailable' && <p role="alert" className="text-sm text-destructive">Claim work items or billing scope could not be verified. No empty queue is being inferred.</p>}
-            {queueState === 'stale' && <div role="status" className="space-y-2 text-sm text-muted-foreground"><p>This claims cursor is stale or outside the claims accessible to this session. No claim page was loaded.</p><Link href={claimsCursorHref(null, null, params.status)} className="inline-flex rounded-md border px-3 py-1.5 text-foreground hover:bg-muted">Return to first page</Link></div>}
-            {queueState === 'inconsistent' && <p role="alert" className="text-sm text-destructive">Claim worklist cursor, count, or row data could not be reconciled. No empty queue is being inferred.</p>}
-            {queueState === 'empty' && page?.state === 'empty' && page.totalCount === 0 && paginationDirection === 'first' && <p className="text-sm text-muted-foreground">No active claim tasks.</p>}
-            {queueState === 'empty' && page?.state === 'empty' && page.totalCount > 0 && <p className="text-sm text-muted-foreground">No additional claims are available on this side of the cursor.</p>}
-            {queueState === 'ready' && page?.state === 'ready' && page.claims.map((claim: ClaimsQueueRow) => {
-              const toStatus = nextStatus(claim.status)
-              return (
-                <div key={claim.id} className="rounded-lg border p-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium">{claim.claimNumber}</p>
-                      <p className="text-sm text-muted-foreground">{claim.patient?.displayName ?? 'Restricted patient'} · {claim.facility?.name || 'Facility'}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge>{claim.status.replaceAll('_', ' ')}</Badge>
-                      {toStatus && <ClaimButton id={claim.id} toStatus={toStatus} version={claim.transitionVersion} />}
-                      {claim.status === 'submitted' && <span className="text-xs text-muted-foreground">Awaiting a signed external acknowledgement</span>}
-                    </div>
-                  </div>
+      <WardBody>
+        <ReadoutStrip>
+          <Readout label="Open claims" tone="warn" value={totalCount ?? '—'} sub={totalCount === null ? 'Unavailable' : undefined} />
+          <Readout label="Awaiting response" tone="info" value={submittedCount ?? '—'} sub={submittedCount === null ? 'Unavailable' : undefined} />
+          <Readout label="To prepare or correct" tone="accent" value={totalCount !== null && submittedCount !== null ? Math.max(0, totalCount - submittedCount) : '—'} />
+        </ReadoutStrip>
+
+        <WardSection id="claim-queue" title="Claim work queue" count={totalCount ?? undefined}>
+          <div className="space-y-3">
+            {queueState === 'unavailable' && <Notice tone="bad" role="alert">Claim work items or billing scope could not be verified. No empty queue is being inferred.</Notice>}
+            {queueState === 'stale' && (
+              <Notice tone="warn" role="status">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <span>This claims cursor is stale or outside the claims accessible to this session. No claim page was loaded.</span>
+                  <Track><Pill asChild size="sm"><Link href={claimsCursorHref(null, null, params.status)}>First page</Link></Pill></Track>
                 </div>
-              )
-            })}
+              </Notice>
+            )}
+            {queueState === 'inconsistent' && <Notice tone="bad" role="alert">Claim worklist cursor, count, or row data could not be reconciled. No empty queue is being inferred.</Notice>}
+            {queueState === 'empty' && page?.state === 'empty' && page.totalCount === 0 && paginationDirection === 'first' && <EmptyBoard title="No active claim tasks" />}
+            {queueState === 'empty' && page?.state === 'empty' && page.totalCount > 0 && <Notice>No additional claims on this side of the cursor.</Notice>}
+            {queueState === 'ready' && page?.state === 'ready' && (
+              <Board>
+                {page.claims.map((claim: ClaimsQueueRow) => {
+                  const toStatus = nextStatus(claim.status)
+                  return (
+                    <BoardRow
+                      key={claim.id}
+                      tone={toneForStatus(claim.status)}
+                      status={statusLabel(claim.status)}
+                      title={<Code className="text-sm font-semibold text-foreground">{claim.claimNumber}</Code>}
+                      meta={<>
+                        <span>{claim.patient?.displayName ?? 'Restricted patient'}</span>
+                        <span>{claim.facility?.name || 'Facility'}</span>
+                        {claim.status === 'submitted' && <span>Awaiting signed external acknowledgement</span>}
+                      </>}
+                      aside={<>
+                        <StatusTag status={claim.status} />
+                        {toStatus && <ClaimButton id={claim.id} toStatus={toStatus} version={claim.transitionVersion} />}
+                      </>}
+                    />
+                  )
+                })}
+              </Board>
+            )}
             {(queueState === 'ready' || queueState === 'empty') && page && page.state !== 'inconsistent' && (
               <ClaimsCursorPagination page={page} direction={paginationDirection} cursorId={paginationCursorId} status={params.status} />
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </WardSection>
+
+        <ClaimCreateForm options={options} />
+      </WardBody>
     </PageContainer>
   )
 }

@@ -1,6 +1,8 @@
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 import { notFound } from 'next/navigation'
-import { EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
+import { EmergencyNotice, Sign, StorefrontShell, zoneFor } from '@/features/storefront/components/StorefrontShell'
+import { careServiceLines } from '@/features/storefront/lib/careServices'
 import { getAvailableAppointmentSlots, getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
 import { BookingWorkspace } from './BookingWorkspace'
 import { nextFacilityCalendarDate, publicBookingDateError } from '@/features/storefront/lib/facilityTime'
@@ -19,6 +21,8 @@ export async function AppointmentTypeBookingPage({
 
   if (!appointmentType) notFound()
 
+  const line = careServiceLines([appointmentType])[0]
+  const zone = zoneFor(line?.key || 'other-care')
   const selectedProvider = resolvedSearchParams.providerId === undefined ? appointmentType.providers[0] : appointmentType.providers.find(item => item.id === resolvedSearchParams.providerId)
   const selectedFacility = resolvedSearchParams.facilityId === undefined ? selectedProvider?.facilities[0] : selectedProvider?.facilities.find(item => item.id === resolvedSearchParams.facilityId)
   const dateValue = resolvedSearchParams.date === undefined ? nextFacilityCalendarDate(selectedFacility?.timeZone || 'UTC') : resolvedSearchParams.date
@@ -32,40 +36,25 @@ export async function AppointmentTypeBookingPage({
   }
 
   return (
-    <StorefrontShell profile={profile}>
-      <section className="sf-workbench sf-reveal">
-        <div className="sf-container sf-workbench__grid">
-          <aside className="sf-rail">
-            <Link className="sf-back" href="/book">
-              ← All visit types
-            </Link>
+    <StorefrontShell profile={profile} current="book" bookingBar={false}>
+      <div className="sf-container sf-work">
+        <aside className="sf-work__rail sf-reveal">
+          <Link className="sf-back" href="/book"><span aria-hidden="true">←</span> All visits</Link>
+          <div className={`sf-ticket ${zone.className}`} style={{ '--zone': `var(--zone-${zone.code.toLowerCase()})` } as CSSProperties}>
+            {line && <Sign zone={zone} label={line.title} arrow={false} />}
+            <h1 className="sf-ticket__title">{appointmentType.name}</h1>
+            {appointmentType.description && <p className="sf-ticket__desc">{appointmentType.description}</p>}
+            <dl className="sf-dl">
+              <div><dt>Duration</dt><dd className="sf-mono">{appointmentType.durationMinutes} min</dd></div>
+              <div><dt>Estimate</dt><dd className="sf-mono">{appointmentType.formattedPrice || 'From clinic'}</dd></div>
+              <div><dt>Clinicians</dt><dd>{appointmentType.providers.length}</dd></div>
+            </dl>
+          </div>
+          <EmergencyNotice />
+        </aside>
 
-            <div className="sf-panel sf-panel__pad">
-              <p className="sf-eyebrow">Visit type</p>
-              <h1 className="sf-display sf-display--section" style={{ marginTop: 'var(--space-xs)' }}>
-                {appointmentType.name}
-              </h1>
-              <p style={{ marginTop: 'var(--space-sm)', color: 'var(--color-ink-2)', lineHeight: 1.65 }}>
-                {appointmentType.description || 'Request an appointment with the care team.'}
-              </p>
-              <dl className="sf-dl" style={{ marginTop: 'var(--space-md)' }}>
-                <div className="sf-dl__row">
-                  <dt className="sf-dl__dt">Duration</dt>
-                  <dd className="sf-dl__dd">{appointmentType.durationMinutes} min</dd>
-                </div>
-                <div className="sf-dl__row">
-                  <dt className="sf-dl__dt">Estimate</dt>
-                  <dd className="sf-dl__dd">{appointmentType.formattedPrice || 'Contact clinic'}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <EmergencyNotice />
-          </aside>
-
-          <BookingWorkspace appointmentType={appointmentType} brandName={profile.name} initialProviderId={selectedProvider?.id || ''} initialFacilityId={selectedFacility?.id || ''} initialDate={selectedDate} initialSlots={slots} initialError={initialError} />
-        </div>
-      </section>
+        <BookingWorkspace appointmentType={appointmentType} brandName={profile.name} initialProviderId={selectedProvider?.id || ''} initialFacilityId={selectedFacility?.id || ''} initialDate={selectedDate} initialSlots={slots} initialError={initialError} />
+      </div>
     </StorefrontShell>
   )
 }

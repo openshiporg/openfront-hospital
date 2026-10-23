@@ -4,12 +4,10 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { DeviceTimeNotice } from '@/features/platform/components/DeviceTimeNotice'
 import { deviceLocalDateTimeToIso } from '@/features/platform/lib/deviceDateTime'
 import { useDraftExitGuard } from '@/features/platform/lib/useDraftExitGuard'
-import { Loader2 } from 'lucide-react'
+import { ChevronDown, Loader2 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Notice, Pill, Track, WardSection, fieldClass, labelClass } from '@/features/platform/components/ward'
 import { FacilitySearchField } from '@/features/platform/facilities/components/FacilitySearchField'
 import * as actions from '../actions/workflows'
 import type { ConsentCandidateSearchResult, EncounterHoldCandidateSearchResult, FabricPatientCandidateSearchResult, IntegrationCandidateSearchResult, InventoryCandidateSearchResult, PaymentClaimCandidateSearchResult, RefundPaymentCandidateSearchResult } from '../actions/workflows'
@@ -25,8 +23,6 @@ type Field = {
   value?: string
   placeholder?: string
 }
-
-const controlClass = 'h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 function CoverageCandidateField({ id, name, label, required }: { id: string; name: string; label: string; required: boolean }) {
   const [search, setSearch] = useState('')
@@ -75,12 +71,12 @@ function CoverageCandidateField({ id, name, label, required }: { id: string; nam
   const noMatches = !pending && !unavailable && search.trim().length >= 2 && options.length === 0
 
   return (
-    <div className="space-y-2">
-      <Input id={`${id}-search`} type="search" value={search} onChange={event => {
+    <div className="grid min-w-0 gap-1.5">
+      <input className={fieldClass} id={`${id}-search`} type="search" value={search} onChange={event => {
         setSearch(event.target.value)
         if (selected) setSelected(null)
       }} placeholder="Search coverage number or payer" aria-label={`Search ${label.toLowerCase()} by coverage number or payer`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={controlClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
+      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select unverified coverage'}</option>
         {visibleOptions.map(option => <option key={option.id} value={valueFor(option)}>{option.coverageNumber} · {option.payerName}</option>)}
       </select>
@@ -140,15 +136,15 @@ function EncounterHoldCandidateField({ id, name, label, facilityId }: { id: stri
   const noMatches = !pending && !unavailable && Boolean(facilityId) && search.trim().length >= 2 && count === 0
 
   return (
-    <div className="space-y-2">
-      <Input id={`${id}-search`} type="search" value={search} onChange={event => {
+    <div className="grid min-w-0 gap-1.5">
+      <input className={fieldClass} id={`${id}-search`} type="search" value={search} onChange={event => {
         setSearch(event.target.value)
         setSelected(null)
         setOptions([])
         setCount(0)
         setUnavailable(false)
       }} placeholder={facilityId ? 'Search by encounter number' : 'Select a facility first'} aria-label={`Search ${label.toLowerCase()} by encounter number`} maxLength={100} disabled={!facilityId} />
-      <select id={id} name={name} required aria-label={label} className={controlClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => setSelected(hasUniqueMatch && options[0]?.id === event.target.value ? options[0] : null)}>
+      <select id={id} name={name} required aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => setSelected(hasUniqueMatch && options[0]?.id === event.target.value ? options[0] : null)}>
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : hasUniqueMatch ? 'Select the single matching encounter' : 'Refine search to one encounter'}</option>
         {hasUniqueMatch && <option value={options[0].id}>One eligible encounter matched</option>}
       </select>
@@ -207,8 +203,8 @@ function PatientCandidateField({ id, name, label, required, facilityId, onSelect
   const noMatches = !pending && !unavailable && Boolean(facilityId) && search.trim().length >= 2 && count === 0
 
   return (
-    <div className="space-y-2">
-      <Input id={`${id}-search`} type="search" value={search} onChange={event => {
+    <div className="grid min-w-0 gap-1.5">
+      <input className={fieldClass} id={`${id}-search`} type="search" value={search} onChange={event => {
         setSearch(event.target.value)
         setSelected(null)
         onSelect?.('')
@@ -216,7 +212,7 @@ function PatientCandidateField({ id, name, label, required, facilityId, onSelect
         setCount(0)
         setUnavailable(false)
       }} placeholder={facilityId ? 'Search active patients by name' : 'Select a facility first'} aria-label={`Search ${label.toLowerCase()} by patient name`} maxLength={100} disabled={!facilityId} />
-      <select id={id} name={name} required={required} aria-label={label} className={controlClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => {
+      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => {
         const next = visibleOptions.find(option => option.id === event.target.value) || null
         setSelected(next)
         onSelect?.(next?.id || '')
@@ -306,8 +302,8 @@ function ConsentCandidateField({ id, name, label, required, mode, facilityId, pa
         : mode === 'granted' ? 'Select current granted decision' : 'Select current decision to supersede'
 
   return (
-    <div className="space-y-2">
-      <select id={id} name={name} required={required} aria-label={label} className={controlClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
+    <div className="grid min-w-0 gap-1.5">
+      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
         <option value="">{placeholder}</option>
         {!ambiguous && visibleOptions.map(option => <option key={option.id} value={valueFor(option)}>{option.decision} · {option.policyVersion} · {option.effectiveAt}</option>)}
       </select>
@@ -367,15 +363,15 @@ function PaymentClaimCandidateField({ id, name, label, facilityId, patientId }: 
   const noMatches = !pending && !unavailable && hasContext && search.trim().length >= 2 && count === 0
 
   return (
-    <div className="space-y-2">
-      <Input id={`${id}-search`} type="search" value={search} onChange={event => {
+    <div className="grid min-w-0 gap-1.5">
+      <input className={fieldClass} id={`${id}-search`} type="search" value={search} onChange={event => {
         setSearch(event.target.value)
         setSelected(null)
         setOptions([])
         setCount(0)
         setUnavailable(false)
       }} placeholder={hasContext ? 'Search claim number for selected patient' : 'Choose facility and patient first'} aria-label={`Search ${label.toLowerCase()} by claim number`} maxLength={100} disabled={!hasContext} />
-      <select id={id} name={name} aria-label={label} className={controlClass} value={selected?.id || ''} disabled={!hasContext} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
+      <select id={id} name={name} aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!hasContext} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
         <option value="">{!hasContext ? 'Choose facility and patient first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'No claim selected (optional)'}</option>
         {visibleOptions.map(option => <option key={option.id} value={option.id}>{option.claimNumber} · {option.status}</option>)}
       </select>
@@ -434,15 +430,15 @@ function RefundPaymentCandidateField({ id, name, label, required }: { id: string
   const hasNoRecordedBalance = !pending && !unavailable && options.some(option => option.refundedAmountCents >= option.amountCents)
 
   return (
-    <div className="space-y-2">
-      <Input id={`${id}-search`} type="search" value={search} onChange={event => {
+    <div className="grid min-w-0 gap-1.5">
+      <input className={fieldClass} id={`${id}-search`} type="search" value={search} onChange={event => {
         setSearch(event.target.value)
         setSelected(null)
         setOptions([])
         setCount(0)
         setUnavailable(false)
       }} placeholder="Search succeeded payment number" aria-label={`Search ${label.toLowerCase()} by payment number`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={controlClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
+      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select succeeded payment'}</option>
         {visibleOptions.map(option => <option key={option.id} value={option.id} disabled={option.refundedAmountCents >= option.amountCents}>{option.paymentNumber} · {option.currency} · {option.method}</option>)}
       </select>
@@ -504,15 +500,15 @@ function InventoryCandidateField({ id, name, label, required }: { id: string; na
   const noMatches = !pending && !unavailable && search.trim().length >= 2 && count === 0
 
   return (
-    <div className="space-y-2">
-      <Input id={`${id}-search`} type="search" value={search} onChange={event => {
+    <div className="grid min-w-0 gap-1.5">
+      <input className={fieldClass} id={`${id}-search`} type="search" value={search} onChange={event => {
         setSearch(event.target.value)
         setSelected(null)
         setOptions([])
         setCount(0)
         setUnavailable(false)
       }} placeholder="Search active inventory by SKU or name" aria-label={`Search ${label.toLowerCase()} by SKU or name`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={controlClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
+      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select active inventory item'}</option>
         {visibleOptions.map(option => <option key={option.id} value={valueFor(option)}>{option.sku} · {option.name} · {option.facility?.name || 'Facility'} · {option.quantityOnHand - option.quantityReserved} available</option>)}
       </select>
@@ -572,15 +568,15 @@ function IntegrationCandidateField({ id, name, label, required }: { id: string; 
   const noMatches = !pending && !unavailable && search.trim().length >= 2 && count === 0
 
   return (
-    <div className="space-y-2">
-      <Input id={`${id}-search`} type="search" value={search} onChange={event => {
+    <div className="grid min-w-0 gap-1.5">
+      <input className={fieldClass} id={`${id}-search`} type="search" value={search} onChange={event => {
         setSearch(event.target.value)
         setSelected(null)
         setOptions([])
         setCount(0)
         setUnavailable(false)
       }} placeholder="Search active integrations by name or type" aria-label={`Search ${label.toLowerCase()} by name or type`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={controlClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
+      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select active integration'}</option>
         {visibleOptions.map(option => <option key={option.id} value={option.id}>{option.name} · {option.kind} · {option.facility?.name || 'Facility'}</option>)}
       </select>
@@ -602,9 +598,21 @@ function intentFingerprint(intent: string) {
   return `${(left >>> 0).toString(36)}-${(right >>> 0).toString(36)}`
 }
 
-function Form({ title, description, fields, submit, action, accessibleFacilityCount }: {
+const detailsClass = 'group min-w-0 rounded-xl border bg-card open:shadow-sm'
+const gridClass = 'grid min-w-0 items-start gap-3 xl:grid-cols-2'
+const formClass = 'grid min-w-0 gap-3 border-t p-4 sm:grid-cols-2'
+
+function FormSummary({ title }: { title: string }) {
+  return (
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+      <span className="min-w-0 break-words">{title}</span>
+      <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+    </summary>
+  )
+}
+
+function Form({ title, fields, submit, action, accessibleFacilityCount }: {
   title: string
-  description: string
   fields: Field[]
   submit: string
   action: (data: Record<string, unknown>) => Promise<Response>
@@ -627,12 +635,9 @@ function Form({ title, description, fields, submit, action, accessibleFacilityCo
   const missingFacility = fields.some(field => field.kind === 'facility' && field.required !== false) && accessibleFacilityCount === 0
   const missing = missingFacility || fields.some(field => field.kind === 'select' && field.required !== false && !field.options?.length)
   return (
-    <details className="rounded-lg border bg-card">
-      <summary className="cursor-pointer list-none px-4 py-3">
-        <span className="block font-medium">{title}</span>
-        <span className="mt-1 block text-sm text-muted-foreground">{description}</span>
-      </summary>
-      <form ref={ref} onChange={() => setDirty(true)} className="grid gap-4 border-t p-4 md:grid-cols-2" onSubmit={async event => {
+    <details className={detailsClass}>
+      <FormSummary title={title} />
+      <form ref={ref} onChange={() => setDirty(true)} className={formClass} onSubmit={async event => {
           event.preventDefault()
           const formData = new FormData(event.currentTarget)
         setPending(true); setError(''); setMessage('')
@@ -693,8 +698,8 @@ function Form({ title, description, fields, submit, action, accessibleFacilityCo
         {fields.some(field => field.kind === 'datetime-local') && <DeviceTimeNotice />}
         <fieldset className="contents" disabled={pending || locked}>
         {fields.map(field => (
-          <div key={`${field.name}:${formResetVersion}:${field.kind === 'claim-search' ? `${facilityId}:${selectedPatientId}` : field.kind === 'encounter-search' ? facilityId : field.kind === 'current-consent-search' || field.kind === 'granted-consent-search' ? `${facilityId}:${selectedPatientId}:${consentType}` : ['patientId', 'localId', 'supersedesConsentId', 'grantedConsent'].includes(field.name) ? facilityId : ''}`} className={(field.kind === 'textarea' || field.kind === 'csv') ? 'space-y-2 md:col-span-2' : 'space-y-2'}>
-            {field.kind !== 'facility' && <Label htmlFor={`${title}-${field.name}`}>{field.label}{field.required === false ? ' (optional)' : ''}</Label>}
+          <div key={`${field.name}:${formResetVersion}:${field.kind === 'claim-search' ? `${facilityId}:${selectedPatientId}` : field.kind === 'encounter-search' ? facilityId : field.kind === 'current-consent-search' || field.kind === 'granted-consent-search' ? `${facilityId}:${selectedPatientId}:${consentType}` : ['patientId', 'localId', 'supersedesConsentId', 'grantedConsent'].includes(field.name) ? facilityId : ''}`} className={(field.kind === 'textarea' || field.kind === 'csv') ? 'grid min-w-0 gap-1.5 sm:col-span-2' : 'grid min-w-0 gap-1.5'}>
+            {field.kind !== 'facility' && <label className={labelClass} htmlFor={`${title}-${field.name}`}>{field.label}{field.required === false ? ' (optional)' : ''}</label>}
             {field.kind === 'patient-search' ? (
               <PatientCandidateField id={`${title}-${field.name}`} name={field.name} label={field.label} required={field.required !== false} facilityId={facilityId} onSelect={field.name === 'patientId' ? setSelectedPatientId : undefined} />
             ) : field.kind === 'encounter-search' ? (
@@ -717,16 +722,16 @@ function Form({ title, description, fields, submit, action, accessibleFacilityCo
                 setSelectedPatientId('')
               }} />
             ) : field.name === 'consentType' ? (
-              <Input id={`${title}-${field.name}`} name={field.name} required={field.required !== false} type="text" maxLength={100} value={consentType} onChange={event => setConsentType(event.target.value)} placeholder="Enter the exact consent type" />
+              <input className={fieldClass} id={`${title}-${field.name}`} name={field.name} required={field.required !== false} type="text" maxLength={100} value={consentType} onChange={event => setConsentType(event.target.value)} placeholder="Enter the exact consent type" />
             ) : field.kind === 'select' ? (
-              <select id={`${title}-${field.name}`} name={field.name} required={field.required !== false} className={controlClass} defaultValue={field.value || ''}>
+              <select id={`${title}-${field.name}`} name={field.name} required={field.required !== false} className={fieldClass} defaultValue={field.value || ''}>
                 <option value="">{field.options?.length ? `Select ${field.label.toLowerCase()}` : `No ${field.label.toLowerCase()} available`}</option>
                 {field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             ) : field.kind === 'textarea' || field.kind === 'csv' ? (
-              <Textarea id={`${title}-${field.name}`} name={field.name} required={field.required !== false} rows={field.kind === 'csv' ? 7 : 3} placeholder={field.placeholder} defaultValue={field.value} />
+              <textarea className={cn(fieldClass, 'h-auto min-h-20 py-2')} id={`${title}-${field.name}`} name={field.name} required={field.required !== false} rows={field.kind === 'csv' ? 7 : 3} placeholder={field.placeholder} defaultValue={field.value} />
             ) : (
-              <Input id={`${title}-${field.name}`} name={field.name} required={field.required !== false}
+              <input className={fieldClass} id={`${title}-${field.name}`} name={field.name} required={field.required !== false}
                 type={field.kind === 'integer' || field.kind === 'signed-integer' || field.kind === 'currency' ? 'number' : field.kind === 'datetime-local' ? 'datetime-local' : 'text'}
                 min={field.kind === 'integer' || field.kind === 'currency' ? 0 : undefined} step={field.kind === 'currency' ? '0.01' : field.kind === 'integer' || field.kind === 'signed-integer' ? 1 : undefined}
                 placeholder={field.placeholder} defaultValue={field.value} />
@@ -734,12 +739,12 @@ function Form({ title, description, fields, submit, action, accessibleFacilityCo
           </div>
         ))}
         </fieldset>
-        {locked && <p role="status" className="text-xs md:col-span-2">Original command retained in memory. Retry the same submission; verify its original receipt before a separate operation. Reload may lose this private draft.</p>}
-        {missingFacility && <p role="status" className="text-sm text-muted-foreground md:col-span-2">No accessible active facility is available for this session.</p>}
-        {missing && !missingFacility && <p role="status" className="text-sm text-muted-foreground md:col-span-2">Required records are not available for the selected facility.</p>}
-        {error && <p role="alert" className="text-sm text-destructive md:col-span-2">{error}</p>}
-        {message && <p role="status" className="break-all rounded-md bg-muted p-3 text-sm md:col-span-2">{message}</p>}
-        <div className="md:col-span-2"><Button disabled={pending || missing}>{pending && <Loader2 className="mr-2 size-4 animate-spin" />}{submit}</Button></div>
+        {locked && <Notice tone="warn" role="status" className="sm:col-span-2">Original command retained in memory. Retry the same submission; verify its original receipt before a separate operation. Reload may lose this private draft.</Notice>}
+        {missingFacility && <Notice role="status" className="sm:col-span-2">No accessible active facility is available for this session.</Notice>}
+        {missing && !missingFacility && <Notice role="status" className="sm:col-span-2">Required records are not available for the selected facility.</Notice>}
+        {error && <Notice tone="bad" role="alert" className="sm:col-span-2">{error}</Notice>}
+        {message && <Notice tone="ok" role="status" className="break-all sm:col-span-2">{message}</Notice>}
+        <div className="sm:col-span-2"><Track><Pill type="submit" variant="primary" disabled={pending || missing}>{pending && <Loader2 className="animate-spin" />}{submit}</Pill></Track></div>
       </form>
     </details>
   )
@@ -819,12 +824,9 @@ function ExportWorkflowForm({ accessibleFacilityCount }: { accessibleFacilityCou
   }
 
   return (
-    <details className="rounded-lg border bg-card">
-      <summary className="cursor-pointer list-none px-4 py-3">
-        <span className="block font-medium">Request export</span>
-        <span className="mt-1 block text-sm text-muted-foreground">Prepare a bounded encrypted export and download it once from this browser.</span>
-      </summary>
-      <form className="grid gap-4 border-t p-4 md:grid-cols-2" onSubmit={async event => {
+    <details className={detailsClass}>
+      <FormSummary title="Request export" />
+      <form className={formClass} onSubmit={async event => {
           event.preventDefault()
           const formData = new FormData(event.currentTarget)
         setPending(true); setError(''); setMessage('')
@@ -851,36 +853,36 @@ function ExportWorkflowForm({ accessibleFacilityCount }: { accessibleFacilityCou
           setPending(false)
         }
       }}>
-        <div className="space-y-2">
+        <div className="grid min-w-0 gap-1.5">
           <FacilitySearchField id="export-facility" accessibleFacilityCount={accessibleFacilityCount} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="export-type">Export type</Label>
-          <select id="export-type" name="exportType" required className={controlClass} defaultValue="">
+        <div className="grid min-w-0 gap-1.5">
+          <label className={labelClass} htmlFor="export-type">Export type</label>
+          <select id="export-type" name="exportType" required className={fieldClass} defaultValue="">
             <option value="">Select export type</option>
             {['patients','appointments','audit','inventory'].map(value => <option key={value} value={value}>{value}</option>)}
           </select>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="export-format">Format</Label>
-          <select id="export-format" name="format" required className={controlClass} defaultValue="csv">
+        <div className="grid min-w-0 gap-1.5">
+          <label className={labelClass} htmlFor="export-format">Format</label>
+          <select id="export-format" name="format" required className={fieldClass} defaultValue="csv">
             <option value="csv">CSV</option><option value="json">JSON</option>
           </select>
         </div>
-        {error && <p role="alert" className="text-sm text-destructive md:col-span-2">{error}</p>}
-        {message && <p role="status" className="rounded-md bg-muted p-3 text-sm md:col-span-2">{message}</p>}
-        <div className="flex flex-wrap gap-2 md:col-span-2">
-          {!job && <Button disabled={pending || accessibleFacilityCount === 0}>{pending && <Loader2 className="mr-2 size-4 animate-spin" />}Request export</Button>}
-          {job && !job.ready && <Button type="button" disabled={pending} onClick={() => prepare(job)}>{pending && <Loader2 className="mr-2 size-4 animate-spin" />}Prepare export</Button>}
-          {job?.ready && <Button type="button" disabled={pending} onClick={() => download(job)}>{pending && <Loader2 className="mr-2 size-4 animate-spin" />}Download once</Button>}
-        </div>
+        {error && <Notice tone="bad" role="alert" className="sm:col-span-2">{error}</Notice>}
+        {message && <Notice tone="ok" role="status" className="sm:col-span-2">{message}</Notice>}
+        <div className="sm:col-span-2"><Track>
+          {!job && <Pill type="submit" variant="primary" disabled={pending || accessibleFacilityCount === 0}>{pending && <Loader2 className="animate-spin" />}Request export</Pill>}
+          {job && !job.ready && <Pill type="button" variant="primary" disabled={pending} onClick={() => prepare(job)}>{pending && <Loader2 className="animate-spin" />}Prepare export</Pill>}
+          {job?.ready && <Pill type="button" variant="primary" disabled={pending} onClick={() => download(job)}>{pending && <Loader2 className="animate-spin" />}Download once</Pill>}
+        </Track></div>
       </form>
     </details>
   )
 }
 
 function CoverageDecisionForm() {
-  return <Form title="Review unverified coverage" description="Record a staff verification or rejection decision. This does not perform payer eligibility or guarantee payment." submit="Record coverage decision"
+  return <Form title="Review unverified coverage" submit="Record coverage decision"
     fields={[
       { name: 'coverageVersion', label: 'Unverified coverage', kind: 'coverage-search' },
       { name: 'toStatus', label: 'Decision', kind: 'select', options: [{ value: 'active', label: 'Verified from reviewed evidence' }, { value: 'rejected', label: 'Rejected' }] },
@@ -895,7 +897,7 @@ function CoverageDecisionForm() {
 
 function ConsentDecisionForms({ workspace }: { workspace: FabricWorkspace }) {
   return <>
-    <Form title="Record consent decision" description="Append a granted or declined patient decision. If a current decision exists, select it so the history remains explicit." submit="Record decision" accessibleFacilityCount={workspace.facilitiesCount}
+    <Form title="Record consent decision" submit="Record decision" accessibleFacilityCount={workspace.facilitiesCount}
       fields={[
         { name: 'facilityId', label: 'Facility', kind: 'facility' },
         { name: 'patientId', label: 'Patient', kind: 'patient-search' },
@@ -907,7 +909,7 @@ function ConsentDecisionForms({ workspace }: { workspace: FabricWorkspace }) {
         { name: 'reasonCode', label: 'Reason code', required: false },
       ]}
       action={actions.recordConsent} />
-    <Form title="Withdraw granted consent" description="Select a facility, patient, and exact consent type to find its current grant. Append a withdrawal; prior evidence remains unchanged." submit="Record withdrawal" accessibleFacilityCount={workspace.facilitiesCount}
+    <Form title="Withdraw granted consent" submit="Record withdrawal" accessibleFacilityCount={workspace.facilitiesCount}
       fields={[
         { name: 'facilityId', label: 'Facility', kind: 'facility' },
         { name: 'patientId', label: 'Patient', kind: 'patient-search' },
@@ -933,7 +935,7 @@ function ConsentDecisionForms({ workspace }: { workspace: FabricWorkspace }) {
 }
 
 function InventoryMovementForm() {
-  return <Form title="Inventory movement" description="Receive, consume, reserve, release, or adjust an active item in your existing facility scope. The latest transition version is checked when the movement is recorded." submit="Record movement"
+  return <Form title="Inventory movement" submit="Record movement"
     fields={[
       { name: 'itemVersion', label: 'Inventory item', kind: 'inventory-search' },
       { name: 'movementType', label: 'Movement type', kind: 'select', options: ['receive','consume','reserve','release','adjust'].map(value => ({ value, label: value })) },
@@ -962,95 +964,101 @@ export function OperationalFabricControls({ workspace }: { workspace: FabricWork
   const communicationsReady = can.communications
   const showInventorySection = inventoryReady || (portabilityReady && facilityScopeReady)
   const showIntegrationSection = (communicationsReady && facilityScopeReady) || integrationReady
+  const showCommunicationsSection = communicationsReady && facilityScopeReady
   const showRetentionSection = (retentionReady && facilityScopeReady) || (portabilityReady && facilityScopeReady)
   const hasVisibleControls = billingReady || consentReady || showInventorySection || showIntegrationSection || showRetentionSection
   if (!hasVisibleControls) return null
 
   return (
-    <div className="space-y-8">
-      {billingReady && <section aria-labelledby="billing-workflows" className="space-y-3">
-        <h2 id="billing-workflows" className="text-lg font-semibold">Coverage and patient payments</h2>
-        <div className="grid gap-3 xl:grid-cols-2">
-          {facilityScopeReady && patientDirectoryReady && <Form title="Record coverage" description="Record coverage details as unverified. This does not check eligibility or guarantee payment." submit="Record coverage" action={actions.recordCoverage} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+    <>
+      {billingReady && <WardSection id="billing-workflows" title="Billing">
+        <div className={gridClass}>
+          {facilityScopeReady && patientDirectoryReady && <Form title="Record coverage" submit="Record coverage" action={actions.recordCoverage} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'patientId', label: 'Patient', kind: 'patient-search' },
             { name: 'payerName', label: 'Payer name' }, { name: 'memberId', label: 'Member ID' }, { name: 'groupNumber', label: 'Group number', required: false },
           ]} />}
           <CoverageDecisionForm />
-          {facilityScopeReady && patientDirectoryReady && <Form title="Record manual payment" description="Record cash or check received outside this application. This does not process cards or banks." submit="Record payment" action={actions.recordPayment} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+          {facilityScopeReady && patientDirectoryReady && <Form title="Record manual payment" submit="Record payment" action={actions.recordPayment} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'patientId', label: 'Patient', kind: 'patient-search' },
             { name: 'claimId', label: 'Claim', kind: 'claim-search', required: false }, { name: 'amountCents', label: 'Amount', kind: 'currency' },
             { name: 'currency', label: 'Currency', value: 'USD' }, { name: 'method', label: 'Method', kind: 'select', options: [{ value: 'cash', label: 'Cash' }, { value: 'check', label: 'Check' }] },
           ]} />}
-          <Form title="Request refund" description="Record a manual refund or queue one through the payment integration linked to the payment." submit="Request refund" action={actions.requestRefund} fields={[
+          <Form title="Request refund" submit="Request refund" action={actions.requestRefund} fields={[
             { name: 'paymentId', label: 'Succeeded payment', kind: 'payment-search' }, { name: 'amountCents', label: 'Amount', kind: 'currency' }, { name: 'reasonCode', label: 'Reason code' },
           ]} />
         </div>
-      </section>}
+      </WardSection>}
 
-      {consentReady && <section aria-labelledby="consent-workflows" className="space-y-3">
-        <h2 id="consent-workflows" className="text-lg font-semibold">Consent decisions</h2>
-        <div className="grid gap-3 xl:grid-cols-2"><ConsentDecisionForms workspace={workspace} /></div>
-      </section>}
+      {consentReady && <WardSection id="consent-workflows" title="Consent">
+        <div className={gridClass}><ConsentDecisionForms workspace={workspace} /></div>
+      </WardSection>}
 
-      {showInventorySection && <section aria-labelledby="inventory-workflows" className="space-y-3">
-        <h2 id="inventory-workflows" className="text-lg font-semibold">Inventory and imports</h2>
-        <div className="grid gap-3 xl:grid-cols-2">
-          {inventoryReady && facilityScopeReady && <Form title="Register inventory item" description="Create an item for this facility and record its opening balance." submit="Register item" action={actions.registerInventory} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+      {showInventorySection && <WardSection id="inventory-workflows" title="Inventory">
+        <div className={gridClass}>
+          {inventoryReady && facilityScopeReady && <Form title="Register inventory item" submit="Register item" action={actions.registerInventory} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'sku', label: 'SKU' }, { name: 'name', label: 'Name' }, { name: 'unit', label: 'Unit' },
             { name: 'initialQuantity', label: 'Opening quantity', kind: 'integer', value: '0' }, { name: 'reorderPoint', label: 'Reorder point', kind: 'integer', value: '0' },
           ]} />}
           {inventoryReady && <InventoryMovementForm />}
-          {portabilityReady && facilityScopeReady && <Form title="Preview inventory CSV" description="Validate up to 100 rows before any inventory is applied. Required header: sku,name,unit,quantity,reorderPoint." submit="Create preview" action={actions.previewImport} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+          {portabilityReady && facilityScopeReady && <Form title="Preview inventory CSV" submit="Create preview" action={actions.previewImport} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'csv', label: 'CSV', kind: 'csv', placeholder: 'sku,name,unit,quantity,reorderPoint\nGAUZE-1,Sterile gauze,box,12,3' },
           ]} />}
         </div>
-      </section>}
+      </WardSection>}
 
-      {showIntegrationSection && <section aria-labelledby="communications-integrations" className="space-y-3">
-        <h2 id="communications-integrations" className="text-lg font-semibold">Communications and integrations</h2>
-        <div className="grid gap-3 xl:grid-cols-2">
-          {communicationsReady && facilityScopeReady && patientDirectoryReady && <Form title="Communication preference" description="Record an allowed or opted-out channel and purpose for a patient." submit="Record preference" action={actions.setPreference} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+      {showCommunicationsSection && <WardSection id="communications-workflows" title="Communications">
+        <div className={gridClass}>
+          {communicationsReady && facilityScopeReady && patientDirectoryReady && <Form title="Communication preference" submit="Record preference" action={actions.setPreference} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'patientId', label: 'Patient', kind: 'patient-search' },
             { name: 'channel', label: 'Channel', kind: 'select', options: ['sms','email'].map(value => ({ value, label: value })) },
             { name: 'purpose', label: 'Purpose', kind: 'select', options: ['care_operations','billing','general'].map(value => ({ value, label: value.replaceAll('_',' ') })) },
             { name: 'status', label: 'Preference', kind: 'select', options: [{ value: 'allowed', label: 'Allowed' }, { value: 'opted_out', label: 'Opted out' }] }, { name: 'reasonCode', label: 'Reason code' },
           ]} />}
-          {communicationsReady && facilityScopeReady && <Form title="Communication template" description="Create a reusable communication template for this facility." submit="Register template" action={actions.registerTemplate} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+          {communicationsReady && facilityScopeReady && <Form title="Communication template" submit="Register template" action={actions.registerTemplate} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'templateKey', label: 'Template key' }, { name: 'name', label: 'Name' },
             { name: 'channel', label: 'Channel', kind: 'select', options: ['sms','email'].map(value => ({ value, label: value })) }, { name: 'subjectTemplate', label: 'Subject', required: false }, { name: 'bodyTemplate', label: 'Body', kind: 'textarea' },
           ]} />}
-          {integrationReady && facilityScopeReady && <Form title="Install webhook integration" description="Register an allowlisted endpoint. The signing secret is shown once." submit="Install integration" action={actions.installIntegration} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+        </div>
+      </WardSection>}
+
+      {integrationReady && <WardSection id="integration-workflows" title="Integrations">
+        <div className={gridClass}>
+          {integrationReady && facilityScopeReady && <Form title="Install webhook integration" submit="Install integration" action={actions.installIntegration} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'name', label: 'Name' },
             { name: 'kind', label: 'Kind', kind: 'select', options: ['communications','payment','laboratory','pharmacy','webhook'].map(value => ({ value, label: value })) },
             { name: 'endpointUrl', label: 'Allowlisted HTTPS endpoint' }, { name: 'allowedEventTypes', label: 'Allowed events', kind: 'comma-list', value: communicationEvents },
           ]} />}
-          {integrationReady && <Form title="Issue machine credential" description="Create a one-time inbound webhook credential with a bounded expiry." submit="Issue credential" action={actions.issueCredential} fields={[
+          {integrationReady && <Form title="Issue machine credential" submit="Issue credential" action={actions.issueCredential} fields={[
             { name: 'installationId', label: 'Integration', kind: 'integration-search' }, { name: 'name', label: 'Credential name' },
             { name: 'scopes', label: 'Scopes', kind: 'comma-list', value: 'webhook:write' }, { name: 'expiresAt', label: 'Expires at', kind: 'datetime-local' },
           ]} />}
-          {can.mayLinkPatientIdentity && integrationReady && facilityScopeReady && patientDirectoryReady && <Form title="Link external patient identity" description="Patient identity links require both integration and patient-operation authority." submit="Link identity" action={actions.linkExternalIdentity} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+          {can.mayLinkPatientIdentity && integrationReady && facilityScopeReady && patientDirectoryReady && <Form title="Link external patient identity" submit="Link identity" action={actions.linkExternalIdentity} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'localId', label: 'Patient', kind: 'patient-search' },
             { name: 'localType', label: 'Local type', value: 'patient' }, { name: 'system', label: 'External system' }, { name: 'resourceType', label: 'Resource type', value: 'Patient' }, { name: 'externalId', label: 'External ID' },
           ]} />}
         </div>
-      </section>}
+      </WardSection>}
 
-      {showRetentionSection && <section aria-labelledby="retention-portability" className="space-y-3">
-        <h2 id="retention-portability" className="text-lg font-semibold">Retention and portability</h2>
-        <div className="grid gap-3 xl:grid-cols-2">
-          {retentionReady && facilityScopeReady && <Form title="Retention policy" description="Set a review horizon for a facility record type." submit="Create policy" action={actions.establishPolicy} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+      {retentionReady && facilityScopeReady && <WardSection id="retention-workflows" title="Retention">
+        <div className={gridClass}>
+          {retentionReady && facilityScopeReady && <Form title="Retention policy" submit="Create policy" action={actions.establishPolicy} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' },
             { name: 'recordType', label: 'Record type', kind: 'select', options: ['patient','appointment','encounter','clinical_document','claim','export_job'].map(value => ({ value, label: value.replaceAll('_',' ') })) },
             { name: 'retentionDays', label: 'Retention days', kind: 'integer' },
           ]} />}
-          {can.mayPlaceEncounterHold && retentionReady && available.encounters && facilityScopeReady && <Form title="Place encounter hold" description="Clinical encounter holds require both retention and patient-operation authority." submit="Place hold" action={actions.placeHold} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+          {can.mayPlaceEncounterHold && retentionReady && available.encounters && facilityScopeReady && <Form title="Place encounter hold" submit="Place hold" action={actions.placeHold} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'aggregateId', label: 'Encounter', kind: 'encounter-search' },
             { name: 'aggregateType', label: 'Aggregate type', value: 'encounter' }, { name: 'reasonCode', label: 'Reason code' }, { name: 'notes', label: 'Notes', kind: 'textarea', required: false },
           ]} />}
-          {portabilityReady && facilityScopeReady && <ExportWorkflowForm accessibleFacilityCount={workspace.facilitiesCount} />}
         </div>
-      </section>}
-    </div>
+      </WardSection>}
+
+      {portabilityReady && facilityScopeReady && <WardSection id="portability-workflows" title="Portability">
+        <div className={gridClass}>
+          <ExportWorkflowForm accessibleFacilityCount={workspace.facilitiesCount} />
+        </div>
+      </WardSection>}
+    </>
   )
 }
 
@@ -1085,14 +1093,14 @@ export function OperationalQueueActions({ workspace }: { workspace: FabricWorksp
     }
   }
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {workspace.capabilities.mayDispatchOutbox && <Button variant="outline" disabled={pending} onClick={() => run('dispatch-integrations', () => actions.dispatchIntegrations())}>Dispatch integration queue</Button>}
-        {workspace.capabilities.dataPortability && workspace.availability.portability && workspace.batches.filter(batch => batch.status === 'previewed' && batch.errorCount === 0).map(batch => <Button key={batch.id} variant="outline" disabled={pending} onClick={() => run(`apply:${batch.id}:v${batch.transitionVersion}`, key => actions.applyImport(batch.id, batch.transitionVersion, key))}>Apply import ({batch.rowCount} rows)</Button>)}
-        {workspace.capabilities.dataPortability && workspace.availability.portability && workspace.batches.filter(batch => batch.status === 'applied').map(batch => <Button key={batch.id} variant="outline" disabled={pending} onClick={() => run(`rollback:${batch.id}:v${batch.transitionVersion}`, key => actions.rollbackImport(batch.id, batch.transitionVersion, key))}>Rollback import</Button>)}
-        {workspace.capabilities.dataPortability && workspace.availability.portability && workspace.exports.filter(job => job.status === 'queued').map(job => <Button key={job.id} variant="outline" disabled={pending} onClick={() => run(`export:${job.id}:v${job.transitionVersion}`, key => actions.processExport(job.id, job.transitionVersion, key))}>Prepare {job.exportType} export</Button>)}
+    <div className="grid min-w-0 gap-3">
+      <div className="flex min-w-0 flex-wrap gap-2 empty:hidden">
+        {workspace.capabilities.mayDispatchOutbox && <Track><Pill disabled={pending} onClick={() => run('dispatch-integrations', () => actions.dispatchIntegrations())}>Dispatch integration queue</Pill></Track>}
+        {workspace.capabilities.dataPortability && workspace.availability.portability && workspace.batches.filter(batch => batch.status === 'previewed' && batch.errorCount === 0).map(batch => <Track key={batch.id}><Pill disabled={pending} onClick={() => run(`apply:${batch.id}:v${batch.transitionVersion}`, key => actions.applyImport(batch.id, batch.transitionVersion, key))}>Apply import ({batch.rowCount} rows)</Pill></Track>)}
+        {workspace.capabilities.dataPortability && workspace.availability.portability && workspace.batches.filter(batch => batch.status === 'applied').map(batch => <Track key={batch.id}><Pill disabled={pending} onClick={() => run(`rollback:${batch.id}:v${batch.transitionVersion}`, key => actions.rollbackImport(batch.id, batch.transitionVersion, key))}>Rollback import</Pill></Track>)}
+        {workspace.capabilities.dataPortability && workspace.availability.portability && workspace.exports.filter(job => job.status === 'queued').map(job => <Track key={job.id}><Pill disabled={pending} onClick={() => run(`export:${job.id}:v${job.transitionVersion}`, key => actions.processExport(job.id, job.transitionVersion, key))}>Prepare {job.exportType} export</Pill></Track>)}
       </div>
-      {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
+      {message && <Notice tone={message === 'Action completed.' ? 'ok' : 'warn'} role="status">{message}</Notice>}
     </div>
   )
 }

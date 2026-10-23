@@ -1,15 +1,29 @@
 import Link from 'next/link'
-import { GitMerge, IdCard, Search, ShieldCheck, UserPlus } from 'lucide-react'
+import { ChevronRight, Search } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import { BoundedDataNotice } from '@/features/platform/components/BoundedDataNotice'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
+import {
+  Board,
+  BoardRow,
+  Code,
+  EmptyBoard,
+  Facts,
+  FilterBar,
+  Notice,
+  Pill,
+  Readout,
+  ReadoutStrip,
+  StatusTag,
+  Track,
+  WardBody,
+  WardHeader,
+  WardSection,
+  fieldClass,
+  toneForStatus,
+} from '@/features/platform/components/ward'
 import { PatientRegistrationForm } from '../components/PatientRegistrationForm'
 
 type Registration = {
@@ -68,11 +82,32 @@ function formatFacilityDateTime(value?: string | null, timeZone?: string | null)
 }
 
 function RegistrationEvidence({ registration }: { registration: Registration }) {
-  return <details><summary className="cursor-pointer rounded-sm text-sm font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Expand provenance evidence</summary><dl className="mt-3 grid gap-3 rounded-lg border bg-muted/20 p-3 text-sm sm:grid-cols-2"><div><dt className="text-xs text-muted-foreground">Consent decision</dt><dd>{registration.consent?.decision?.replaceAll('_', ' ') || 'Not visible'} {registration.consent?.policyVersion ? `· ${registration.consent.policyVersion}` : ''}</dd></div><div><dt className="text-xs text-muted-foreground">Audit event</dt><dd>{registration.auditLog?.eventType?.replaceAll('_', ' ') || 'Not visible'}</dd></div><div><dt className="text-xs text-muted-foreground">Registered by</dt><dd>{registration.createdBy?.name || 'Restricted operator'}</dd></div><div><dt className="text-xs text-muted-foreground">Recorded</dt><dd>{formatFacilityDateTime(registration.createdAt, registration.facility?.timeZone)}</dd></div></dl></details>
+  return (
+    <details className="group min-w-0">
+      <summary className="w-fit cursor-pointer list-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <Track><Pill asChild size="sm" variant="plain"><span><ChevronRight className="transition-transform group-open:rotate-90" aria-hidden />Provenance</span></Pill></Track>
+      </summary>
+      <Facts
+        className="mt-2 max-w-xl rounded-lg border bg-muted/30 px-3"
+        items={[
+          { label: 'Consent', value: `${registration.consent?.decision?.replaceAll('_', ' ') || 'Not visible'}${registration.consent?.policyVersion ? ` · ${registration.consent.policyVersion}` : ''}` },
+          { label: 'Audit event', value: registration.auditLog?.eventType?.replaceAll('_', ' ') || 'Not visible' },
+          { label: 'Registered by', value: registration.createdBy?.name || 'Restricted operator' },
+          { label: 'Recorded', value: formatFacilityDateTime(registration.createdAt, registration.facility?.timeZone) },
+        ]}
+      />
+    </details>
+  )
 }
 
 function RegistrationActions({ registration }: { registration: Registration }) {
-  return <details className="relative"><summary className="cursor-pointer list-none rounded-md border px-3 py-2 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">Actions</summary><div className="mt-2 flex min-w-48 flex-col gap-1 rounded-md border bg-popover p-1 text-sm shadow-sm md:absolute md:right-0 md:z-10">{registration.patient?.id && <Link className="rounded px-2 py-1.5 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={`/dashboard/patients/${registration.patient.id}`}>Open patient record</Link>}<Link className="rounded px-2 py-1.5 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={`/dashboard/patient-registrations/${registration.id}`}>Open registration evidence</Link>{registration.identifier?.id && <Link className="rounded px-2 py-1.5 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={`/dashboard/patient-identifiers/${registration.identifier.id}`}>Open identifier evidence</Link>}</div></details>
+  return (
+    <Track>
+      {registration.patient?.id && <Pill asChild size="sm"><Link href={`/dashboard/patients/${registration.patient.id}`}>Patient</Link></Pill>}
+      <Pill asChild size="sm" variant="plain"><Link href={`/dashboard/patient-registrations/${registration.id}`}>Registration</Link></Pill>
+      {registration.identifier?.id && <Pill asChild size="sm" variant="plain"><Link href={`/dashboard/patient-identifiers/${registration.identifier.id}`}>Identifier</Link></Pill>}
+    </Track>
+  )
 }
 
 export default async function RegistrationPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
@@ -95,22 +130,82 @@ export default async function RegistrationPage({ searchParams }: { searchParams?
   if (!response.success) return <WorkspaceLoadError title="Patient registration" description="Facility choices, scoped registration evidence, or protected identity fields may be unavailable for this session." breadcrumbs={breadcrumbs} />
   const data = response.data
 
-  return <PageContainer title="Patient registration" breadcrumbs={breadcrumbs} header={<div><p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Patient identity</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Registration and duplicate review</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Create or link a facility-scoped patient only through deterministic review. This workspace is not an enterprise MPI and never performs an automatic merge.</p></div>}>
-    <div className="space-y-6 px-4 pb-8 md:px-6">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[
-        { label: 'Accessible registrations', value: data.all, icon: IdCard },
-        { label: 'Completed', value: data.completed, icon: ShieldCheck },
-        { label: 'Created separately', value: data.createdNew, icon: UserPlus },
-        { label: 'Linked after review', value: data.linkedExisting, icon: GitMerge },
-      ].map(({ label, value, icon: Icon }) => <Card key={label}><CardHeader className="pb-2"><CardDescription className="flex items-center gap-2"><Icon className="size-4" aria-hidden />{label}</CardDescription><CardTitle>{value}</CardTitle></CardHeader></Card>)}</div>
-
-      {data.facilitiesCount === 0 && <div role="status" className="rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-medium">Registration unavailable for this session</p><p className="mt-1">No accessible active facility was returned. No patient registration can be submitted until facility scope is available.</p></div>}
+  return <PageContainer
+    title="Patient registration"
+    breadcrumbs={breadcrumbs}
+    header={<WardHeader
+      title="Register patient"
+      tone={data.facilitiesCount === 0 ? 'warn' : 'accent'}
+      status={data.facilitiesCount === 0 ? 'Unavailable' : undefined}
+      meta={`${data.completed} completed registration${data.completed === 1 ? '' : 's'}`}
+    />}
+  >
+    <WardBody>
+      {data.facilitiesCount === 0 && <Notice tone="warn" role="status"><p className="font-medium">Registration unavailable</p><p className="mt-0.5">No active facility is available to this session.</p></Notice>}
       <PatientRegistrationForm accessibleFacilityCount={data.facilitiesCount} />
 
-      <Card><CardHeader><CardTitle>Registration evidence</CardTitle><CardDescription>Search is limited to accessible patient names and facility labels. Immutable evidence is opened read-only through its scoped record.</CardDescription></CardHeader><CardContent className="space-y-4"><form className="grid gap-3 lg:grid-cols-[minmax(16rem,1fr)_13rem_12rem_auto]"><label className="relative"><span className="sr-only">Search patient or facility</span><Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" aria-hidden /><Input className="pl-9" name="search" defaultValue={search} placeholder="Patient or facility" /></label><label><span className="sr-only">Duplicate resolution</span><select name="resolution" defaultValue={resolution} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="all">All resolutions</option><option value="create_new">Created separately</option><option value="link_existing">Linked existing patient</option></select></label><label><span className="sr-only">Sort registrations</span><select name="sort" defaultValue={sort} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label><div className="flex gap-2"><Button type="submit" variant="outline">Apply</Button><Button asChild type="button" variant="ghost"><Link href="/dashboard/platform/registration">Reset</Link></Button></div></form>
-        {data.patientRegistrationsCount > data.patientRegistrations.length && <BoundedDataNotice messages={[`Showing ${data.patientRegistrations.length} of ${data.patientRegistrationsCount} matching registrations. Narrow search or resolution filters to reach records outside this 50-row evidence view.`]} />}
-        {!data.patientRegistrations.length ? <div className="rounded-lg border border-dashed p-8 text-center"><IdCard className="mx-auto size-6 text-muted-foreground" aria-hidden /><p className="mt-3 font-medium">No accessible registration evidence matches</p><p className="mt-1 text-sm text-muted-foreground">This does not prove that no registration exists outside your direct facility scope.</p></div> : <><div className="hidden rounded-lg border md:block"><Table><TableHeader><TableRow><TableHead>Patient / MRN</TableHead><TableHead>Facility</TableHead><TableHead>Resolution</TableHead><TableHead>Evidence</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{data.patientRegistrations.map(item => <TableRow key={item.id}><TableCell className="align-top"><p className="font-medium">{item.patient?.displayName || 'Restricted patient'}</p><p className="font-mono text-xs text-muted-foreground">{item.identifier?.maskedValue || 'Identifier restricted'}</p></TableCell><TableCell className="align-top">{item.facility?.name || 'Restricted facility'}<p className="text-xs text-muted-foreground">{formatFacilityDateTime(item.createdAt, item.facility?.timeZone)}</p></TableCell><TableCell className="align-top"><Badge variant="secondary">{item.duplicateResolution?.replaceAll('_', ' ') || 'unknown'}</Badge></TableCell><TableCell className="align-top"><Badge>{item.status || 'unknown'}</Badge><div className="mt-2"><RegistrationEvidence registration={item} /></div></TableCell><TableCell className="align-top text-right"><RegistrationActions registration={item} /></TableCell></TableRow>)}</TableBody></Table></div><div className="space-y-3 md:hidden">{data.patientRegistrations.map(item => <article key={item.id} className="space-y-3 rounded-lg border p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-medium">{item.patient?.displayName || 'Restricted patient'}</h2><p className="font-mono text-xs text-muted-foreground">{item.identifier?.maskedValue || 'Identifier restricted'}</p></div><Badge>{item.status || 'unknown'}</Badge></div><p className="text-sm">{item.facility?.name || 'Restricted facility'} · {item.duplicateResolution?.replaceAll('_', ' ') || 'resolution unavailable'}</p><RegistrationEvidence registration={item} /><RegistrationActions registration={item} /></article>)}</div></>}
-      </CardContent></Card>
-    </div>
+      <WardSection title="Recent registrations" count={data.patientRegistrationsCount} id="registration-evidence">
+        <div className="flex min-w-0 flex-col gap-4">
+          <ReadoutStrip>
+            <Readout label="All" value={data.all} />
+            <Readout label="Completed" tone="ok" value={data.completed} />
+            <Readout label="Created new" tone="accent" value={data.createdNew} />
+            <Readout label="Linked existing" tone="info" value={data.linkedExisting} />
+          </ReadoutStrip>
+
+          <FilterBar>
+            <label className="relative w-full sm:min-w-56 sm:flex-1">
+              <span className="sr-only">Search patient or facility</span>
+              <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden />
+              <input className={`${fieldClass} pl-9`} name="search" defaultValue={search} placeholder="Patient or facility" />
+            </label>
+            <label className="w-[calc(50%-0.25rem)] sm:w-48">
+              <span className="sr-only">Duplicate resolution</span>
+              <select name="resolution" defaultValue={resolution} className={fieldClass}>
+                <option value="all">All resolutions</option>
+                <option value="create_new">Created new</option>
+                <option value="link_existing">Linked existing</option>
+              </select>
+            </label>
+            <label className="w-[calc(50%-0.25rem)] sm:w-40">
+              <span className="sr-only">Sort registrations</span>
+              <select name="sort" defaultValue={sort} className={fieldClass}>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </label>
+            <Track>
+              <Pill type="submit" variant="primary">Apply</Pill>
+              <Pill asChild variant="plain"><Link href="/dashboard/platform/registration">Reset</Link></Pill>
+            </Track>
+          </FilterBar>
+
+          {data.patientRegistrationsCount > data.patientRegistrations.length && <BoundedDataNotice messages={[`Showing ${data.patientRegistrations.length} of ${data.patientRegistrationsCount}. Narrow the filters to see more.`]} />}
+
+          {!data.patientRegistrations.length ? <EmptyBoard title="No matching registrations" /> : (
+            <Board>
+              {data.patientRegistrations.map(item => (
+                <BoardRow
+                  key={item.id}
+                  tone={toneForStatus(item.status)}
+                  status={item.status || 'unknown'}
+                  title={item.patient?.displayName || 'Restricted patient'}
+                  meta={<>
+                    <Code className="text-foreground">{item.identifier?.maskedValue || 'Identifier restricted'}</Code>
+                    <StatusTag status={item.status || 'unknown'} className="font-normal" />
+                    <span>{item.duplicateResolution?.replaceAll('_', ' ') || 'resolution unavailable'}</span>
+                    <span>{item.facility?.name || 'Restricted facility'}</span>
+                    <span className="tabular-nums">{formatFacilityDateTime(item.createdAt, item.facility?.timeZone)}</span>
+                  </>}
+                  aside={<RegistrationActions registration={item} />}
+                >
+                  <RegistrationEvidence registration={item} />
+                </BoardRow>
+              ))}
+            </Board>
+          )}
+        </div>
+      </WardSection>
+    </WardBody>
   </PageContainer>
 }

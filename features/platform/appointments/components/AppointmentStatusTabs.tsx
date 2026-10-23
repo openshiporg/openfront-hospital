@@ -1,16 +1,17 @@
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Segmented, type WardTone } from '@/features/platform/components/ward'
 
-const tabs = [
+const tabs: Array<{ id: string; label: string; tone?: WardTone }> = [
   { id: 'all', label: 'All' },
-  { id: 'requested', label: 'Requested' },
-  { id: 'confirmed', label: 'Confirmed' },
-  { id: 'checked_in', label: 'Checked in' },
-  { id: 'in_visit', label: 'In visit' },
-  { id: 'completed', label: 'Completed' },
-  { id: 'cancelled', label: 'Cancelled' },
-  { id: 'no_show', label: 'No show' },
+  { id: 'requested', label: 'Requested', tone: 'warn' },
+  { id: 'confirmed', label: 'Confirmed', tone: 'info' },
+  { id: 'checked_in', label: 'Checked in', tone: 'info' },
+  { id: 'in_visit', label: 'In visit', tone: 'accent' },
+  { id: 'completed', label: 'Completed', tone: 'ok' },
+  { id: 'cancelled', label: 'Cancelled', tone: 'idle' },
+  { id: 'no_show', label: 'No show', tone: 'bad' },
 ]
 
 export function AppointmentStatusTabs({ statusCounts }: { statusCounts: Record<string, number> }) {
@@ -29,23 +30,12 @@ export function AppointmentStatusTabs({ statusCounts }: { statusCounts: Record<s
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto border-b bg-background px-4 py-3 md:px-6">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          aria-pressed={activeStatus === tab.id}
-          onClick={() => setStatus(tab.id)}
-          className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${
-            activeStatus === tab.id
-              ? 'border-foreground bg-foreground text-background'
-              : 'border-border bg-background text-muted-foreground hover:border-zinc-400 hover:text-foreground'
-          }`}
-        >
-          {tab.label}
-          <span className="ml-1 opacity-70">{statusCounts[tab.id] || 0}</span>
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label="Appointment status"
+      size="sm"
+      value={activeStatus}
+      onChange={setStatus}
+      options={tabs.map(tab => ({ value: tab.id, label: tab.label, tone: tab.tone, count: statusCounts[tab.id] || 0 }))}
+    />
   )
 }

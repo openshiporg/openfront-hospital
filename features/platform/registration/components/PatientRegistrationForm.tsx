@@ -2,12 +2,9 @@
 
 import { FormEvent, useId, useRef, useState } from 'react'
 import { useDraftExitGuard } from '@/features/lib/useDraftExitGuard'
-import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Board, BoardRow, Code, Notice, Panel, Pill, Track, fieldClass } from '@/features/platform/components/ward'
 import { FacilitySearchField } from '@/features/platform/facilities/components/FacilitySearchField'
 import { submitPatientRegistration, type RegistrationResult, type RegistrationSubmission } from '../actions/registration'
 
@@ -106,43 +103,72 @@ export function PatientRegistrationForm({ accessibleFacilityCount }: { accessibl
     })
   }
 
-  return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
-      {exitGuard}
-      <Card>
-        <CardHeader>
-          <CardTitle>Register a patient</CardTitle>
-          <CardDescription>Enter the patient&apos;s identity and contact details, then review any possible match before assigning an MRN.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form ref={formRef} onChange={() => setDirty(true)} className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit} aria-busy={pending}>
-            <fieldset className="contents" disabled={pending || locked || Boolean(result && result.status !== 'completed')}>
-            <div className="md:col-span-2"><FacilitySearchField key={facilityResetVersion} id="facilityId" accessibleFacilityCount={accessibleFacilityCount} /></div>
-            <div className="space-y-2"><Label htmlFor="medicalRecordNumber">Medical record number</Label><Input id="medicalRecordNumber" name="medicalRecordNumber" placeholder="NS-0042" required /></div>
-            <div className="space-y-2"><Label htmlFor="dateOfBirth">Date of birth</Label><Input id="dateOfBirth" name="dateOfBirth" type="date" required /></div>
-            <div className="space-y-2"><Label htmlFor="firstName">First name</Label><Input id="firstName" name="firstName" required /></div>
-            <div className="space-y-2"><Label htmlFor="lastName">Last name</Label><Input id="lastName" name="lastName" required /></div>
-            <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" /></div>
-            <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" /></div>
-            <div className="space-y-2 md:col-span-2"><Label htmlFor="preferredContactMethod">Preferred contact</Label><select id="preferredContactMethod" name="preferredContactMethod" className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option></select></div>
-            <label className="flex items-start gap-3 rounded-md border p-3 text-sm md:col-span-2" htmlFor="registrationAcknowledged"><input id="registrationAcknowledged" name="registrationAcknowledged" type="checkbox" required className="mt-0.5 size-4" /><span>I confirm the patient was shown and acknowledged the registration notice.</span></label>
-            </fieldset>
-            {error && <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive md:col-span-2">{error}</div>}
-            <div className="md:col-span-2"><Button disabled={pending || accessibleFacilityCount === 0 || Boolean(result && result.status !== 'completed' && !locked)} type="submit">{pending && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />}{pending ? 'Reviewing registration…' : locked ? 'Retry original registration' : 'Review and register'}</Button></div>
-          </form>
-        </CardContent>
-      </Card>
+  const fieldLabel = 'text-xs font-medium text-muted-foreground'
+  const panelTitle = 'font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground'
 
-      <Card>
-        <CardHeader><CardTitle>Review outcome</CardTitle><CardDescription>Possible matches are bounded and deterministic; an overflow is sent for manual identity review instead of being treated as no match.</CardDescription></CardHeader>
-        <CardContent className="space-y-3" aria-live="polite">
-          {result && result.status !== 'completed' && !locked && <Button type="button" variant="outline" disabled={pending} onClick={() => { setResult(null); setDraft(null); idempotencyKeyRef.current = null; try { sessionStorage.removeItem(`openfront:operation:${window.location.pathname}:${formId}`) } catch { /* known non-effect review ended */ } }}>Edit registration details</Button>}
-          {!result && <p className="text-sm text-muted-foreground">Submit the form to complete registration or review a possible match.</p>}
-          {result?.status === 'completed' && <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4"><CheckCircle2 className="mb-2 size-5 text-emerald-600" /><p className="font-medium">Registration completed</p><p className="mt-1 text-sm text-muted-foreground">MRN {result.medicalRecordNumber}{result.replayed ? ' · existing request returned' : ''}</p></div>}
-          {result?.status === 'candidate_overflow' && <div role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4"><AlertTriangle className="mb-2 size-5 text-amber-600" /><p className="font-medium">Manual identity review required</p><p className="mt-1 text-sm text-muted-foreground">At least {result.candidateCount} records share this date of birth; the {result.candidateLimit}-record review bound was exceeded. No patient or MRN was created. Use the patient workspace to narrow the identity review before continuing.</p></div>}
-          {result?.status === 'duplicate_review' && <><div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4"><AlertTriangle className="mb-2 size-5 text-amber-600" /><p className="font-medium">Review a possible match</p><p className="mt-1 text-sm text-muted-foreground">Choose an existing patient or create a separate record.</p></div>{result.candidates.map((candidate) => <div key={candidate.patientId} className="rounded-lg border p-4"><p className="font-medium">{candidate.displayName}</p><p className="text-sm text-muted-foreground">DOB {candidate.dateOfBirth ?? 'unknown'} · {candidate.maskedEmail ?? 'no email'} · {candidate.maskedPhone ?? 'no phone'}</p><ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted-foreground">{candidate.reasons.map(reason => <li key={reason}>{duplicateReasonLabel(reason)}</li>)}</ul><Button className="mt-3" size="sm" disabled={pending} onClick={() => resolveDuplicate('link_existing', candidate.patientId)}>Use this patient</Button></div>)}<Button variant="outline" disabled={pending} onClick={() => resolveDuplicate('create_new')}>Create separate patient</Button></>}
-        </CardContent>
-      </Card>
+  return (
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
+      {exitGuard}
+      <Panel className="p-4 md:p-5">
+        <h2 className={panelTitle}>New patient</h2>
+        <form ref={formRef} onChange={() => setDirty(true)} className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2" onSubmit={onSubmit} aria-busy={pending}>
+          <fieldset className="contents" disabled={pending || locked || Boolean(result && result.status !== 'completed')}>
+          <div className="sm:col-span-2"><FacilitySearchField key={facilityResetVersion} id="facilityId" accessibleFacilityCount={accessibleFacilityCount} /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="firstName">First name</label><input className={fieldClass} id="firstName" name="firstName" required /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="lastName">Last name</label><input className={fieldClass} id="lastName" name="lastName" required /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="dateOfBirth">Date of birth</label><input className={fieldClass} id="dateOfBirth" name="dateOfBirth" type="date" required /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="medicalRecordNumber">MRN</label><input className={`${fieldClass} font-mono`} id="medicalRecordNumber" name="medicalRecordNumber" placeholder="NS-0042" required /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="phone">Phone</label><input className={fieldClass} id="phone" name="phone" type="tel" /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="email">Email</label><input className={fieldClass} id="email" name="email" type="email" /></div>
+          <div className="grid min-w-0 gap-1.5 sm:col-span-2"><label className={fieldLabel} htmlFor="preferredContactMethod">Preferred contact</label><select id="preferredContactMethod" name="preferredContactMethod" className={fieldClass}><option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option></select></div>
+          <label className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3 text-sm sm:col-span-2" htmlFor="registrationAcknowledged"><input id="registrationAcknowledged" name="registrationAcknowledged" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-teal-700 dark:accent-teal-400" /><span>Patient was shown and acknowledged the registration notice.</span></label>
+          </fieldset>
+          {error && <Notice tone="bad" role="alert" className="sm:col-span-2">{error}</Notice>}
+          <div className="sm:col-span-2">
+            <Track>
+              <Pill variant="primary" disabled={pending || accessibleFacilityCount === 0 || Boolean(result && result.status !== 'completed' && !locked)} type="submit">
+                {pending && <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />}
+                {pending ? 'Checking…' : locked ? 'Retry registration' : 'Register'}
+              </Pill>
+            </Track>
+          </div>
+        </form>
+      </Panel>
+
+      <Panel className="p-4 md:p-5">
+        <h2 className={panelTitle}>Match check</h2>
+        <div className="mt-3 space-y-3" aria-live="polite">
+          {!result && <p className="text-sm text-muted-foreground">Not submitted</p>}
+          {result?.status === 'completed' && <Notice tone="ok"><p className="font-medium">Registration completed</p><p className="mt-0.5">MRN <Code className="text-current">{result.medicalRecordNumber}</Code>{result.replayed ? ' · existing request returned' : ''}</p></Notice>}
+          {result?.status === 'candidate_overflow' && <Notice tone="warn" role="alert"><p className="font-medium">Manual identity review required</p><p className="mt-0.5">At least {result.candidateCount} records share this date of birth (review limit {result.candidateLimit}). No patient or MRN was created.</p></Notice>}
+          {result?.status === 'duplicate_review' && <>
+            <Notice tone="warn"><p className="font-medium">Possible match</p><p className="mt-0.5">Use an existing patient or create a separate record.</p></Notice>
+            <Board>
+              {result.candidates.map((candidate) => (
+                <BoardRow
+                  key={candidate.patientId}
+                  tone="warn"
+                  title={candidate.displayName}
+                  meta={<>
+                    <span className="tabular-nums">DOB {candidate.dateOfBirth ?? 'unknown'}</span>
+                    <span>{candidate.maskedEmail ?? 'no email'}</span>
+                    <span className="tabular-nums">{candidate.maskedPhone ?? 'no phone'}</span>
+                  </>}
+                  aside={<Track><Pill size="sm" variant="primary" disabled={pending} onClick={() => resolveDuplicate('link_existing', candidate.patientId)}>Use this patient</Pill></Track>}
+                >
+                  <ul className="flex flex-wrap gap-1.5 text-xs">{candidate.reasons.map(reason => <li key={reason} className="rounded-full border bg-background px-2 py-0.5 text-muted-foreground">{duplicateReasonLabel(reason)}</li>)}</ul>
+                </BoardRow>
+              ))}
+            </Board>
+          </>}
+          {result && result.status !== 'completed' && (
+            <Track>
+              {result.status === 'duplicate_review' && <Pill disabled={pending} onClick={() => resolveDuplicate('create_new')}>Create separate patient</Pill>}
+              {!locked && <Pill variant="plain" disabled={pending} onClick={() => { setResult(null); setDraft(null); idempotencyKeyRef.current = null; try { sessionStorage.removeItem(`openfront:operation:${window.location.pathname}:${formId}`) } catch { /* known non-effect review ended */ } }}>Edit details</Pill>}
+            </Track>
+          )}
+        </div>
+      </Panel>
     </div>
   )
 }

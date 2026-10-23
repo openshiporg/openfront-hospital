@@ -22,9 +22,14 @@ export function BookingWorkspace({ appointmentType, brandName, initialProviderId
   const facility = provider?.facilities.find(item => item.id === facilityId)
   const range = publicBookingDateRange(facility?.timeZone || 'UTC')
   const invalidate = () => { generation.current++; setSlots([]); setRevision(value => value + 1); setError('Check availability for the selected provider, location and date.') }
-  return <section className="sf-form-surface">
-    <h2 className="sf-display" style={{ fontSize: 'var(--text-2xl)' }}>Choose provider, location and date</h2>
-    <form className="sf-grid-2" onSubmit={async event => {
+  return <section className="sf-panel sf-reveal" aria-labelledby="availability-heading">
+    <ol className="sf-stepper" aria-label="Request steps">
+      <li data-state="done"><span>✓</span>Visit</li>
+      <li data-state="current" aria-current="step"><span>2</span>Time</li>
+      <li><span>3</span>Details</li>
+    </ol>
+    <h2 id="availability-heading" className="sf-step-title"><span className="sf-mono">02</span>Clinician, place and date</h2>
+    <form className="sf-form" onSubmit={async event => {
       event.preventDefault()
       const invalidDate = publicBookingDateError(date, facility?.timeZone || 'UTC')
       if (!provider || !facility || invalidDate) { setError(invalidDate || 'Select a valid provider and location.'); return }
@@ -38,22 +43,24 @@ export function BookingWorkspace({ appointmentType, brandName, initialProviderId
       } catch { if (current === generation.current) setError('Times could not be checked. Patient details remain here; contact scheduling or check availability again.') }
       finally { if (current === generation.current) setPending(false) }
     }}>
-      <fieldset className="sf-fieldset sf-grid-2" disabled={pending || requestPending}>
-        <legend>Availability</legend>
-        <label className="sf-field"><span className="sf-label">Provider</span><select className="sf-select" required value={providerId} onChange={event => {
+      <fieldset className="sf-fieldset sf-grid-3" disabled={pending || requestPending}>
+        <legend className="sf-sr">Availability</legend>
+        <label className="sf-field"><span className="sf-label">Clinician</span><select className="sf-select" required value={providerId} onChange={event => {
           const next = appointmentType.providers.find(item => item.id === event.target.value)
           setProviderId(event.target.value)
           setFacilityId(next?.facilities.some(item => item.id === facilityId) ? facilityId : '')
           invalidate()
-        }}><option value="">Select provider</option>{appointmentType.providers.map(item => <option key={item.id} value={item.id}>{item.displayName}</option>)}</select></label>
-        <label className="sf-field"><span className="sf-label">Location</span><select className="sf-select" required value={facilityId} onChange={event => { setFacilityId(event.target.value); invalidate() }}><option value="">Select location</option>{provider?.facilities.map(item => <option key={item.id} value={item.id}>{item.name} · {item.timeZone}</option>)}</select></label>
+        }}><option value="">Select clinician</option>{appointmentType.providers.map(item => <option key={item.id} value={item.id}>{item.displayName}</option>)}</select></label>
+        <label className="sf-field"><span className="sf-label">Location</span><select className="sf-select" required value={facilityId} onChange={event => { setFacilityId(event.target.value); invalidate() }}><option value="">Select location</option>{provider?.facilities.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <label className="sf-field"><span className="sf-label">Date</span><input className="sf-input" type="date" required min={range.min} max={range.max} value={date} onChange={event => { setDate(event.target.value); invalidate() }} /></label>
-        <p>Times use {facility?.timeZone || 'the selected location’s time zone'}. Requests require staff confirmation.</p>
       </fieldset>
-      <button type="submit" className="sf-btn sf-btn--secondary" disabled={pending || requestPending}>{pending ? 'Checking…' : 'Check availability'}</button>
+      <div className="sf-form-actions">
+        <div className="sf-track"><button type="submit" className="sf-pill sf-pill--raised" disabled={pending || requestPending}>{pending ? 'Checking…' : 'Check availability'}</button></div>
+        <span className="sf-hint">Times in {facility?.timeZone || 'the location’s time zone'}</span>
+      </div>
     </form>
-    {error && <p role="alert" className="sf-notice sf-notice--info">{error}</p>}
-    {slots.length > 0 && <p className="sf-eyebrow">Times for {formatCalendarDate(date)}</p>}
+    {error && <p role="alert" className="sf-notice sf-notice--warn"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>{error}</span></p>}
+    {slots.length > 0 && <p className="sf-eyebrow">{formatCalendarDate(date)} · {slots.length} {slots.length === 1 ? 'time' : 'times'}</p>}
     <AppointmentRequestForm appointmentType={appointmentType} providerId={providerId} facilityId={facilityId} slots={slots} brandName={brandName} availabilityRevision={revision} onPendingChange={setRequestPending} />
   </section>
 }

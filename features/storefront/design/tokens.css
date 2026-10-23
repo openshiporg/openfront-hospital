@@ -1,31 +1,45 @@
-/* Hallmark · macrostructure: Photographic + Split Studio · navigation: N9 edge-aligned minimal
- * tone: calm editorial medicine · anchor: northstar evergreen · photography: local, Pexels provenance
+/* Wayfinding · a hospital signage system for the patient front door.
+ * Display: Newsreader · Body: Atkinson Hyperlegible · Readouts: JetBrains Mono
+ * Clinic white and lobby ink; the brand theme sets the accent; service lines read as colour-coded zones.
  */
 .storefront {
-  --color-paper: #f7f4ec;
-  --color-paper-2: #eee9dc;
-  --color-paper-3: #ddd8c9;
-  --color-ink: #15342f;
-  --color-ink-2: #405750;
-  --color-ink-3: #708078;
-  --color-rule: rgba(21, 52, 47, 0.16);
+  --color-paper: #f5f6f2;
+  --color-paper-2: #eceee8;
+  --color-paper-3: #dfe2da;
+  --color-card: #ffffff;
+  --color-ink: #10221f;
+  --color-ink-2: #3c4e4a;
+  --color-ink-3: #6b7975;
+  --color-rule: rgba(16, 34, 31, 0.12);
+  --color-rule-strong: rgba(16, 34, 31, 0.22);
   --color-accent: #155c4d;
-  --color-accent-2: #227563;
-  --color-accent-soft: #d5e5dd;
-  --color-accent-ink: #fffdf7;
-  --color-sun: #d99d45;
+  --color-accent-2: #0f4a3e;
+  --color-accent-soft: #dcebe4;
+  --color-accent-ink: #ffffff;
   --color-focus: #0d7160;
-  --color-warn: #f5e7bd;
-  --color-warn-ink: #6d4b12;
-  --color-error: #f3dcd6;
-  --color-error-ink: #7a2f24;
-  --color-success: #d8e9dd;
-  --color-success-ink: #184b3b;
-  --color-night: #0e2c28;
+  --color-lobby: #0f2421;
+  --color-lobby-2: #17322e;
+  --color-lobby-ink: #e9f0ec;
+  --color-lobby-ink-2: #9fb3ad;
 
-  --font-display: var(--font-fraunces), "Iowan Old Style", "Palatino Linotype", serif;
-  --font-body: var(--font-dm-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Wayfinding zones: fixed sign colours per service line. */
+  --zone-a: var(--color-accent);
+  --zone-b: #5b4a9e;
+  --zone-c: #b0631d;
+
+  --color-warn: #fbf1d6;
+  --color-warn-ink: #6d4b12;
+  --color-error: #fbe4df;
+  --color-error-ink: #8a2c1f;
+  --color-success: #def0e5;
+  --color-success-ink: #17513c;
+  --color-dot-ok: #1f9d6b;
+  --color-dot-warn: #d99a1e;
+  --color-dot-bad: #d0452f;
+
+  --font-display: var(--font-newsreader), "Iowan Old Style", Georgia, serif;
+  --font-body: var(--font-atkinson), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
   --space-3xs: 0.25rem;
   --space-2xs: 0.5rem;
@@ -34,59 +48,62 @@
   --space-md: 1.5rem;
   --space-lg: 2rem;
   --space-xl: 3rem;
-  --space-2xl: 4.75rem;
-  --space-3xl: 7.5rem;
+  --space-2xl: 4.5rem;
+  --space-3xl: 7rem;
 
-  --text-xs: 0.72rem;
+  --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
-  --text-lg: clamp(1.08rem, 1.8vw, 1.28rem);
-  --text-xl: clamp(1.45rem, 2.5vw, 2rem);
-  --text-2xl: clamp(2rem, 4.2vw, 3.4rem);
-  --text-display: clamp(3rem, 7.7vw, 7rem);
+  --text-lg: clamp(1.08rem, 1.6vw, 1.25rem);
+  --text-xl: clamp(1.4rem, 2.4vw, 1.85rem);
+  --text-2xl: clamp(1.9rem, 4vw, 3rem);
+  --text-display: clamp(2.6rem, 6.4vw, 5.6rem);
 
-  --radius-sm: 0.35rem;
-  --radius-md: 0.65rem;
-  --radius-lg: 1.15rem;
-  --radius-xl: 1.75rem;
+  --radius-sm: 0.4rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.1rem;
+  --radius-xl: 1.6rem;
+  --radius-pill: 999px;
+
+  --shadow-raised: 0 1px 2px rgba(16, 34, 31, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-recessed: inset 0 1px 2px rgba(16, 34, 31, 0.1);
+  --shadow-card: 0 1px 0 rgba(16, 34, 31, 0.04), 0 8px 24px -12px rgba(16, 34, 31, 0.18);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-short: 180ms;
-  --dur-medium: 420ms;
-  --rule-hairline: 1px solid var(--color-rule);
-  --max-width: 82rem;
+  --dur-short: 160ms;
+  --dur-medium: 380ms;
+  --max-width: 78rem;
 
   color: var(--color-ink);
   background: var(--color-paper);
   font-family: var(--font-body);
   font-size: var(--text-md);
-  line-height: 1.6;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Approved brand palettes override storefront chrome only. Semantic clinical
- * warning, error, and success colors above intentionally have no theme override.
+/* Approved brand palettes override the accent and lobby only. Clinical
+ * warning, error and success colours intentionally have no theme override.
  */
 .storefront[data-brand-theme='navy'] {
-  --color-ink: #17334a;
-  --color-ink-2: #3d566b;
-  --color-ink-3: #6d8090;
-  --color-rule: rgba(23, 51, 74, 0.16);
+  --color-ink: #121f2c;
   --color-accent: #24527a;
   --color-accent-2: #183b5b;
-  --color-accent-soft: #dbe7f0;
+  --color-accent-soft: #dde8f1;
   --color-focus: #1f5d8c;
-  --color-night: #10283c;
+  --color-lobby: #0f1d2b;
+  --color-lobby-2: #172a3d;
+  --color-lobby-ink-2: #9fb0c0;
 }
 
 .storefront[data-brand-theme='plum'] {
-  --color-ink: #3d2738;
-  --color-ink-2: #5e4858;
-  --color-ink-3: #806f7b;
-  --color-rule: rgba(61, 39, 56, 0.16);
+  --color-ink: #24161f;
   --color-accent: #6d3f65;
   --color-accent-2: #583150;
-  --color-accent-soft: #eadde7;
+  --color-accent-soft: #efe2ec;
   --color-focus: #754469;
-  --color-night: #2d1e2a;
+  --color-lobby: #24151f;
+  --color-lobby-2: #33202d;
+  --color-lobby-ink-2: #bba6b4;
+  --zone-b: #2f6f8f;
 }

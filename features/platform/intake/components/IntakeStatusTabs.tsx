@@ -1,15 +1,16 @@
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Segmented, type WardTone } from '@/features/platform/components/ward'
 
-const tabs = [
+const tabs: Array<{ id: string; label: string; tone?: WardTone }> = [
   { id: 'all', label: 'All' },
-  { id: 'not_sent', label: 'Access active' },
-  { id: 'sent', label: 'Legacy sent' },
-  { id: 'in_progress', label: 'Legacy in progress' },
-  { id: 'submitted', label: 'Submitted' },
-  { id: 'needs_review', label: 'Needs review' },
-  { id: 'reviewed', label: 'Reviewed' },
+  { id: 'not_sent', label: 'Access active', tone: 'idle' },
+  { id: 'sent', label: 'Legacy sent', tone: 'info' },
+  { id: 'in_progress', label: 'Legacy in progress', tone: 'info' },
+  { id: 'submitted', label: 'Submitted', tone: 'warn' },
+  { id: 'needs_review', label: 'Needs review', tone: 'warn' },
+  { id: 'reviewed', label: 'Reviewed', tone: 'ok' },
 ]
 
 export function IntakeStatusTabs({ statusCounts }: { statusCounts: Record<string, number> }) {
@@ -28,23 +29,12 @@ export function IntakeStatusTabs({ statusCounts }: { statusCounts: Record<string
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto border-b bg-background px-4 py-3 md:px-6">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          aria-pressed={activeStatus === tab.id}
-          onClick={() => setStatus(tab.id)}
-          className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${
-            activeStatus === tab.id
-              ? 'border-foreground bg-foreground text-background'
-              : 'border-border bg-background text-muted-foreground hover:border-zinc-400 hover:text-foreground'
-          }`}
-        >
-          {tab.label}
-          <span className="ml-1 opacity-70">{statusCounts[tab.id] || 0}</span>
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label="Intake status"
+      size="sm"
+      value={activeStatus}
+      onChange={setStatus}
+      options={tabs.map(tab => ({ value: tab.id, label: tab.label, tone: tab.tone, count: statusCounts[tab.id] || 0 }))}
+    />
   )
 }

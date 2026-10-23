@@ -1,10 +1,20 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
-import { Button } from '@/components/ui/button'
+import { useRef, useState, useTransition, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useDraftExitGuard } from '@/features/platform/lib/useDraftExitGuard'
-import { CalendarDays, CheckCircle2, ClipboardList, Mail, MapPin, Phone, UserRound } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import {
+  Code,
+  Notice,
+  Pill,
+  StatusDot,
+  StatusTag,
+  TitleLine,
+  Track,
+  toneForStatus,
+  type WardTone,
+} from '@/features/platform/components/ward'
 import {
   cancelAppointment,
   checkInAppointment,
@@ -25,14 +35,29 @@ const statusLabels: Record<string, string> = {
   no_show: 'No show',
 }
 
-const statusClass: Record<string, string> = {
-  requested: 'border-amber-200 bg-amber-50 text-amber-800',
-  confirmed: 'border-blue-200 bg-blue-50 text-blue-800',
-  checked_in: 'border-cyan-200 bg-cyan-50 text-cyan-800',
-  in_visit: 'border-violet-200 bg-violet-50 text-violet-800',
-  completed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  cancelled: 'border-zinc-200 bg-zinc-50 text-zinc-600',
-  no_show: 'border-rose-200 bg-rose-50 text-rose-800',
+const statusTone: Record<string, WardTone> = {
+  requested: 'warn',
+  confirmed: 'info',
+  checked_in: 'info',
+  in_visit: 'accent',
+  completed: 'ok',
+  cancelled: 'idle',
+  no_show: 'bad',
+}
+
+function EvidenceDisclosure({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <details className="group min-w-0">
+      <summary className="w-fit cursor-pointer list-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <Track>
+          <Pill asChild size="sm" variant="plain">
+            <span><ChevronRight className="transition-transform group-open:rotate-90" aria-hidden />{label}</span>
+          </Pill>
+        </Track>
+      </summary>
+      <div className="mt-3">{children}</div>
+    </details>
+  )
 }
 
 function formatDateTime(value?: string | null, timeZone?: string | null) {
@@ -97,103 +122,108 @@ export function AppointmentDetailsCard({ appointment }: { appointment: Appointme
   }
   const communicationTasks = appointment.messages?.filter((message) => ['manual_required', 'queued', 'failed'].includes(message.status || '')).length || 0
 
+  const tone = statusTone[appointment.status] || toneForStatus(appointment.status)
+  const label = statusLabels[appointment.status] || appointment.status
+
   return (
-    <article className="border-b bg-background p-4 transition hover:bg-muted/30 md:p-6">
+    <article className="min-w-0 px-4 py-4 transition-colors hover:bg-muted/30 md:px-5">
       {exitGuard}
       <Dialog open={cancelOpen} onOpenChange={open => { if (!isPending) setCancelOpen(open) }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Cancel {appointment.appointmentNumber}?</DialogTitle><DialogDescription>For {appointment.patient?.displayName || 'this patient'}, {formatDateTime(appointment.startsAt, appointment.facility?.timeZone)}. Enter the actual reason; no change is recorded until submission.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Cancel {appointment.appointmentNumber}?</DialogTitle><DialogDescription>{appointment.patient?.displayName || 'This patient'} · {formatDateTime(appointment.startsAt, appointment.facility?.timeZone)}</DialogDescription></DialogHeader>
           <form onSubmit={event => { event.preventDefault(); if (!reason.trim() || unresolved) return; const submittedReason = reason; const id = appointment.id; const version = appointment.transitionVersion; submitOriginal(key => cancelAppointment(id, version, key, submittedReason)) }} className="space-y-4">
-            <label htmlFor={`cancel-${appointment.id}`} className="block text-sm">Operator cancellation reason</label>
-            <textarea id={`cancel-${appointment.id}`} required maxLength={1000} value={reason} disabled={isPending || unresolved} onChange={event => setReason(event.target.value)} className="w-full rounded border p-3" />
-            <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={isPending || unresolved} onClick={() => { setCancelOpen(false); setReason('') }}>Keep appointment</Button><Button type="submit" disabled={isPending || unresolved || !reason.trim()}>Record cancellation</Button></div>
-            {unresolved && <Button type="button" disabled={isPending} onClick={() => submitOriginal(original.current!.run)}>Retry original cancellation command</Button>}
-            {error && <p role="alert">{error}</p>}
+            <div className="grid gap-1.5">
+              <label htmlFor={`cancel-${appointment.id}`} className="text-xs font-medium text-muted-foreground">Cancellation reason</label>
+              <textarea id={`cancel-${appointment.id}`} required maxLength={1000} rows={4} value={reason} disabled={isPending || unresolved} onChange={event => setReason(event.target.value)} className="w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-sm shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" />
+            </div>
+            <Track>
+              <Pill type="button" disabled={isPending || unresolved} onClick={() => { setCancelOpen(false); setReason('') }}>Keep appointment</Pill>
+              <Pill type="submit" variant="danger" disabled={isPending || unresolved || !reason.trim()}>Record cancellation</Pill>
+              {unresolved && <Pill type="button" variant="primary" disabled={isPending} onClick={() => submitOriginal(original.current!.run)}>Retry cancellation</Pill>}
+            </Track>
+            {error && <Notice tone="bad" role="alert">{error}</Notice>}
           </form>
         </DialogContent>
       </Dialog>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass[appointment.status] || 'border-border bg-muted text-muted-foreground'}`}>
-              {statusLabels[appointment.status] || appointment.status}
-            </span>
-            <span className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground">{appointment.appointmentNumber}</span>
-            {appointment.source && <span className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground">{appointment.source.split('_').join(' ')}</span>}
-          </div>
 
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">
-              {appointment.patient?.displayName || 'Unknown patient'} · {appointment.appointmentType?.name || 'Appointment'}
-            </h2>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-4 w-4" />{formatDateTime(appointment.startsAt, appointment.facility?.timeZone)}</span>
-              <span className="inline-flex items-center gap-1.5"><UserRound className="h-4 w-4" />{appointment.provider?.displayName || 'No provider'}</span>
-              {appointment.locationName && <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4" />{appointment.locationName}</span>}
-            </div>
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <TitleLine as="h2" tone={tone} status={label} className="text-sm font-semibold text-foreground">
+            {appointment.patient?.displayName || 'Unknown patient'}
+            <span className="font-normal text-muted-foreground"> · {appointment.appointmentType?.name || 'Appointment'}</span>
+          </TitleLine>
+
+          <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 pl-4 text-xs text-muted-foreground">
+            <span className="font-medium tabular-nums text-foreground">{formatDateTime(appointment.startsAt, appointment.facility?.timeZone)}</span>
+            <StatusTag status={appointment.status} tone={tone} className="font-normal" />
+            <span>{appointment.provider?.displayName || 'No provider'}</span>
+            {appointment.locationName && <span>{appointment.locationName}</span>}
+            <Code>{appointment.appointmentNumber}</Code>
+            {appointment.source && <span>{appointment.source.split('_').join(' ')}</span>}
           </div>
 
           {appointment.reasonForVisit && (
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{appointment.reasonForVisit}</p>
+            <p className="max-w-3xl pl-4 text-sm leading-6 text-foreground/80">{appointment.reasonForVisit}</p>
           )}
 
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 ${intakeReady ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-              <ClipboardList className="h-3 w-3" /> Intake: {intakeSummary}
+          <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 pl-4 text-xs">
+            <span className="inline-flex items-baseline gap-1.5 text-foreground">
+              <StatusDot tone={intakeReady ? 'ok' : 'warn'} className="size-1.5 -translate-y-[0.1em] shadow-none" />
+              Intake: {intakeSummary}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-muted-foreground">
-              <Mail className="h-3 w-3" /> {communicationTasks} follow-up task{communicationTasks === 1 ? '' : 's'}
+            <span className="inline-flex items-baseline gap-1.5 text-muted-foreground">
+              <StatusDot tone={communicationTasks ? 'warn' : 'idle'} className="size-1.5 -translate-y-[0.1em] shadow-none" />
+              {communicationTasks} follow-up task{communicationTasks === 1 ? '' : 's'}
             </span>
-            {appointment.patient?.phone && (
-              <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-muted-foreground">
-                <Phone className="h-3 w-3" /> {appointment.patient.phone}
-              </span>
-            )}
+            {appointment.patient?.phone && <span className="font-mono tabular-nums text-muted-foreground">{appointment.patient.phone}</span>}
             {Number(appointment.intakeFormsCount || 0) > (appointment.intakeForms?.length || 0) && (
-              <span className="rounded-full border px-2.5 py-1 text-amber-800">
+              <span className="text-amber-700 dark:text-amber-300">
                 Showing {appointment.intakeForms?.length || 0} of {appointment.intakeFormsCount} intake records
               </span>
             )}
             {Number(appointment.messagesCount || 0) > (appointment.messages?.length || 0) && (
-              <span className="rounded-full border px-2.5 py-1 text-amber-800">
-                Showing {appointment.messages?.length || 0} of {appointment.messagesCount} communication records
+              <span className="text-amber-700 dark:text-amber-300">
+                Showing {appointment.messages?.length || 0} of {appointment.messagesCount} messages
               </span>
             )}
           </div>
 
-          <details>
-            <summary className="cursor-pointer rounded-sm text-sm font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Expand intake and communication evidence</summary>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <section className="rounded-lg border bg-muted/20 p-3"><h3 className="text-sm font-medium">Intake evidence</h3>{appointment.intakeForms?.length ? <ul className="mt-2 space-y-1 text-sm text-muted-foreground">{appointment.intakeForms.map(form => <li key={form.id}>{form.title || 'Intake'} · {form.status?.replaceAll('_', ' ') || 'unknown'}</li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No accessible intake evidence.</p>}</section>
-              <section className="rounded-lg border bg-muted/20 p-3"><h3 className="text-sm font-medium">Communication evidence</h3>{appointment.messages?.length ? <ul className="mt-2 space-y-1 text-sm text-muted-foreground">{appointment.messages.map(message => <li key={message.id}>{message.channel || 'channel unavailable'} · {message.status?.replaceAll('_', ' ') || 'unknown'} · {message.subject || 'Patient follow-up'}</li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No accessible communication evidence.</p>}</section>
-            </div>
-          </details>
+          <div className="pl-4">
+            <EvidenceDisclosure label="Intake and messages">
+              <div className="grid gap-3 md:grid-cols-2">
+                <section className="min-w-0 rounded-lg border bg-muted/30 p-3">
+                  <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Intake</h3>
+                  {appointment.intakeForms?.length ? <ul className="mt-2 space-y-1.5 text-sm">{appointment.intakeForms.map(form => <li key={form.id} className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3"><span className="min-w-0 break-words">{form.title || 'Intake'}</span><StatusTag status={form.status || 'unknown'} /></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No intake forms.</p>}
+                </section>
+                <section className="min-w-0 rounded-lg border bg-muted/30 p-3">
+                  <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Messages</h3>
+                  {appointment.messages?.length ? <ul className="mt-2 space-y-1.5 text-sm">{appointment.messages.map(message => <li key={message.id} className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3"><span className="min-w-0 break-words">{message.subject || 'Patient follow-up'} <span className="text-muted-foreground">· {message.channel || 'channel unavailable'}</span></span><StatusTag status={message.status || 'unknown'} /></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No messages.</p>}
+                </section>
+              </div>
+            </EvidenceDisclosure>
+          </div>
         </div>
 
-        <div className="flex flex-col items-start gap-2 lg:items-end">
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-          {!unresolved && actions.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              disabled={isPending}
-              aria-busy={isPending}
-              onClick={() => submitOriginal(action.action)}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                action.primary
-                  ? 'border-foreground bg-foreground text-background hover:bg-foreground/90'
-                  : 'border-border bg-background text-muted-foreground hover:border-zinc-400 hover:text-foreground'
-              }`}
-            >
-              {action.primary && <CheckCircle2 className="mr-1 inline h-3 w-3" />}
-              {action.label}
-            </button>
-          ))}
-          {!unresolved && ['requested', 'confirmed'].includes(appointment.status) && <Button variant="outline" disabled={isPending} onClick={() => setCancelOpen(true)}>Cancel appointment…</Button>}
-          {unresolved && <Button variant="outline" disabled={isPending} onClick={() => submitOriginal(original.current!.run)}>Retry original appointment command</Button>}
-          </div>
-          {error && <p role="alert" className="max-w-xs text-xs text-destructive">{error}</p>}
-          {!actions.length && <p className="max-w-xs text-xs text-muted-foreground">No in-workspace transition is available for this status.</p>}
+        <div className="flex min-w-0 flex-col items-start gap-2 pl-4 lg:items-end lg:pl-0">
+          {(actions.length > 0 || unresolved || ['requested', 'confirmed'].includes(appointment.status)) && (
+            <Track>
+              {!unresolved && actions.map((action) => (
+                <Pill
+                  key={action.label}
+                  variant={action.primary ? 'primary' : 'raised'}
+                  disabled={isPending}
+                  aria-busy={isPending}
+                  onClick={() => submitOriginal(action.action)}
+                >
+                  {action.label}
+                </Pill>
+              ))}
+              {!unresolved && ['requested', 'confirmed'].includes(appointment.status) && <Pill variant="plain" disabled={isPending} onClick={() => setCancelOpen(true)}>Cancel…</Pill>}
+              {unresolved && <Pill variant="primary" disabled={isPending} onClick={() => submitOriginal(original.current!.run)}>Retry last action</Pill>}
+            </Track>
+          )}
+          {error && <Notice tone="bad" role="alert" className="max-w-xs text-xs">{error}</Notice>}
+          {!actions.length && <p className="text-xs text-muted-foreground">No action for this status</p>}
         </div>
       </div>
     </article>

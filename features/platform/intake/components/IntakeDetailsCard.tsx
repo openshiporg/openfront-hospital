@@ -2,17 +2,19 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useDraftExitGuard } from '@/features/platform/lib/useDraftExitGuard'
-import { CalendarDays, ClipboardCheck, FileText, Mail, Phone, UserRound } from 'lucide-react'
+import { Code, Notice, Pill, StatusDot, TitleLine, Track, type WardTone } from '@/features/platform/components/ward'
 import { markIntakeNeedsReview, markIntakeReviewed, reopenIntake, type IntakeQueueItem } from '../actions/intake'
 
-const statusClass: Record<string, string> = {
-  not_sent: 'border-zinc-200 bg-zinc-50 text-zinc-700',
-  sent: 'border-blue-200 bg-blue-50 text-blue-800',
-  in_progress: 'border-cyan-200 bg-cyan-50 text-cyan-800',
-  submitted: 'border-amber-200 bg-amber-50 text-amber-800',
-  needs_review: 'border-violet-200 bg-violet-50 text-violet-800',
-  reviewed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+const statusTone: Record<string, WardTone> = {
+  not_sent: 'idle',
+  sent: 'info',
+  in_progress: 'info',
+  submitted: 'warn',
+  needs_review: 'warn',
+  reviewed: 'ok',
 }
+
+const sectionLabel = 'font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground'
 
 function formatDateTime(value?: string | null, timeZone?: string | null) {
   if (!value) return 'Not scheduled'
@@ -58,85 +60,91 @@ export function IntakeDetailsCard({ intake }: { intake: IntakeQueueItem }) {
   const medicationCount = Array.isArray(responses.medications) ? responses.medications.length : 0
   const allergyCount = Array.isArray(responses.allergies) ? responses.allergies.length : 0
 
-  return (
-    <article className="border-b bg-background p-4 transition hover:bg-muted/30 md:p-6">
-      {exitGuard}
-      <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${statusClass[intake.status] || 'border-border bg-muted text-muted-foreground'}`}>
-              {prettyStatus(intake.status)}
-            </span>
-            <span className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground">{intake.templateKey || 'intake'}</span>
-          </div>
+  const tone = statusTone[intake.status] || 'idle'
+  const label = prettyStatus(intake.status)
 
+  return (
+    <article className="min-w-0 px-4 py-4 transition-colors hover:bg-muted/30 md:px-5">
+      {exitGuard}
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0 space-y-3">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">
-              {intake.patient?.displayName || 'Unknown patient'} · {intake.title}
-            </h2>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-4 w-4" />{formatDateTime(intake.appointment?.startsAt, intake.appointment?.facility?.timeZone)}</span>
-              <span className="inline-flex items-center gap-1.5"><UserRound className="h-4 w-4" />{intake.appointment?.provider?.displayName || 'No provider'}</span>
-              <span className="inline-flex items-center gap-1.5"><FileText className="h-4 w-4" />{intake.appointment?.appointmentType?.name || 'Visit'}</span>
+            <TitleLine as="h2" tone={tone} status={label} className="text-sm font-semibold text-foreground">
+              {intake.patient?.displayName || 'Unknown patient'}
+              <span className="font-normal text-muted-foreground"> · {intake.title}</span>
+            </TitleLine>
+            <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-1 pl-4 text-xs text-muted-foreground">
+              <span className="font-medium capitalize text-foreground">{label}</span>
+              <span className="tabular-nums">{formatDateTime(intake.appointment?.startsAt, intake.appointment?.facility?.timeZone)}</span>
+              <span>{intake.appointment?.provider?.displayName || 'No provider'}</span>
+              <span>{intake.appointment?.appointmentType?.name || 'Visit'}</span>
+              <Code>{intake.templateKey || 'intake'}</Code>
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <section className="rounded-xl border bg-muted/20 p-4">
-              <h3 className="text-sm font-medium">Visit reason</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{responses.reasonForVisit || intake.appointment?.reasonForVisit || 'No reason provided.'}</p>
-            </section>
-            <section className="rounded-xl border bg-muted/20 p-4">
-              <h3 className="text-sm font-medium">Symptoms / updates</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{responses.symptoms || 'No symptoms or updates provided.'}</p>
-            </section>
-          </div>
-
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-muted-foreground"><ClipboardCheck className="h-3 w-3" /> {medicationCount} medication{medicationCount === 1 ? '' : 's'}</span>
-            <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-muted-foreground"><ClipboardCheck className="h-3 w-3" /> {allergyCount} allerg{allergyCount === 1 ? 'y' : 'ies'}</span>
-            {intake.patient?.phone && <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-muted-foreground"><Phone className="h-3 w-3" /> {intake.patient.phone}</span>}
-            {intake.patient?.email && <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-muted-foreground"><Mail className="h-3 w-3" /> {intake.patient.email}</span>}
-          </div>
-
-          <div className="rounded-xl border bg-muted/20 p-4 text-sm">
-            <h3 className="font-medium">Insurance</h3>
-            <p className="mt-2 text-muted-foreground">{insurance.payer || 'No payer provided'} {insurance.memberId ? `· ${insurance.memberId}` : ''}</p>
-          </div>
+          <dl className="grid min-w-0 gap-x-6 gap-y-3 pl-4 text-sm sm:grid-cols-2">
+            <div className="min-w-0">
+              <dt className={sectionLabel}>Visit reason</dt>
+              <dd className="mt-1 break-words leading-6 text-foreground/90">{responses.reasonForVisit || intake.appointment?.reasonForVisit || 'No reason provided.'}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className={sectionLabel}>Symptoms / updates</dt>
+              <dd className="mt-1 break-words leading-6 text-foreground/90">{responses.symptoms || 'No symptoms or updates provided.'}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className={sectionLabel}>Insurance</dt>
+              <dd className="mt-1 break-words text-foreground/90">{insurance.payer || 'No payer provided'} {insurance.memberId ? <Code>· {insurance.memberId}</Code> : ''}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className={sectionLabel}>History &amp; contact</dt>
+              <dd className="mt-1 flex min-w-0 flex-wrap gap-x-3 text-foreground/90">
+                <span className="tabular-nums">{medicationCount} medication{medicationCount === 1 ? '' : 's'}</span>
+                <span className="tabular-nums">{allergyCount} allerg{allergyCount === 1 ? 'y' : 'ies'}</span>
+                {intake.patient?.phone && <span className="font-mono text-[13px] tabular-nums">{intake.patient.phone}</span>}
+                {intake.patient?.email && <span className="break-all">{intake.patient.email}</span>}
+              </dd>
+            </div>
+          </dl>
         </div>
 
-        <aside className="space-y-3 rounded-xl border bg-card p-4">
-          <h3 className="text-sm font-medium">Review workflow</h3>
-          <label className="text-xs font-medium text-muted-foreground" htmlFor={`intake-review-notes-${intake.id}`}>Internal review notes</label>
+        <aside className="min-w-0 space-y-2.5 rounded-xl border bg-muted/30 p-3">
+          <label className={sectionLabel} htmlFor={`intake-review-notes-${intake.id}`}>Review notes</label>
           <textarea
             id={`intake-review-notes-${intake.id}`}
             readOnly={intake.status === 'reviewed' || locked || isPending}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Internal review notes"
-            rows={6}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            placeholder="Internal notes"
+            rows={4}
+            className="w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-sm shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] outline-none focus-visible:ring-2 focus-visible:ring-ring read-only:bg-muted/40"
           />
-          <div className="flex flex-wrap gap-2">
-            {locked && <button disabled={isPending} onClick={() => runTransition(original.current!.action)} className="rounded-full border px-3 py-2 text-xs font-semibold">Retry original review command</button>}
-            {!locked && intake.status === 'submitted' && (
-              <button disabled={isPending} onClick={() => runTransition((key) => markIntakeNeedsReview(intake.id, intake.transitionVersion, key))} className="rounded-full border px-3 py-2 text-xs font-semibold hover:border-zinc-400 disabled:opacity-60">
-                Needs review
-              </button>
-            )}
-            {!locked && (intake.status === 'submitted' || intake.status === 'needs_review') && (
-              <button disabled={isPending} onClick={() => runTransition((key) => markIntakeReviewed(intake.id, intake.transitionVersion, notes, key), notes)} className="rounded-full bg-foreground px-3 py-2 text-xs font-semibold text-background disabled:opacity-60">
-                Mark reviewed
-              </button>
-            )}
-            {!locked && intake.status === 'reviewed' && (
-              <button disabled={isPending} onClick={() => runTransition((key) => reopenIntake(intake.id, intake.transitionVersion, key))} className="rounded-full border px-3 py-2 text-xs font-semibold hover:border-zinc-400 disabled:opacity-60">
-                Reopen review
-              </button>
-            )}
-          </div>
-          {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
-          {intake.reviewedAt && <p className="text-xs text-muted-foreground">Reviewed {formatDateTime(intake.reviewedAt, intake.appointment?.facility?.timeZone)}</p>}
+          {(locked || ['submitted', 'needs_review', 'reviewed'].includes(intake.status)) && (
+            <Track>
+              {locked && <Pill variant="primary" disabled={isPending} onClick={() => runTransition(original.current!.action)}>Retry last action</Pill>}
+              {!locked && (intake.status === 'submitted' || intake.status === 'needs_review') && (
+                <Pill variant="primary" disabled={isPending} onClick={() => runTransition((key) => markIntakeReviewed(intake.id, intake.transitionVersion, notes, key), notes)}>
+                  Mark reviewed
+                </Pill>
+              )}
+              {!locked && intake.status === 'submitted' && (
+                <Pill disabled={isPending} onClick={() => runTransition((key) => markIntakeNeedsReview(intake.id, intake.transitionVersion, key))}>
+                  Needs review
+                </Pill>
+              )}
+              {!locked && intake.status === 'reviewed' && (
+                <Pill disabled={isPending} onClick={() => runTransition((key) => reopenIntake(intake.id, intake.transitionVersion, key))}>
+                  Reopen review
+                </Pill>
+              )}
+            </Track>
+          )}
+          {error && <Notice tone="bad" role="alert" className="text-xs">{error}</Notice>}
+          {intake.reviewedAt && (
+            <p className="flex items-baseline gap-1.5 text-xs text-muted-foreground">
+              <StatusDot tone="ok" className="size-1.5 -translate-y-[0.1em] shadow-none" />
+              Reviewed {formatDateTime(intake.reviewedAt, intake.appointment?.facility?.timeZone)}
+            </p>
+          )}
         </aside>
       </div>
     </article>

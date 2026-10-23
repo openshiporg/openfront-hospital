@@ -1,37 +1,40 @@
 import type { LucideIcon } from 'lucide-react'
+import { TitleLine, type WardTone } from '@/features/platform/components/ward'
+import { cn } from '@/lib/utils'
 
+const TONE: Record<'default' | 'good' | 'warning' | 'danger', WardTone | undefined> = {
+  default: undefined,
+  good: 'ok',
+  warning: 'warn',
+  danger: 'bad',
+}
+
+/** A census-board figure. Sits inside a ReadoutStrip (or alone, with its own border). */
 export function MetricCard({
   title,
   value,
   description,
   icon: Icon,
   tone = 'default',
+  className,
 }: {
   title: string
   value: string | number
   description?: string
   icon: LucideIcon
   tone?: 'default' | 'good' | 'warning' | 'danger'
+  className?: string
 }) {
-  const toneClass = {
-    default: 'text-slate-700 bg-slate-50 border-slate-200',
-    good: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    warning: 'text-amber-700 bg-amber-50 border-amber-200',
-    danger: 'text-rose-700 bg-rose-50 border-rose-200',
-  }[tone]
-
   return (
-    <section className="rounded-xl border bg-card p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
-        </div>
-        <div className={`rounded-xl border p-3 ${toneClass}`}>
-          <Icon className="h-5 w-5" />
-        </div>
+    <section className={cn('min-w-0 px-4 py-3 md:px-5 md:py-4', className)}>
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <TitleLine as="h3" tone={TONE[tone]} className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          {title}
+        </TitleLine>
+        <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground/60" />
       </div>
-      {description && <p className="mt-3 text-sm text-muted-foreground">{description}</p>}
+      <p className="mt-1.5 truncate text-2xl font-semibold tabular-nums tracking-tight text-foreground">{value}</p>
+      {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
     </section>
   )
 }
