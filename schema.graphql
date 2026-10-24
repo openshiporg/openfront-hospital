@@ -5061,6 +5061,7 @@ type Mutation {
   deleteDepartments(where: [DepartmentWhereUniqueInput!]!): [Department]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
+  createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
   reviewEpisodePolicy(data: EpisodePolicyReviewInput!): JSON!
   bootstrapHospital(secret: String!, data: HospitalBootstrapInput!): HospitalBootstrapResult!
   sendUserPasswordResetLink(email: String!): Boolean!
@@ -5145,6 +5146,12 @@ type UserAuthenticationWithPasswordSuccess {
 
 type UserAuthenticationWithPasswordFailure {
   message: String!
+}
+
+input CreateInitialUserInput {
+  name: String
+  email: String
+  password: String
 }
 
 type Query {

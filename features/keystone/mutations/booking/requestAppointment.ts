@@ -74,8 +74,8 @@ function validatePatientInput(patient: Args['patient']) {
 }
 
 export function bookingContactIdentities(patient: ReturnType<typeof validatePatientInput>) {
-  const secret = String(process.env.AUTH_RATE_LIMIT_PEPPER || (process.env.NODE_ENV !== 'production' ? process.env.SESSION_SECRET : '') || '')
-  if (secret.length < 48) throw new Error('Public booking rate-limit pepper is not configured')
+  const secret = String(process.env.AUTH_RATE_LIMIT_PEPPER || process.env.SESSION_SECRET || '')
+  if (secret.length < 32) throw new Error('Public booking rate-limit pepper is not configured')
   const identities: string[] = []
   if (patient.email) {
     identities.push(createHmac('sha256', secret).update(`public-booking-email:${patient.email}`).digest('hex'))

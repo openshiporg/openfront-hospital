@@ -22,8 +22,38 @@ const { withAuth } = createAuth({
   listKey: "User",
   identityField: "email",
   secretField: "password",
-  // Public Keystone bootstrap and password-reset mutations are deliberately not
-  // enabled. Repository-owned, rate-limited routes provide both workflows.
+  // As in E-commerce, /dashboard/init creates the first user (only while no users exist)
+  // with a role that has full permissions.
+  initFirstItem: {
+    fields: ["name", "email", "password"],
+    itemData: {
+      onboardingStatus: "not_started",
+      role: {
+        create: {
+          name: "Global Clinical Administrator",
+          canManageAppointments: true,
+          canManageScheduling: true,
+          canManagePatients: true,
+          canManageProviders: true,
+          canManageIntake: true,
+          canManageCommunications: true,
+          canManageBilling: true,
+          canManageInventory: true,
+          canManageIntegrations: true,
+          canManageDataPortability: true,
+          canManageRetention: true,
+          canViewReports: true,
+          canManageOnboarding: true,
+          canSeeOtherPeople: true,
+          canEditOtherPeople: true,
+          canManagePeople: true,
+          canManageRoles: true,
+          canAccessDashboard: true,
+          canAccessAllClinicalData: true,
+        },
+      },
+    },
+  },
   sessionData: `
     name
     email

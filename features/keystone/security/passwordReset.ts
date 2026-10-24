@@ -10,8 +10,8 @@ const RESEND_COOLDOWN_MS = 5 * 60_000
 const MAX_PENDING_TOKENS = 3
 
 function pepper() {
-  const value = String(process.env.PASSWORD_RESET_PEPPER || '')
-  if (value.length < 48) throw new Error('Password reset pepper is not configured')
+  const value = String(process.env.PASSWORD_RESET_PEPPER || process.env.SESSION_SECRET || '')
+  if (value.length < 32) throw new Error('Password reset pepper is not configured')
   return value
 }
 

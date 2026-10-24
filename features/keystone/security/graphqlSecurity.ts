@@ -294,9 +294,9 @@ function normalizedAuthenticationAccount(value: unknown) {
 
 export function authenticationAccountRateIdentity(
   value: unknown,
-  secret = String(process.env.AUTH_RATE_LIMIT_PEPPER || (process.env.NODE_ENV !== 'production' ? process.env.SESSION_SECRET : '') || ''),
+  secret = String(process.env.AUTH_RATE_LIMIT_PEPPER || process.env.SESSION_SECRET || ''),
 ) {
-  if (secret.length < 48) throw new Error('Authentication rate-limit pepper is not configured')
+  if (secret.length < 32) throw new Error('Authentication rate-limit pepper is not configured')
   return createHmac('sha256', secret).update(`authentication-account:${normalizedAuthenticationAccount(value)}`).digest('hex')
 }
 

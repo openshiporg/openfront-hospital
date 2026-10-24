@@ -1,8 +1,8 @@
 import { readBoundedBody } from './boundedBody'
-import { dispatchExternalOutbox } from '@/features/keystone/integrations/outboxWorker'
-import { keystoneContext } from '@/features/keystone/context'
-import { dispatchInternalOutbox } from '@/features/keystone/mutations/clinical/dispatchClinicalOutbox'
-import { safeEqualText } from '@/features/keystone/integrations/crypto'
+import { dispatchExternalOutbox } from './outboxWorker'
+import { keystoneContext } from '../context'
+import { dispatchInternalOutbox } from '../mutations/clinical/dispatchClinicalOutbox'
+import { safeEqualText } from './crypto'
 
 export async function dispatchOutboxWorker(request: Request) {
   const configured = String(process.env.OUTBOX_WORKER_SECRET || '')

@@ -54,11 +54,9 @@ test('an owner-restored operator reaches the dashboard only with dashboard autho
   assert.equal(denied?.headers.get('location'), 'https://hospital.local/dashboard/no-access')
 })
 
-test('owner-approved initialization stays on the thin action to custom GraphQL path', async () => {
+test('initialization uses the shared init page and Keystone initFirstItem, as in E-commerce', async () => {
   const route = await readFile('app/dashboard/init/page.tsx', 'utf8')
-  const action = await readFile('features/platform/bootstrap/actions/bootstrap.ts', 'utf8')
-  assert.match(route, /BootstrapPage/)
-  assert.match(action, /keystoneClient/)
-  assert.match(action, /bootstrapHospital/)
-  assert.doesNotMatch(action, /prisma|sudo\(|\$queryRaw/i)
+  const keystone = await readFile('features/keystone/index.ts', 'utf8')
+  assert.match(route, /InitPage/)
+  assert.match(keystone, /initFirstItem/)
 })

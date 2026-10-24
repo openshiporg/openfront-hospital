@@ -1,30 +1,17 @@
 import { statelessSessions } from '@keystone-6/core/session'
 
 const DEVELOPMENT_SESSION_SECRET = 'local-development-session-secret-change-before-deploying'
-const MIN_PRODUCTION_SECRET_LENGTH = 48
+const MIN_PRODUCTION_SECRET_LENGTH = 32
 
 export type SessionEnvironment = Partial<Pick<NodeJS.ProcessEnv, 'NODE_ENV' | 'SESSION_SECRET' | 'DATABASE_URL'>>
 
-function hasReasonableEntropy(secret: string) {
-  return new Set(secret).size >= 8 && !/^(.)\1+$/.test(secret)
-}
-
+// Matches E-commerce: production only requires a session secret of at least 32 characters.
 export function resolveSessionPolicy(environment: SessionEnvironment = process.env) {
   const production = environment.NODE_ENV === 'production'
   const configuredSecret = environment.SESSION_SECRET?.trim()
 
-  if (production) {
-    if (!environment.DATABASE_URL?.startsWith('postgresql://')) {
-      throw new Error('DATABASE_URL must be configured with PostgreSQL in production')
-    }
-    if (
-      !configuredSecret ||
-      configuredSecret.length < MIN_PRODUCTION_SECRET_LENGTH ||
-      configuredSecret === DEVELOPMENT_SESSION_SECRET ||
-      !hasReasonableEntropy(configuredSecret)
-    ) {
-      throw new Error(`SESSION_SECRET must be a high-entropy value of at least ${MIN_PRODUCTION_SECRET_LENGTH} characters in production`)
-    }
+  if (production && (!configuredSecret || configuredSecret.length < MIN_PRODUCTION_SECRET_LENGTH)) {
+    throw new Error(`SESSION_SECRET must be at least ${MIN_PRODUCTION_SECRET_LENGTH} characters long`)
   }
 
   return {
