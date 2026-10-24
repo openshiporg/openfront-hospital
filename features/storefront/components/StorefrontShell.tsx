@@ -42,7 +42,7 @@ function Wordmark({ profile }: { profile: HospitalBranding }) {
   )
 }
 
-export function StorefrontNav({ profile, current }: { profile: HospitalBranding; current?: 'care' | 'providers' | 'book' }) {
+export function StorefrontNav({ profile, current }: { profile: HospitalBranding; current?: 'care' | 'providers' | 'book' | 'locations' }) {
   const place = [profile.addressLine1, profile.city, profile.region].filter(Boolean).join(', ') || profile.serviceArea
   return (
     <>
@@ -58,7 +58,7 @@ export function StorefrontNav({ profile, current }: { profile: HospitalBranding;
           <nav aria-label="Patient navigation" className="sf-nav__links sf-track">
             <Link className="sf-pill" aria-current={current === 'care' ? 'page' : undefined} href="/care">Care services</Link>
             <Link className="sf-pill" aria-current={current === 'providers' ? 'page' : undefined} href="/providers">Care team</Link>
-            <Link className="sf-pill" href="/#visit">Visit us</Link>
+            <Link className="sf-pill" aria-current={current === 'locations' ? 'page' : undefined} href="/locations">Locations</Link>
           </nav>
           <div className="sf-nav__actions sf-track">
             {profile.supportPhoneHref && <a className="sf-pill" href={profile.supportPhoneHref}>Call</a>}
@@ -70,7 +70,7 @@ export function StorefrontNav({ profile, current }: { profile: HospitalBranding;
               <Link href="/care">Care services <span aria-hidden="true">→</span></Link>
               <Link href="/providers">Care team <span aria-hidden="true">→</span></Link>
               <Link href="/book">Request a visit <span aria-hidden="true">→</span></Link>
-              <Link href="/#visit">Visit us <span aria-hidden="true">→</span></Link>
+              <Link href="/locations">Locations <span aria-hidden="true">→</span></Link>
               {profile.supportPhoneHref && <a href={profile.supportPhoneHref}>Call {profile.supportPhone} <span aria-hidden="true">→</span></a>}
             </nav>
           </details>
@@ -96,6 +96,7 @@ export function StorefrontFooter({ profile }: { profile: HospitalBranding }) {
         <nav className="sf-footer__links" aria-label="Footer navigation">
           <Link href="/care">Care services</Link>
           <Link href="/providers">Care team</Link>
+          <Link href="/locations">Locations</Link>
           <Link href="/book">Request a visit</Link>
           <Link href="/intake">Pre-visit intake</Link>
         </nav>
@@ -135,7 +136,7 @@ export function StorefrontShell({
 }: {
   children: ReactNode
   profile?: HospitalBranding
-  current?: 'care' | 'providers' | 'book'
+  current?: 'care' | 'providers' | 'book' | 'locations'
   bookingBar?: boolean
 }) {
   return (

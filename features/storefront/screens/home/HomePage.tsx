@@ -119,7 +119,7 @@ export async function HomePage() {
                       : <div className="sf-person__initials" aria-hidden="true">{(provider.firstName?.[0] || '') + (provider.lastName?.[0] || '')}</div>}
                   </div>
                   <div className="sf-person__body">
-                    <h3 className="sf-person__name sf-titleline"><Dot tone="ok" /><span><span className="sf-sr">Accepting requests: </span>{provider.displayName}</span></h3>
+                    <h3 className="sf-person__name sf-titleline"><Dot tone="ok" /><span><span className="sf-sr">Accepting requests: </span><Link href={`/providers/${provider.id}`}>{provider.displayName}</Link></span></h3>
                     <p className="sf-person__meta">
                       {provider.specialty && <span>{provider.specialty}</span>}
                       {provider.credentials && <span>{provider.credentials}</span>}

@@ -212,7 +212,7 @@ export async function PatientListPage(props: { searchParams: Promise<Record<stri
                   key={patient.id}
                   tone={patientTone[patient.status || ''] || 'idle'}
                   status={patient.status || 'unknown'}
-                  title={<Link href={`/dashboard/patients/${patient.id}`} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{patient.displayName || 'Restricted patient'}</Link>}
+                  title={<Link href={`/dashboard/platform/patients/${patient.id}`} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{patient.displayName || 'Restricted patient'}</Link>}
                   meta={<>
                     <Code className="text-foreground">{identifiers || 'No active identifier'}</Code>
                     {Number(patient.identifiersCount || 0) > (patient.identifiers?.length || 0) && <span className="text-amber-700 dark:text-amber-300">More identifiers hidden</span>}

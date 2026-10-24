@@ -36,7 +36,7 @@ export async function ProvidersPage() {
                   <div className="sf-person__body">
                     <h2 className="sf-person__name sf-titleline">
                       <Dot tone={accepting ? 'ok' : undefined} />
-                      <span><span className="sf-sr">{accepting ? 'Accepting requests' : 'No online visits'}: </span>{provider.displayName}</span>
+                      <span><span className="sf-sr">{accepting ? 'Accepting requests' : 'No online visits'}: </span><Link href={`/providers/${provider.id}`}>{provider.displayName}</Link></span>
                     </h2>
                     <p className="sf-person__meta">
                       {provider.credentials && <span>{provider.credentials}</span>}
