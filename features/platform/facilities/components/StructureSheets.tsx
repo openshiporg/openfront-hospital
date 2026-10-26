@@ -48,13 +48,13 @@ export function FacilitySheet({ facility }: { facility?: FacilityRecord }) {
       }}
     >
       <SheetField label="Name" name="name"><SheetInput name="name" required defaultValue={facility?.name ?? ''} autoComplete="off" /></SheetField>
-      <SheetField label="Slug" name="slug"><SheetInput name="slug" required defaultValue={facility?.slug ?? ''} autoComplete="off" className="font-mono" placeholder="main-campus" /></SheetField>
+      <SheetField label="Slug" name="slug"><SheetInput name="slug" required defaultValue={facility?.slug ?? ''} autoComplete="off" className="tabular-nums" placeholder="main-campus" /></SheetField>
       <div className="grid grid-cols-2 gap-3">
         <SheetField label="Type" name="facilityType"><SheetSelect name="facilityType" options={FACILITY_TYPES} defaultValue={facility?.facilityType ?? 'clinic'} /></SheetField>
         <SheetField label="Status" name="status"><SheetSelect name="status" options={FACILITY_STATUSES} defaultValue={facility?.status ?? 'active'} /></SheetField>
       </div>
       <SheetField label="Time zone" name="timeZone">
-        <SheetInput name="timeZone" required list="facility-time-zones" defaultValue={facility?.timeZone ?? 'UTC'} autoComplete="off" className="font-mono" />
+        <SheetInput name="timeZone" required list="facility-time-zones" defaultValue={facility?.timeZone ?? 'UTC'} autoComplete="off" className="tabular-nums" />
         <datalist id="facility-time-zones">{zones.map(zone => <option key={zone} value={zone} />)}</datalist>
       </SheetField>
       <SheetField label="Phone" name="phone"><SheetInput name="phone" type="tel" defaultValue={facility?.phone ?? ''} /></SheetField>
@@ -80,7 +80,7 @@ export function DepartmentSheet({ facilityId, bare }: { facilityId: string; bare
     >
       <SheetField label="Name" name="name"><SheetInput name="name" required autoComplete="off" /></SheetField>
       <div className="grid grid-cols-2 gap-3">
-        <SheetField label="Code" name="code"><SheetInput name="code" autoComplete="off" className="font-mono uppercase" /></SheetField>
+        <SheetField label="Code" name="code"><SheetInput name="code" autoComplete="off" className="tabular-nums uppercase" /></SheetField>
         <SheetField label="Status" name="status"><SheetSelect name="status" options={DEPARTMENT_STATUSES} defaultValue="active" /></SheetField>
       </div>
       <SheetField label="Description" name="description"><SheetTextarea name="description" /></SheetField>
@@ -125,7 +125,7 @@ export function RoomSheet({ wards, wardId, bare }: { wards: Option[]; wardId?: s
       validate={values => validateRoom(values).fieldErrors}
       action={createRoom}
     >
-      <SheetField label="Room number" name="roomNumber"><SheetInput name="roomNumber" required autoComplete="off" className="font-mono" /></SheetField>
+      <SheetField label="Room number" name="roomNumber"><SheetInput name="roomNumber" required autoComplete="off" className="tabular-nums" /></SheetField>
       <SheetField label="Ward" name="wardId"><SheetSelect name="wardId" options={[{ value: '', label: 'Select ward' }, ...wards]} defaultValue={wardId ?? ''} /></SheetField>
       <div className="grid grid-cols-2 gap-3">
         <SheetField label="Type" name="roomType"><SheetSelect name="roomType" options={ROOM_TYPES} defaultValue="private" /></SheetField>
@@ -147,7 +147,7 @@ export function BedSheet({ facilityId, rooms, roomId, bare }: { facilityId: stri
       action={createBed}
     >
       <input type="hidden" name="facilityId" value={facilityId} />
-      <SheetField label="Bed number" name="bedNumber"><SheetInput name="bedNumber" required autoComplete="off" className="font-mono" /></SheetField>
+      <SheetField label="Bed number" name="bedNumber"><SheetInput name="bedNumber" required autoComplete="off" className="tabular-nums" /></SheetField>
       <SheetField label="Room" name="roomId"><SheetSelect name="roomId" options={[{ value: '', label: 'Select room' }, ...rooms]} defaultValue={roomId ?? ''} /></SheetField>
     </FormSheet>
   )

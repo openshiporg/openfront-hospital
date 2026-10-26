@@ -158,7 +158,7 @@ export function VisitTypeSheet({
             <label className={`${labelClass} sm:col-span-2`}>
               <span className="flex justify-between">Slug {err('slug')}</span>
               <input
-                className={`${fieldClass} font-mono`}
+                className={`${fieldClass} tabular-nums`}
                 value={draft.slug}
                 maxLength={80}
                 aria-invalid={Boolean(errors.slug)}

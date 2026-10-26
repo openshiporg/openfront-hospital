@@ -62,7 +62,7 @@ export function ChartSection({
   else body = (
     <>
       <Board>{children}</Board>
-      {typeof count === 'number' && count > shown && <p className="mt-2 font-mono text-xs tabular-nums text-muted-foreground">Showing {shown} of {count}</p>}
+      {typeof count === 'number' && count > shown && <p className="mt-2 tabular-nums text-xs  text-muted-foreground">Showing {shown} of {count}</p>}
     </>
   )
 

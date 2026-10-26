@@ -112,7 +112,7 @@ export function IntakeListPageClient({
 
         <section className="flex min-w-0 flex-col gap-3">
           <nav className="flex min-w-0 flex-wrap items-center justify-between gap-2" aria-label="Intake pages">
-            <span className="font-mono text-xs tabular-nums text-muted-foreground">{initialData.items.length} of {initialData.count} forms</span>
+            <span className="tabular-nums text-xs  text-muted-foreground">{initialData.items.length} of {initialData.count} forms</span>
             {(safeSearchParams.has('cursor') || initialData.nextCursor) && (
               <Track>
                 {safeSearchParams.has('cursor') && <Pill asChild size="sm"><Link href={pageHref(null)}>First page</Link></Pill>}

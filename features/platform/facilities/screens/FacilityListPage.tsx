@@ -121,7 +121,7 @@ export async function FacilityListPage({ searchParams }: { searchParams: SearchP
                       <span>{optionLabel(FACILITY_TYPES, facility.facilityType)}</span>
                       <Code>{facility.slug}</Code>
                       <span>{location || 'No city'}</span>
-                      <span className="font-mono tabular-nums">{facility.timeZone}</span>
+                      <span className="tabular-nums ">{facility.timeZone}</span>
                       <span className="tabular-nums">{facility.departmentsCount} dept{facility.departmentsCount === 1 ? '' : 's'}</span>
                       <span className="tabular-nums">{facility.providersCount} provider{facility.providersCount === 1 ? '' : 's'}</span>
                     </>}

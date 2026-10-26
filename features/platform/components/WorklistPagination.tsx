@@ -34,7 +34,7 @@ export function WorklistPagination(props: WorklistPaginationProps) {
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         {pageIsStale
           ? <p role="status" className="text-sm text-muted-foreground">This page is no longer available.</p>
-          : <p className="font-mono text-xs tabular-nums text-muted-foreground">{start}–{end} of {props.totalCount} · page {props.page}/{visiblePages}</p>}
+          : <p className="tabular-nums text-xs  text-muted-foreground">{start}–{end} of {props.totalCount} · page {props.page}/{visiblePages}</p>}
         <Track>
           {pageIsStale
             ? <Pill asChild size="sm"><Link href={worklistPageHref(props.href, props.pageKey, props.pageParams, Math.max(1, visiblePages), props.preservedParams)}>{visiblePages ? 'Last available page' : 'First page'}</Link></Pill>

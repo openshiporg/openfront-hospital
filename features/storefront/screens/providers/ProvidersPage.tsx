@@ -11,7 +11,6 @@ export async function ProvidersPage() {
       <header className="sf-pagehead">
         <div className="sf-container sf-pagehead__inner sf-reveal">
           <div>
-            <p className="sf-eyebrow">{profile.shortName}</p>
             <h1 className="sf-display sf-display--page">Care team</h1>
             <p className="sf-pagehead__count">{providers.length} {providers.length === 1 ? 'clinician' : 'clinicians'} accepting requests</p>
           </div>

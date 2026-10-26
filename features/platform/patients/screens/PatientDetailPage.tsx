@@ -184,8 +184,8 @@ export async function PatientDetailPage({ params }: { params: Promise<{ id: stri
               ]}
             />
             {(patient.notes || phi !== true) && (
-              <div className="mt-3 rounded-lg border bg-muted/30 p-3 text-sm">
-                <p className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Notes</p>
+              <div className="mt-3 rounded-[4px] border bg-muted/30 p-3 text-sm">
+                <p className="tabular-nums text-xs font-medium text-muted-foreground">Notes</p>
                 <p className="mt-1 whitespace-pre-wrap break-words">{phiValue(patient.notes, phi)}</p>
               </div>
             )}

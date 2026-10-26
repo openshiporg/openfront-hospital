@@ -104,7 +104,7 @@ export function PatientRegistrationForm({ accessibleFacilityCount }: { accessibl
   }
 
   const fieldLabel = 'text-xs font-medium text-muted-foreground'
-  const panelTitle = 'font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground'
+  const panelTitle = 'tabular-nums text-xs font-medium text-muted-foreground'
 
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
@@ -117,11 +117,11 @@ export function PatientRegistrationForm({ accessibleFacilityCount }: { accessibl
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="firstName">First name</label><input className={fieldClass} id="firstName" name="firstName" required /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="lastName">Last name</label><input className={fieldClass} id="lastName" name="lastName" required /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="dateOfBirth">Date of birth</label><input className={fieldClass} id="dateOfBirth" name="dateOfBirth" type="date" required /></div>
-          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="medicalRecordNumber">MRN</label><input className={`${fieldClass} font-mono`} id="medicalRecordNumber" name="medicalRecordNumber" placeholder="NS-0042" required /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="medicalRecordNumber">MRN</label><input className={`${fieldClass} tabular-nums`} id="medicalRecordNumber" name="medicalRecordNumber" placeholder="NS-0042" required /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="phone">Phone</label><input className={fieldClass} id="phone" name="phone" type="tel" /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="email">Email</label><input className={fieldClass} id="email" name="email" type="email" /></div>
           <div className="grid min-w-0 gap-1.5 sm:col-span-2"><label className={fieldLabel} htmlFor="preferredContactMethod">Preferred contact</label><select id="preferredContactMethod" name="preferredContactMethod" className={fieldClass}><option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option></select></div>
-          <label className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3 text-sm sm:col-span-2" htmlFor="registrationAcknowledged"><input id="registrationAcknowledged" name="registrationAcknowledged" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-teal-700 dark:accent-teal-400" /><span>Patient was shown and acknowledged the registration notice.</span></label>
+          <label className="flex items-start gap-3 rounded-[4px] border bg-muted/30 p-3 text-sm sm:col-span-2" htmlFor="registrationAcknowledged"><input id="registrationAcknowledged" name="registrationAcknowledged" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-teal-700 dark:accent-teal-400" /><span>Patient was shown and acknowledged the registration notice.</span></label>
           </fieldset>
           {error && <Notice tone="bad" role="alert" className="sm:col-span-2">{error}</Notice>}
           <div className="sm:col-span-2">
@@ -156,7 +156,7 @@ export function PatientRegistrationForm({ accessibleFacilityCount }: { accessibl
                   </>}
                   aside={<Track><Pill size="sm" variant="primary" disabled={pending} onClick={() => resolveDuplicate('link_existing', candidate.patientId)}>Use this patient</Pill></Track>}
                 >
-                  <ul className="flex flex-wrap gap-1.5 text-xs">{candidate.reasons.map(reason => <li key={reason} className="rounded-full border bg-background px-2 py-0.5 text-muted-foreground">{duplicateReasonLabel(reason)}</li>)}</ul>
+                  <ul className="flex flex-wrap gap-1.5 text-xs">{candidate.reasons.map(reason => <li key={reason} className="rounded-[4px] border bg-background px-2 py-0.5 text-muted-foreground">{duplicateReasonLabel(reason)}</li>)}</ul>
                 </BoardRow>
               ))}
             </Board>

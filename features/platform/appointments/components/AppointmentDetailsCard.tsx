@@ -48,7 +48,7 @@ const statusTone: Record<string, WardTone> = {
 function EvidenceDisclosure({ label, children }: { label: string; children: ReactNode }) {
   return (
     <details className="group min-w-0">
-      <summary className="w-fit cursor-pointer list-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary className="w-fit cursor-pointer list-none rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Track>
           <Pill asChild size="sm" variant="plain">
             <span><ChevronRight className="transition-transform group-open:rotate-90" aria-hidden />{label}</span>
@@ -134,7 +134,7 @@ export function AppointmentDetailsCard({ appointment }: { appointment: Appointme
           <form onSubmit={event => { event.preventDefault(); if (!reason.trim() || unresolved) return; const submittedReason = reason; const id = appointment.id; const version = appointment.transitionVersion; submitOriginal(key => cancelAppointment(id, version, key, submittedReason)) }} className="space-y-4">
             <div className="grid gap-1.5">
               <label htmlFor={`cancel-${appointment.id}`} className="text-xs font-medium text-muted-foreground">Cancellation reason</label>
-              <textarea id={`cancel-${appointment.id}`} required maxLength={1000} rows={4} value={reason} disabled={isPending || unresolved} onChange={event => setReason(event.target.value)} className="w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-sm shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" />
+              <textarea id={`cancel-${appointment.id}`} required maxLength={1000} rows={4} value={reason} disabled={isPending || unresolved} onChange={event => setReason(event.target.value)} className="w-full min-w-0 rounded-[4px] border bg-background px-3 py-2 text-sm shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" />
             </div>
             <Track>
               <Pill type="button" disabled={isPending || unresolved} onClick={() => { setCancelOpen(false); setReason('') }}>Keep appointment</Pill>
@@ -175,7 +175,7 @@ export function AppointmentDetailsCard({ appointment }: { appointment: Appointme
               <StatusDot tone={communicationTasks ? 'warn' : 'idle'} className="size-1.5 -translate-y-[0.1em] shadow-none" />
               {communicationTasks} follow-up task{communicationTasks === 1 ? '' : 's'}
             </span>
-            {appointment.patient?.phone && <span className="font-mono tabular-nums text-muted-foreground">{appointment.patient.phone}</span>}
+            {appointment.patient?.phone && <span className="tabular-nums  text-muted-foreground">{appointment.patient.phone}</span>}
             {Number(appointment.intakeFormsCount || 0) > (appointment.intakeForms?.length || 0) && (
               <span className="text-amber-700 dark:text-amber-300">
                 Showing {appointment.intakeForms?.length || 0} of {appointment.intakeFormsCount} intake records
@@ -191,12 +191,12 @@ export function AppointmentDetailsCard({ appointment }: { appointment: Appointme
           <div className="pl-4">
             <EvidenceDisclosure label="Intake and messages">
               <div className="grid gap-3 md:grid-cols-2">
-                <section className="min-w-0 rounded-lg border bg-muted/30 p-3">
-                  <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Intake</h3>
+                <section className="min-w-0 rounded-[4px] border bg-muted/30 p-3">
+                  <h3 className="tabular-nums text-xs font-medium text-muted-foreground">Intake</h3>
                   {appointment.intakeForms?.length ? <ul className="mt-2 space-y-1.5 text-sm">{appointment.intakeForms.map(form => <li key={form.id} className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3"><span className="min-w-0 break-words">{form.title || 'Intake'}</span><StatusTag status={form.status || 'unknown'} /></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No intake forms.</p>}
                 </section>
-                <section className="min-w-0 rounded-lg border bg-muted/30 p-3">
-                  <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Messages</h3>
+                <section className="min-w-0 rounded-[4px] border bg-muted/30 p-3">
+                  <h3 className="tabular-nums text-xs font-medium text-muted-foreground">Messages</h3>
                   {appointment.messages?.length ? <ul className="mt-2 space-y-1.5 text-sm">{appointment.messages.map(message => <li key={message.id} className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3"><span className="min-w-0 break-words">{message.subject || 'Patient follow-up'} <span className="text-muted-foreground">· {message.channel || 'channel unavailable'}</span></span><StatusTag status={message.status || 'unknown'} /></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No messages.</p>}
                 </section>
               </div>

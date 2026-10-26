@@ -1048,12 +1048,12 @@ function OperationForm({ title, description, fields, submitLabel, onSubmit, reco
   )
 
   return (
-    <details className="group min-w-0 rounded-xl border bg-card" open={expanded}>
+    <details className="group min-w-0 rounded-[4px] border bg-card" open={expanded}>
       <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3 px-4 py-3 marker:hidden [&::-webkit-details-marker]:hidden">
         <span id={titleId} className="min-w-0 text-sm font-semibold text-foreground">{title}</span>
         <span id={descriptionId} className="sr-only">{description}</span>
-        <span aria-hidden="true" className="shrink-0 font-mono text-xs text-muted-foreground group-open:hidden">+</span>
-        <span aria-hidden="true" className="hidden shrink-0 font-mono text-xs text-muted-foreground group-open:inline">−</span>
+        <span aria-hidden="true" className="shrink-0 tabular-nums text-xs text-muted-foreground group-open:hidden">+</span>
+        <span aria-hidden="true" className="hidden shrink-0 tabular-nums text-xs text-muted-foreground group-open:inline">−</span>
       </summary>
       <form
         ref={formRef}
@@ -1146,7 +1146,7 @@ function OperationForm({ title, description, fields, submitLabel, onSubmit, reco
           } catch { setError('Recovery unavailable; keep the same command and identity.') }
           finally { setPending(false) }
         }}>Read-only original receipt recovery</Pill></Track></div>}
-        {labReadback != null && <pre className="max-h-96 min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/40 p-3 font-mono text-xs sm:col-span-2">{JSON.stringify(labReadback, null, 2)}</pre>}
+        {labReadback != null && <pre className="max-h-96 min-w-0 overflow-auto whitespace-pre-wrap break-words rounded-[4px] border bg-muted/40 p-3 tabular-nums text-xs sm:col-span-2">{JSON.stringify(labReadback, null, 2)}</pre>}
         {savedRequest && !recoverOriginal && <Notice tone="warn" role="status" className="sm:col-span-2">Original command held in memory. Retry it exactly and reconcile its receipt before a separate command. Reloading may lose it.</Notice>}
         {success && <Notice tone="ok" role="status" className="sm:col-span-2">{success}</Notice>}
         <div className="sm:col-span-2">

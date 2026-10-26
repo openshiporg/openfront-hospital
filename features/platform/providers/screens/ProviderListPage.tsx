@@ -120,7 +120,7 @@ export async function ProviderListPage({ searchParams }: { searchParams: SearchP
                 meta={
                   <>
                     <span>{p.specialty || 'No specialty'}</span>
-                    {p.credentials && <span className="font-mono">{p.credentials}</span>}
+                    {p.credentials && <span className="tabular-nums">{p.credentials}</span>}
                     <span>{p.appointmentTypesCount ?? 0} visit type{p.appointmentTypesCount === 1 ? '' : 's'}</span>
                     <span>{p.upcomingBlocks ?? 0} upcoming block{p.upcomingBlocks === 1 ? '' : 's'}</span>
                     {p.facilities && p.facilities.length > 0 && <span>{p.facilities.map((f) => f.name).filter(Boolean).join(', ')}</span>}

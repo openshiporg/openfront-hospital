@@ -598,7 +598,7 @@ function intentFingerprint(intent: string) {
   return `${(left >>> 0).toString(36)}-${(right >>> 0).toString(36)}`
 }
 
-const detailsClass = 'group min-w-0 rounded-xl border bg-card open:shadow-sm'
+const detailsClass = 'group min-w-0 rounded-[4px] border bg-card open:shadow-sm'
 const gridClass = 'grid min-w-0 items-start gap-3 xl:grid-cols-2'
 const formClass = 'grid min-w-0 gap-3 border-t p-4 sm:grid-cols-2'
 

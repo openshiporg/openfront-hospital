@@ -1,7 +1,7 @@
 /**
  * Ward kit: the shared building blocks for the hospital platform screens.
- * Status dots sit on the title line; in-page buttons and segmented choices are
- * raised pills inside a recessed track. Identifiers read like wristbands.
+ * Hospital floor wayfinding: each state keeps its line colour, drawn as a short floor-line
+ * segment; hairline rules, 4px corners, underline tabs, square buttons, one deep-teal primary.
  */
 
 import * as React from 'react'
@@ -12,12 +12,12 @@ import { cn } from '@/lib/utils'
 export type WardTone = 'ok' | 'warn' | 'bad' | 'info' | 'idle' | 'accent'
 
 const DOT_TONE: Record<WardTone, string> = {
-  ok: 'bg-emerald-500 shadow-[0_0_0_3px] shadow-emerald-500/20',
-  warn: 'bg-amber-500 shadow-[0_0_0_3px] shadow-amber-500/20',
-  bad: 'bg-red-500 shadow-[0_0_0_3px] shadow-red-500/20',
-  info: 'bg-sky-500 shadow-[0_0_0_3px] shadow-sky-500/20',
+  ok: 'bg-emerald-600 dark:bg-emerald-400',
+  warn: 'bg-amber-500',
+  bad: 'bg-red-600 dark:bg-red-400',
+  info: 'bg-sky-600 dark:bg-sky-400',
   idle: 'bg-zinc-400 dark:bg-zinc-500',
-  accent: 'bg-teal-600 shadow-[0_0_0_3px] shadow-teal-600/20 dark:bg-teal-400',
+  accent: 'bg-teal-700 dark:bg-teal-400',
 }
 
 /** Status → tone for the hospital's workflow states (appointments, encounters, beds, claims, intake, messages). */
@@ -36,8 +36,9 @@ export function statusLabel(status: string | null | undefined) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Unknown'
 }
 
+/** Floor-line marker: a short segment in the state's line colour. */
 export function StatusDot({ tone = 'idle', className }: { tone?: WardTone; className?: string }) {
-  return <span aria-hidden="true" className={cn('inline-block size-2 shrink-0 rounded-full', DOT_TONE[tone], className)} />
+  return <span aria-hidden="true" className={cn('inline-block h-[3px] w-3.5 shrink-0 rounded-[1px]', DOT_TONE[tone], className)} />
 }
 
 /** A heading whose status dot sits on its first line, not vertically centred against wrapped text. */
@@ -56,7 +57,7 @@ export function TitleLine({
 }) {
   return (
     <Tag className={cn('flex min-w-0 items-baseline gap-2', className)}>
-      {tone && <StatusDot tone={tone} className="-translate-y-[0.1em]" />}
+      {tone && <StatusDot tone={tone} className="-translate-y-[0.3em]" />}
       {status && <span className="sr-only">{status}: </span>}
       <span className="min-w-0 break-words">{children}</span>
     </Tag>
@@ -67,7 +68,7 @@ export function TitleLine({
 export function StatusTag({ status, tone, className }: { status: string | null | undefined; tone?: WardTone; className?: string }) {
   return (
     <span className={cn('inline-flex items-baseline gap-1.5 whitespace-nowrap text-xs font-medium text-foreground', className)}>
-      <StatusDot tone={tone ?? toneForStatus(status)} className="size-1.5 -translate-y-[0.1em] shadow-none" />
+      <StatusDot tone={tone ?? toneForStatus(status)} className="w-3 -translate-y-[0.25em]" />
       {statusLabel(status)}
     </span>
   )
@@ -80,7 +81,6 @@ export function WardHeader({
   status,
   meta,
   actions,
-  eyebrow,
 }: {
   title: React.ReactNode
   tone?: WardTone
@@ -90,20 +90,19 @@ export function WardHeader({
   eyebrow?: React.ReactNode
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-3 pb-1 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0 border-l-2 border-teal-600 pl-3 dark:border-teal-400">
-        {eyebrow && <p className="mb-1 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{eyebrow}</p>}
-        <TitleLine as="h1" tone={tone} status={status} className="text-2xl font-semibold tracking-tight text-foreground">
+    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <TitleLine as="h1" tone={tone} status={status} className="text-xl font-semibold tracking-tight text-foreground">
           {title}
         </TitleLine>
-        {meta && <div className="mt-1 text-sm text-muted-foreground">{meta}</div>}
+        {meta && <div className="mt-0.5 text-sm tabular-nums text-muted-foreground">{meta}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
   )
 }
 
-/** Recessed track that holds raised pills. */
+/** Button row. Holding tab links or pressed choices it becomes an underline tab bar on a hairline. */
 export function Track({
   children,
   className,
@@ -113,7 +112,8 @@ export function Track({
   return (
     <div
       className={cn(
-        'inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-muted p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.08)] [scrollbar-width:none] dark:bg-black/30 dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.5)]',
+        'inline-flex max-w-full items-center gap-1.5 overflow-x-auto [scrollbar-width:none]',
+        '[&:has(>[data-tab])]:gap-0 [&:has(>[data-tab])]:border-b [&:has(>[data-tab])]:border-border',
         block && 'flex w-full [&>*]:flex-1',
         className,
       )}
@@ -127,36 +127,38 @@ export function Track({
 type PillVariant = 'plain' | 'raised' | 'primary' | 'danger'
 
 const PILL_VARIANT: Record<PillVariant, string> = {
-  plain: 'text-muted-foreground hover:text-foreground',
-  raised: 'bg-background text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.12),inset_0_1px_0_rgb(255_255_255/0.6)] dark:bg-zinc-800 dark:shadow-[0_1px_2px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.06)]',
-  primary: 'bg-teal-700 text-white shadow-[0_1px_2px_rgb(0_0_0/0.2),inset_0_1px_0_rgb(255_255_255/0.15)] hover:bg-teal-700/90 dark:bg-teal-500 dark:text-teal-950',
-  danger: 'bg-red-600 text-white shadow-[0_1px_2px_rgb(0_0_0/0.2)] hover:bg-red-600/90',
+  plain: 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+  raised: 'border-border bg-background text-foreground hover:bg-muted',
+  primary: 'border-teal-800 bg-teal-700 text-white hover:bg-teal-800 dark:border-teal-400 dark:bg-teal-500 dark:text-teal-950',
+  danger: 'border-red-600/40 bg-background text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10',
 }
 
 export interface PillProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: PillVariant
-  /** Selected state for segmented choices: renders raised. */
+  /** Selected state: an underline tab when part of a tab row, a pressed toggle otherwise. */
   active?: boolean
   size?: 'sm' | 'md'
   asChild?: boolean
 }
 
-/** A pill for use inside <Track>. Unselected segments are plain; actions are raised or primary. */
+/** Square button (4px corners); the legacy name stays so every desk keeps its imports. With `active` it is a tab. */
 export const Pill = React.forwardRef<HTMLButtonElement, PillProps>(function Pill(
   { variant, active, size = 'md', asChild, className, type, ...props },
   ref,
 ) {
   const Comp = asChild ? Slot : 'button'
-  const resolved: PillVariant = variant ?? (active === undefined ? 'raised' : active ? 'raised' : 'plain')
+  const tab = active !== undefined && !variant
   return (
     <Comp
       ref={ref}
       type={asChild ? undefined : (type ?? 'button')}
       data-active={active ? 'true' : undefined}
+      data-tab={tab ? '' : undefined}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium transition-[color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
-        size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3.5 text-sm',
-        PILL_VARIANT[resolved],
+        'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
+        tab
+          ? cn('-mb-px border-b-2 px-3', size === 'sm' ? 'h-8 text-xs' : 'h-9 text-sm', active ? 'border-teal-700 text-foreground dark:border-teal-400' : 'border-transparent text-muted-foreground hover:text-foreground')
+          : cn('rounded-[4px] border', size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3 text-sm', PILL_VARIANT[variant ?? 'raised']),
         className,
       )}
       {...props}
@@ -164,12 +166,12 @@ export const Pill = React.forwardRef<HTMLButtonElement, PillProps>(function Pill
   )
 })
 
-/** One or more in-page actions: raised pills in a recessed track. */
+/** One or more in-page actions: a row of square buttons. */
 export function Actions({ children, className }: { children: React.ReactNode; className?: string }) {
   return <Track className={className}>{children}</Track>
 }
 
-/** Segmented control: one raised pill marks the current choice. */
+/** View switch: underline tabs on a hairline. */
 export function Segmented<T extends string>({
   value,
   onChange,
@@ -198,9 +200,9 @@ export function Segmented<T extends string>({
           disabled={option.disabled}
           onClick={() => onChange(option.value)}
         >
-          {option.tone && <StatusDot tone={option.tone} className="size-1.5 shadow-none" />}
+          {option.tone && <StatusDot tone={option.tone} className="w-2.5" />}
           {option.label}
-          {option.count !== undefined && <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{option.count}</span>}
+          {option.count !== undefined && <span className="text-xs tabular-nums text-muted-foreground">{option.count}</span>}
         </Pill>
       ))}
     </Track>
@@ -224,9 +226,9 @@ export function SegmentedLinks({
       {options.map((option, index) => (
         <Pill key={index} asChild size={size} active={option.active}>
           <Link href={option.href} aria-current={option.active ? 'page' : undefined}>
-            {option.tone && <StatusDot tone={option.tone} className="size-1.5 shadow-none" />}
+            {option.tone && <StatusDot tone={option.tone} className="w-2.5" />}
             {option.label}
-            {option.count !== undefined && <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{option.count}</span>}
+            {option.count !== undefined && <span className="text-xs tabular-nums text-muted-foreground">{option.count}</span>}
           </Link>
         </Pill>
       ))}
@@ -249,11 +251,11 @@ export function Readout({
   className?: string
 }) {
   return (
-    <div className={cn('min-w-0 px-4 py-3 md:px-5 md:py-4', className)}>
-      <TitleLine as="p" tone={tone} className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+    <div className={cn('min-w-0 px-4 py-2.5', className)}>
+      <TitleLine as="p" tone={tone} className="text-xs font-medium text-muted-foreground">
         {label}
       </TitleLine>
-      <p className="mt-1.5 truncate text-2xl font-semibold tabular-nums tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 truncate text-xl font-semibold tabular-nums tracking-tight text-foreground">{value}</p>
       {sub && <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p>}
     </div>
   )
@@ -264,7 +266,7 @@ export function ReadoutStrip({ children, className }: { children: React.ReactNod
   return (
     <div
       className={cn(
-        'grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border md:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] [&>*]:bg-card max-md:[&>*:last-child:nth-child(odd)]:col-span-2',
+        'grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border bg-border md:grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] [&>*]:bg-background max-md:[&>*:last-child:nth-child(odd)]:col-span-2',
         className,
       )}
     >
@@ -294,11 +296,11 @@ export function WardSection({
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b pb-2">
         <h2 id={id} className="flex items-baseline gap-2 text-sm font-semibold text-foreground">
           {title}
-          {count !== undefined && <span className="font-mono text-xs font-normal tabular-nums text-muted-foreground">{count}</span>}
+          {count !== undefined && <span className="text-xs font-normal tabular-nums text-muted-foreground">{count}</span>}
         </h2>
         {actions}
       </div>
-      <div className="pt-3">{children}</div>
+      <div className="pt-2">{children}</div>
     </section>
   )
 }
@@ -306,7 +308,7 @@ export function WardSection({
 /** Bordered surface for lists and forms. */
 export function Panel({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('min-w-0 rounded-xl border bg-card', className)} {...props}>
+    <div className={cn('min-w-0 rounded-[4px] border bg-background', className)} {...props}>
       {children}
     </div>
   )
@@ -345,26 +347,26 @@ export function BoardRow({
   className?: string
 }) {
   return (
-    <div className={cn('flex min-w-0 flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between md:px-5', className)}>
+    <div className={cn('flex min-w-0 flex-col gap-2 px-3 py-2.5 hover:bg-muted/30 sm:flex-row sm:items-start sm:justify-between', className)}>
       <div className="min-w-0 flex-1">
         <TitleLine tone={tone} status={status} className="text-sm font-semibold text-foreground">{title}</TitleLine>
-        {meta && <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-1 pl-4 text-xs text-muted-foreground">{meta}</div>}
-        {children && <div className="mt-3 pl-4">{children}</div>}
+        {meta && <div className="mt-0.5 flex min-w-0 flex-wrap gap-x-3 gap-y-1 pl-[1.375rem] text-xs text-muted-foreground">{meta}</div>}
+        {children && <div className="mt-2 pl-[1.375rem]">{children}</div>}
       </div>
-      {aside && <div className="flex shrink-0 flex-wrap items-center gap-2 pl-4 sm:pl-0">{aside}</div>}
+      {aside && <div className="flex shrink-0 flex-wrap items-center gap-2 pl-[1.375rem] sm:pl-0">{aside}</div>}
     </div>
   )
 }
 
 /** Divided list container for BoardRows. */
 export function Board({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('min-w-0 divide-y overflow-hidden rounded-xl border bg-card', className)}>{children}</div>
+  return <div className={cn('min-w-0 divide-y overflow-hidden rounded-[4px] border bg-background', className)}>{children}</div>
 }
 
 /** Empty state for a list. */
 export function EmptyBoard({ title, children, className }: { title: React.ReactNode; children?: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('rounded-xl border border-dashed px-6 py-10 text-center', className)}>
+    <div className={cn('rounded-[4px] border bg-muted/30 px-4 py-4', className)}>
       <p className="text-sm font-medium text-foreground">{title}</p>
       {children && <div className="mt-1 text-sm text-muted-foreground">{children}</div>}
     </div>
@@ -384,9 +386,9 @@ export function Facts({
       {items.filter(Boolean).map((item, index) => {
         const row = item as { label: React.ReactNode; value: React.ReactNode; mono?: boolean }
         return (
-          <div key={index} className="flex min-w-0 items-baseline justify-between gap-4 py-2">
-            <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
-            <dd className={cn('min-w-0 break-words text-right text-foreground', row.mono && 'font-mono text-[13px] tabular-nums')}>{row.value}</dd>
+          <div key={index} className="grid min-w-0 grid-cols-[minmax(7rem,40%)_1fr] items-baseline gap-4 py-1.5">
+            <dt className="text-muted-foreground">{row.label}</dt>
+            <dd className={cn('min-w-0 break-words text-foreground', row.mono && 'font-medium tabular-nums')}>{row.value}</dd>
           </div>
         )
       })}
@@ -410,7 +412,7 @@ export function Notice({
     <div
       role={role ?? (tone === 'bad' ? 'alert' : 'status')}
       className={cn(
-        'flex min-w-0 items-baseline gap-2 rounded-lg border px-3 py-2 text-sm',
+        'flex min-w-0 items-baseline gap-2 rounded-[4px] border px-3 py-2 text-sm',
         tone === 'bad' && 'border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300',
         tone === 'warn' && 'border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200',
         tone === 'ok' && 'border-emerald-500/30 bg-emerald-500/5 text-emerald-800 dark:text-emerald-200',
@@ -418,24 +420,24 @@ export function Notice({
         className,
       )}
     >
-      <StatusDot tone={tone} className="-translate-y-[0.1em] shadow-none" />
+      <StatusDot tone={tone} className="-translate-y-[0.25em]" />
       <div className="min-w-0 break-words">{children}</div>
     </div>
   )
 }
 
-/** Monospace identifier: MRN, appointment number, claim number. */
+/** Identifier: MRN, appointment number, claim number. Tabular, tracked, never a costume font. */
 export function Code({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('font-mono text-[12px] tabular-nums tracking-tight text-muted-foreground', className)}>{children}</span>
+  return <span className={cn('text-[12px] font-medium tabular-nums tracking-[0.02em] text-muted-foreground', className)}>{children}</span>
 }
 
 /** Patient identifier band: name plus MRN/DOB, styled like a wristband. */
 export function Wristband({ name, identifier, detail, className }: { name: React.ReactNode; identifier?: React.ReactNode; detail?: React.ReactNode; className?: string }) {
   return (
-    <span className={cn('inline-flex min-w-0 max-w-full items-center overflow-hidden rounded-full border bg-background text-xs', className)}>
-      <span className="truncate px-2.5 py-0.5 font-medium text-foreground">{name}</span>
-      {identifier && <span className="shrink-0 border-l bg-muted/60 px-2 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">{identifier}</span>}
-      {detail && <span className="hidden shrink-0 border-l px-2 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground sm:inline">{detail}</span>}
+    <span className={cn('inline-flex min-w-0 max-w-full items-center overflow-hidden rounded-[3px] border bg-background text-xs', className)}>
+      <span className="truncate px-2 py-0.5 font-semibold text-foreground">{name}</span>
+      {identifier && <span className="shrink-0 border-l bg-muted/60 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">{identifier}</span>}
+      {detail && <span className="hidden shrink-0 border-l px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground sm:inline">{detail}</span>}
     </span>
   )
 }
@@ -447,12 +449,12 @@ export function Meter({ value, tone = 'accent', segments = 12, label }: { value:
   return (
     <span role="meter" aria-valuemin={0} aria-valuemax={segments} aria-valuenow={filled} aria-label={label} className="inline-flex gap-0.5">
       {Array.from({ length: segments }, (_, index) => (
-        <span key={index} className={cn('h-2.5 w-1 rounded-[1px]', index < filled ? color : 'bg-muted-foreground/20')} />
+        <span key={index} className={cn('h-2.5 w-1', index < filled ? color : 'bg-muted-foreground/20')} />
       ))}
     </span>
   )
 }
 
 /** Shared field chrome for native inputs and selects inside platform forms. */
-export const fieldClass = 'h-9 w-full min-w-0 rounded-lg border bg-background px-3 text-sm shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50'
+export const fieldClass = 'h-8 w-full min-w-0 rounded-[4px] border bg-background px-2.5 text-sm outline-none focus-visible:border-teal-700 focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50'
 export const labelClass = 'grid min-w-0 gap-1 text-xs font-medium text-muted-foreground'

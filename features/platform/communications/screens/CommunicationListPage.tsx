@@ -43,11 +43,11 @@ function formatFacilityDateTime(value?: string | null, timeZone?: string | null)
 function CommunicationDetails({ message }: { message: CommunicationTask }) {
   return (
     <details className="group min-w-0">
-      <summary className="w-fit cursor-pointer list-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary className="w-fit cursor-pointer list-none rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Track><Pill asChild size="sm" variant="plain"><span><ChevronRight className="transition-transform group-open:rotate-90" aria-hidden />Delivery</span></Pill></Track>
       </summary>
       <Facts
-        className="mt-2 max-w-xl rounded-lg border bg-muted/30 px-3"
+        className="mt-2 max-w-xl rounded-[4px] border bg-muted/30 px-3"
         items={[
           { label: 'Purpose', value: `${message.purpose?.replaceAll('_', ' ') || 'Not recorded'} · ${message.direction || 'unknown'}` },
           { label: 'Integration', value: `${message.installation?.name || (message.status === 'manual_required' ? 'No external delivery attempted' : 'Not visible')}${message.installation?.status ? ` · ${message.installation.status}` : ''}` },

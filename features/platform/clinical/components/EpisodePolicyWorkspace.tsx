@@ -10,7 +10,7 @@ import { transitionEncounter, type EncounterTransitionInput } from '../actions/t
 import { LabResultReadbackPanel } from '@/features/platform/operations/components/LabResultReadbackPanel'
 
 const selectStyle = fieldClass
-const detailsClass = 'group min-w-0 rounded-xl border bg-card'
+const detailsClass = 'group min-w-0 rounded-[4px] border bg-card'
 const summaryClass = 'flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold marker:hidden md:px-5 [&::-webkit-details-marker]:hidden'
 const chevron = <span aria-hidden className="text-xs font-normal text-muted-foreground group-open:rotate-180">▾</span>
 const choices = {
@@ -72,7 +72,7 @@ export function EpisodePolicyConfiguration() {
     </div>
     {workspace && <div className="mt-4 space-y-4">
       <p role="status" className="text-sm font-medium">{workspace.effective ? `Effective reviewed revision ${workspace.effective.revision}` : 'No reviewed policy. Closure is unavailable.'}</p>
-      <ul className="divide-y rounded-lg border text-sm">{workspace.history.map((entry: any) => <li key={entry.id} className="min-w-0 p-3">
+      <ul className="divide-y rounded-[4px] border text-sm">{workspace.history.map((entry: any) => <li key={entry.id} className="min-w-0 p-3">
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"><span className="font-medium text-foreground">Revision {entry.revision}</span><span>{String(entry.effectiveAt)}</span><span className="break-all">Review {entry.reviewReference}</span></p>
         <dl className="mt-2 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">{Object.entries(entry.definition).map(([key, value]) => <div key={key} className="flex min-w-0 justify-between gap-2"><dt className="text-muted-foreground">{labels[key]}</dt><dd className="text-right">{String(value).replaceAll('_', ' ')}</dd></div>)}</dl>
       </li>)}</ul>
@@ -159,7 +159,7 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
     } catch (error) { setMessage(errorText(error)) }
     finally { setPending(false) }
   }
-  return <section className="min-w-0 space-y-3 rounded-lg border bg-muted/30 p-3" aria-label="Episode review, receipt and recovery">
+  return <section className="min-w-0 space-y-3 rounded-[4px] border bg-muted/30 p-3" aria-label="Episode review, receipt and recovery">
     <Track><Pill size="sm" disabled={pending} onClick={() => refresh()}>{workspace ? 'Refresh episode' : 'Review episode'}</Pill></Track>
     {workspace && <>
       <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
@@ -187,7 +187,7 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
         <textarea name="reason" id={`${id}-reason`} maxLength={1000} required rows={2} className={`${fieldClass} h-auto py-2`} />
         <Track className="justify-self-start"><Pill type="submit" size="sm" variant="primary" disabled={pending || (workspace.status === 'in_progress' && workspace.policy?.definition.operationalClosure !== 'enabled')}>Apply transition</Pill></Track>
       </form>}
-      <ul className="space-y-1 font-mono text-[11px] text-muted-foreground">{workspace.history.map((entry: any) => <li key={entry.id}>v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus} · {entry.provenance.replaceAll('_', ' ')} · policy {entry.policy?.revision || 'unknown'} · {entry.owned ? 'your receipt' : 'another authorized operator'}</li>)}</ul>
+      <ul className="space-y-1 tabular-nums text-[11px] text-muted-foreground">{workspace.history.map((entry: any) => <li key={entry.id}>v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus} · {entry.provenance.replaceAll('_', ' ')} · policy {entry.policy?.revision || 'unknown'} · {entry.owned ? 'your receipt' : 'another authorized operator'}</li>)}</ul>
       <ul className="space-y-1 text-xs text-red-700 dark:text-red-300">{workspace.rejectedHistory.map((entry: any) => <li key={entry.id}>Owned rejected command at v{entry.observedVersion}: {entry.reasonCode.replaceAll('_', ' ')} · policy {entry.policyRevision || 'unconfigured'} · no transition performed</li>)}</ul>
       {(workspace.nextRejectedId || workspace.nextVersion) && <Track>
         {workspace.nextRejectedId && <Pill size="sm" disabled={pending} onClick={() => refresh(undefined, workspace.nextRejectedId)}>Older rejections</Pill>}
@@ -197,10 +197,10 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center"><label className="sr-only" htmlFor={`${id}-children`}>Child worklist</label><select id={`${id}-children`} className={`${selectStyle} sm:max-w-xs`} value={model} onChange={event => { setModel(event.target.value); setChildren(null) }}>
         {['MedicalOrder', 'LabResult', 'Prescription', 'Procedure', 'CarePlan', 'InsuranceClaim', 'Specimen', 'ClinicalDocument'].map(value => <option key={value}>{value}</option>)}
       </select><Track className="self-start sm:self-auto"><Pill size="sm" disabled={pending} onClick={() => loadChildren()}>Load child records</Pill></Track></div>
-      {children && <div className="min-w-0 space-y-2 text-xs"><p className="text-muted-foreground">Showing {children.rows.length} of {children.count} {model} rows</p><ul className="divide-y rounded-lg border bg-card">{children.rows.map((row: any) => <li key={row.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-3 py-1.5"><span className="min-w-0 break-all font-mono text-[11px]">{row.id} · {row.status} · v{row.transitionVersion}</span><Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, row.id)}>History</Pill></Track></li>)}</ul>{!children.rows.length && <p className="text-muted-foreground">No accessible matching child rows.</p>}{children.childId && <div className="min-w-0 space-y-1 rounded-lg border bg-card p-2"><p className="break-all font-medium">Owned receipts for {children.childId}</p><ul className="font-mono text-[11px] text-muted-foreground">{children.ownedHistory.map((entry: any) => <li key={entry.id}>v{entry.fromVersion} → v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus}</li>)}</ul>{!children.ownedHistory.length && <p className="text-muted-foreground">No owned transition receipt in this page.</p>}{children.nextHistoryVersion && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, children.childId, children.nextHistoryVersion)}>Older child receipts</Pill></Track>}</div>}{children.nextCursor && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(children.nextCursor)}>Next page</Pill></Track>}</div>}
+      {children && <div className="min-w-0 space-y-2 text-xs"><p className="text-muted-foreground">Showing {children.rows.length} of {children.count} {model} rows</p><ul className="divide-y rounded-[4px] border bg-card">{children.rows.map((row: any) => <li key={row.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-3 py-1.5"><span className="min-w-0 break-all tabular-nums text-[11px]">{row.id} · {row.status} · v{row.transitionVersion}</span><Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, row.id)}>History</Pill></Track></li>)}</ul>{!children.rows.length && <p className="text-muted-foreground">No accessible matching child rows.</p>}{children.childId && <div className="min-w-0 space-y-1 rounded-[4px] border bg-card p-2"><p className="break-all font-medium">Owned receipts for {children.childId}</p><ul className="tabular-nums text-[11px] text-muted-foreground">{children.ownedHistory.map((entry: any) => <li key={entry.id}>v{entry.fromVersion} → v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus}</li>)}</ul>{!children.ownedHistory.length && <p className="text-muted-foreground">No owned transition receipt in this page.</p>}{children.nextHistoryVersion && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, children.childId, children.nextHistoryVersion)}>Older child receipts</Pill></Track>}</div>}{children.nextCursor && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(children.nextCursor)}>Next page</Pill></Track>}</div>}
     </>}
     {children?.model === 'LabResult' && children.childId && <LabResultReadbackPanel key={children.childId} resultId={children.childId} />}
-    {saved && <div className="min-w-0 space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-100">
+    {saved && <div className="min-w-0 space-y-2 rounded-[4px] border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-100">
       <p>Original command retained: {saved.toStatus} from version {saved.expectedVersion}.</p>
       <Track><Pill size="sm" disabled={pending} onClick={recover}>Recover receipt</Pill><Pill size="sm" variant="primary" disabled={pending || recovery?.outcome === 'accepted' || recovery?.outcome === 'rejected' || recovery?.outcome === 'legacy_unknown'} onClick={() => send(saved)}>Retry original command</Pill>
         {['accepted', 'rejected'].includes(recovery?.outcome) && <Pill size="sm" onClick={() => { setSaved(null); try { sessionStorage.removeItem(storageKey) } catch {} }}>Release saved command</Pill>}</Track>

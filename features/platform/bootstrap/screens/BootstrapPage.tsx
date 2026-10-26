@@ -14,7 +14,7 @@ export function BootstrapPage() {
   const [state, action, pending] = useActionState(bootstrapInitialHospital, initialState)
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg items-center px-6 py-12">
-      <section className="w-full rounded-xl border bg-card p-6 shadow-sm">
+      <section className="w-full rounded-[4px] border bg-card p-6">
         <p className="text-sm font-medium uppercase tracking-[.2em] text-muted-foreground">Private initialization</p>
         <h1 className="mt-2 text-2xl font-semibold">Create the first administrator</h1>
         <p className="mt-2 text-sm text-muted-foreground">Use the deployment-controlled bootstrap secret exactly once. No patient record is created here.</p>

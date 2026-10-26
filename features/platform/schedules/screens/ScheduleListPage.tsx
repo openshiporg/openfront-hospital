@@ -63,11 +63,11 @@ function durationLabel(block: ScheduleBlock) {
 function BlockDetails({ block }: { block: ScheduleBlock }) {
   return (
     <details className="group min-w-0">
-      <summary className="w-fit cursor-pointer list-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary className="w-fit cursor-pointer list-none rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Track><Pill asChild size="sm" variant="plain"><span><ChevronRight className="transition-transform group-open:rotate-90" aria-hidden />Details</span></Pill></Track>
       </summary>
       <Facts
-        className="mt-2 max-w-xl rounded-lg border bg-muted/30 px-3"
+        className="mt-2 max-w-xl rounded-[4px] border bg-muted/30 px-3"
         items={[
           { label: 'Ends', value: formatDateTime(block.endsAt, block.facility?.timeZone) },
           { label: 'Duration', value: durationLabel(block), mono: true },
@@ -170,7 +170,7 @@ export async function ScheduleListPage({ searchParams }: { searchParams: SearchP
                     meta={<>
                       <span className="inline-flex items-baseline gap-1.5 font-medium text-foreground"><StatusDot tone={tone} className="size-1.5 -translate-y-[0.1em] shadow-none" />{label}</span>
                       <span className="tabular-nums text-foreground">{formatDateTime(block.startsAt, block.facility?.timeZone)}</span>
-                      <span className="font-mono tabular-nums">{durationLabel(block)}</span>
+                      <span className="tabular-nums ">{durationLabel(block)}</span>
                       <span>{block.facility?.name || 'Restricted facility'}</span>
                       <span>{block.locationName || 'Location not set'}</span>
                     </>}

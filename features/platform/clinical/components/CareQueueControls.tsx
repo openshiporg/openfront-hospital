@@ -39,7 +39,7 @@ export function CareQueueControls({ ticket, appointments = [] }: { ticket?: Tick
     const appointmentId = String(data.get('appointmentId') || '')
     const reasonCode = String(data.get('reasonCode') || 'scheduled_visit')
     void run(idempotencyKey => arriveAppointment({ appointmentId, reasonCode, idempotencyKey }))
-  }} className="grid min-w-0 gap-3 rounded-xl border bg-card p-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_auto] md:items-end">
+  }} className="grid min-w-0 gap-3 rounded-[4px] border bg-card p-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_auto] md:items-end">
     {exitGuard}
     <fieldset className="contents" disabled={pending || locked}>
       <label htmlFor="arrival-appointment" className={labelClass}>Appointment

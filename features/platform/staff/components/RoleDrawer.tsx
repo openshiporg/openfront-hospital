@@ -68,8 +68,8 @@ export function RoleDrawer({ mode, role, viewerIsGlobal }: { mode: 'create' | 'e
           </label>
           <div className="grid min-w-0 gap-4 sm:grid-cols-2">
             {PERMISSION_GROUPS.map(group => (
-              <fieldset key={group.key} className="min-w-0 rounded-lg border p-3">
-                <legend className="px-1 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{group.label}</legend>
+              <fieldset key={group.key} className="min-w-0 rounded-[4px] border p-3">
+                <legend className="px-1 tabular-nums text-xs font-medium text-muted-foreground">{group.label}</legend>
                 <div className="grid gap-1.5">
                   {group.flags.map(flag => {
                     const locked = GLOBAL_ONLY_FLAGS.includes(flag.key) && !viewerIsGlobal

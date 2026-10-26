@@ -14,7 +14,7 @@ const statusTone: Record<string, WardTone> = {
   reviewed: 'ok',
 }
 
-const sectionLabel = 'font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground'
+const sectionLabel = 'tabular-nums text-xs font-medium text-muted-foreground'
 
 function formatDateTime(value?: string | null, timeZone?: string | null) {
   if (!value) return 'Not scheduled'
@@ -100,14 +100,14 @@ export function IntakeDetailsCard({ intake }: { intake: IntakeQueueItem }) {
               <dd className="mt-1 flex min-w-0 flex-wrap gap-x-3 text-foreground/90">
                 <span className="tabular-nums">{medicationCount} medication{medicationCount === 1 ? '' : 's'}</span>
                 <span className="tabular-nums">{allergyCount} allerg{allergyCount === 1 ? 'y' : 'ies'}</span>
-                {intake.patient?.phone && <span className="font-mono text-[13px] tabular-nums">{intake.patient.phone}</span>}
+                {intake.patient?.phone && <span className="tabular-nums text-[13px] ">{intake.patient.phone}</span>}
                 {intake.patient?.email && <span className="break-all">{intake.patient.email}</span>}
               </dd>
             </div>
           </dl>
         </div>
 
-        <aside className="min-w-0 space-y-2.5 rounded-xl border bg-muted/30 p-3">
+        <aside className="min-w-0 space-y-2.5 rounded-[4px] border bg-muted/30 p-3">
           <label className={sectionLabel} htmlFor={`intake-review-notes-${intake.id}`}>Review notes</label>
           <textarea
             id={`intake-review-notes-${intake.id}`}
@@ -116,7 +116,7 @@ export function IntakeDetailsCard({ intake }: { intake: IntakeQueueItem }) {
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Internal notes"
             rows={4}
-            className="w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-sm shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] outline-none focus-visible:ring-2 focus-visible:ring-ring read-only:bg-muted/40"
+            className="w-full min-w-0 rounded-[4px] border bg-background px-3 py-2 text-sm shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] outline-none focus-visible:ring-2 focus-visible:ring-ring read-only:bg-muted/40"
           />
           {(locked || ['submitted', 'needs_review', 'reviewed'].includes(intake.status)) && (
             <Track>

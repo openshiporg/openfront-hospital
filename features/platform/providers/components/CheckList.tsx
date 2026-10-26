@@ -26,12 +26,12 @@ export function CheckList({
     <fieldset className="grid min-w-0 gap-1" disabled={disabled}>
       <legend className="mb-1 flex w-full items-baseline justify-between text-xs font-medium text-muted-foreground">
         <span>{label}</span>
-        <span className="font-mono text-[11px] tabular-nums">{value.length} selected</span>
+        <span className="tabular-nums text-[11px] ">{value.length} selected</span>
       </legend>
       {options.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">{emptyLabel}</p>
+        <p className="rounded-[4px] border  px-3 py-2 text-xs text-muted-foreground">{emptyLabel}</p>
       ) : (
-        <div className="max-h-44 min-w-0 divide-y overflow-y-auto rounded-lg border bg-background">
+        <div className="max-h-44 min-w-0 divide-y overflow-y-auto rounded-[4px] border bg-background">
           {options.map((option) => (
             <label key={option.id} className="flex min-w-0 cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted/50">
               <input

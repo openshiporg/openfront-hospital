@@ -125,7 +125,7 @@ export function ProviderSheet({
             </label>
             <div className={`${labelClass} sm:col-span-2`}>
               Display name
-              <p className="flex h-9 items-center rounded-lg border border-dashed px-3 text-sm text-foreground">{displayName || '—'}</p>
+              <p className="flex h-9 items-center rounded-[4px] border  px-3 text-sm text-foreground">{displayName || '—'}</p>
             </div>
             <label className={labelClass}>
               Primary location

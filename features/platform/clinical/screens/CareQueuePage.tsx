@@ -109,7 +109,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
       status={statusLabel(ticket.status)}
       title={<span className="inline-flex flex-wrap items-center gap-2">
         <Wristband name={ticket.patient?.displayName ?? 'Restricted patient'} identifier={ticket.appointment?.appointmentNumber || undefined} />
-        {urgent && <span className="rounded-full border border-red-500/30 bg-red-500/5 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300">Time sensitive</span>}
+        {urgent && <span className="rounded-[4px] border border-red-500/30 bg-red-500/5 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300">Time sensitive</span>}
       </span>}
       meta={<>
         <span>Arrived {formatFacilityTime(ticket.arrivedAt, ticket.facility?.timeZone)}</span>
@@ -151,7 +151,7 @@ export default async function CareQueuePage() {
         <WardHeader
           title="Care queue"
           tone={data.careQueueTicketsCount > 0 ? 'accent' : 'idle'}
-          meta={<span className="font-mono text-xs tabular-nums">{data.careQueueTicketsCount} active · {appointmentOptions.length} to arrive</span>}
+          meta={<span className="tabular-nums text-xs ">{data.careQueueTicketsCount} active · {appointmentOptions.length} to arrive</span>}
         />
       )}
     >

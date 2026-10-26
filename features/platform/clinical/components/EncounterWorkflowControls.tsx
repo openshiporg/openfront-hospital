@@ -305,7 +305,7 @@ export function OpenEncounterForm({ options }: { options: OperationsWorkspaceOpt
   const missingReferences = options.facilitiesCount === 0
 
   return (
-    <details className="group min-w-0 rounded-xl border bg-card" open>
+    <details className="group min-w-0 rounded-[4px] border bg-card" open>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold marker:hidden md:px-5 [&::-webkit-details-marker]:hidden">
         <span>Open encounter</span>
         <span aria-hidden className="text-xs font-normal text-muted-foreground group-open:rotate-180">▾</span>

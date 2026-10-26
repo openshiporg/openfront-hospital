@@ -135,7 +135,7 @@ export async function StaffPage(props: { searchParams: Promise<Record<string, st
               <WardSection
                 id="staff-users"
                 title="Users"
-                actions={<span className="font-mono text-xs tabular-nums text-muted-foreground">{usersCount ? `${first}–${last} of ${usersCount}` : '0 users'}</span>}
+                actions={<span className="tabular-nums text-xs  text-muted-foreground">{usersCount ? `${first}–${last} of ${usersCount}` : '0 users'}</span>}
               >
                 {!users.length ? <EmptyBoard title={search || roleFilter ? 'No matching users' : 'No users visible'} /> : (
                   <Board>
@@ -173,7 +173,7 @@ export async function StaffPage(props: { searchParams: Promise<Record<string, st
                 )}
                 {usersCount > PAGE_SIZE && (
                   <nav aria-label="User pages" className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
-                    <p className="font-mono text-xs tabular-nums text-muted-foreground">Page {page} of {totalPages}</p>
+                    <p className="tabular-nums text-xs  text-muted-foreground">Page {page} of {totalPages}</p>
                     <Track>
                       {page > 1
                         ? <Pill asChild size="sm"><Link href={href({ view, search, role: roleFilter, page: page - 1 })}><ChevronLeft aria-hidden />Previous</Link></Pill>
@@ -220,7 +220,7 @@ export async function StaffPage(props: { searchParams: Promise<Record<string, st
                           <dl className="grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2 lg:grid-cols-3">
                             {groups.map(group => (
                               <div key={group.label} className="min-w-0">
-                                <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{group.label}</dt>
+                                <dt className="tabular-nums text-[11px]  text-muted-foreground">{group.label}</dt>
                                 <dd className="text-foreground">{group.flags.join(', ')}</dd>
                               </div>
                             ))}
@@ -231,7 +231,7 @@ export async function StaffPage(props: { searchParams: Promise<Record<string, st
                   })}
                 </Board>
               )}
-              {rolesResponse.data.rolesCount > roles.length && <p className="mt-2 font-mono text-xs text-muted-foreground">Showing <Code>{roles.length}</Code> of {rolesResponse.data.rolesCount}</p>}
+              {rolesResponse.data.rolesCount > roles.length && <p className="mt-2 tabular-nums text-xs text-muted-foreground">Showing <Code>{roles.length}</Code> of {rolesResponse.data.rolesCount}</p>}
             </WardSection>
           </>
         )}

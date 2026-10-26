@@ -452,7 +452,7 @@ export default async function InpatientOperationsPage({ searchParams }: PageProp
           {bedsQueue.state === 'ready' && bedsQueue.page?.state === 'ready' && (
             <ul className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {bedsQueue.page.beds.map((bed: Bed) => (
-                <li key={bed.id} className={cn('flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-3', bed.status === 'available' && 'border-emerald-500/30')}>
+                <li key={bed.id} className={cn('flex min-w-0 flex-col gap-2 rounded-[4px] border bg-card p-3', bed.status === 'available' && 'border-emerald-500/30')}>
                   <div className="flex min-w-0 items-baseline justify-between gap-2">
                     <TitleLine tone={bedTone(bed.status)} status={statusLabel(bed.status)} className="text-sm font-semibold text-foreground">Bed {bed.bedNumber}</TitleLine>
                     <span className="shrink-0 text-xs text-muted-foreground">{statusLabel(bed.status)}</span>

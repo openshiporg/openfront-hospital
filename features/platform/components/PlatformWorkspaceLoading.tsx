@@ -10,7 +10,7 @@ export function PlatformWorkspaceLoading() {
     >
       <WardBody>
         <div role="status" aria-live="polite" className="sr-only">Loading records</div>
-        <div aria-hidden="true" className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border md:grid-cols-4">
+        <div aria-hidden="true" className="grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border bg-border md:grid-cols-4">
           {Array.from({ length: 4 }, (_, index) => (
             <div key={index} className="bg-card px-4 py-3 md:px-5 md:py-4">
               <div className="h-2.5 w-16 rounded bg-muted motion-safe:animate-pulse" />

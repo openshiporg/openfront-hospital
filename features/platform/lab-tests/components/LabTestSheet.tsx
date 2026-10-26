@@ -20,7 +20,7 @@ export function LabTestSheet({ test, categories, bare }: { test?: LabTestRecord;
       action={values => saveLabTest(test?.id ?? null, values)}
     >
       <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-        <SheetField label="Code" name="code"><SheetInput name="code" required autoComplete="off" className="font-mono uppercase" defaultValue={test?.code ?? ''} /></SheetField>
+        <SheetField label="Code" name="code"><SheetInput name="code" required autoComplete="off" className="tabular-nums uppercase" defaultValue={test?.code ?? ''} /></SheetField>
         <SheetField label="Name" name="name"><SheetInput name="name" required autoComplete="off" defaultValue={test?.name ?? ''} /></SheetField>
       </div>
       <SheetField label="Category" name="category">

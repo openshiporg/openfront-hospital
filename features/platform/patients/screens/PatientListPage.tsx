@@ -90,23 +90,23 @@ function queryHref(params: { search: string; status: string; sort: string; page:
   return `/dashboard/platform/patients${query.size ? `?${query}` : ''}`
 }
 
-const evidenceLabel = 'font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground'
+const evidenceLabel = 'tabular-nums text-xs font-medium text-muted-foreground'
 
 function PatientDetails({ patient }: { patient: PatientRow }) {
   const visibleAppointments = patient.appointments || []
   const visibleRegistrations = patient.registrations || []
   return (
     <details className="group min-w-0">
-      <summary className="w-fit cursor-pointer list-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary className="w-fit cursor-pointer list-none rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Track><Pill asChild size="sm" variant="plain"><span><ChevronRight className="transition-transform group-open:rotate-90" aria-hidden />History</span></Pill></Track>
       </summary>
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <section className="min-w-0 rounded-lg border bg-muted/30 p-3">
+        <section className="min-w-0 rounded-[4px] border bg-muted/30 p-3">
           <h3 className={evidenceLabel}>Recent appointments</h3>
           {visibleAppointments.length ? <ul className="mt-2 space-y-1.5 text-sm">{visibleAppointments.map(item => <li key={item.id} className="flex min-w-0 flex-wrap items-baseline gap-x-3"><Code>{item.appointmentNumber || 'No reference'}</Code><StatusTag status={item.status || 'unknown'} /><span className="text-muted-foreground">{formatDate(item.startsAt, item.facility?.timeZone)}</span></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No appointments.</p>}
           {Number(patient.appointmentsCount || 0) > visibleAppointments.length && <p className="mt-2 text-xs text-muted-foreground">Showing {visibleAppointments.length} of {patient.appointmentsCount} appointments.</p>}
         </section>
-        <section className="min-w-0 rounded-lg border bg-muted/30 p-3">
+        <section className="min-w-0 rounded-[4px] border bg-muted/30 p-3">
           <h3 className={evidenceLabel}>Registrations</h3>
           {visibleRegistrations.length ? <ul className="mt-2 space-y-1.5 text-sm">{visibleRegistrations.map(item => <li key={item.id} className="min-w-0 break-words">{item.facility?.name || 'Restricted facility'} <span className="text-muted-foreground">· {item.duplicateResolution?.replaceAll('_', ' ') || 'resolution unavailable'} · {formatDate(item.createdAt, item.facility?.timeZone)}</span></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No registrations.</p>}
           {Number(patient.registrationsCount || 0) > visibleRegistrations.length && <p className="mt-2 text-xs text-muted-foreground">Showing {visibleRegistrations.length} of {patient.registrationsCount} registrations.</p>}
@@ -201,7 +201,7 @@ export async function PatientListPage(props: { searchParams: Promise<Record<stri
       <WardSection
         title={search ? 'Matches' : 'Patients'}
         id="patient-results"
-        actions={<span className="font-mono text-xs tabular-nums text-muted-foreground">{data.patientsCount ? `${first}–${last} of ${data.patientsCount}` : '0 matches'}</span>}
+        actions={<span className="tabular-nums text-xs  text-muted-foreground">{data.patientsCount ? `${first}–${last} of ${data.patientsCount}` : '0 matches'}</span>}
       >
         {!data.patients.length ? <EmptyBoard title="No matching patients" /> : (
           <Board>
@@ -232,7 +232,7 @@ export async function PatientListPage(props: { searchParams: Promise<Record<stri
         )}
         {data.patientsCount > PAGE_SIZE && (
           <nav aria-label="Patient result pages" className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-xs tabular-nums text-muted-foreground">Page {page} of {boundedPages}{totalPages > boundedPages ? ' (bounded)' : ''}</p>
+            <p className="tabular-nums text-xs  text-muted-foreground">Page {page} of {boundedPages}{totalPages > boundedPages ? ' (bounded)' : ''}</p>
             <Track>
               {page > 1
                 ? <Pill asChild size="sm"><Link href={queryHref({ search, status, sort, page: page - 1 })}><ChevronLeft aria-hidden />Previous</Link></Pill>

@@ -18,7 +18,6 @@ export async function CareServicesPage() {
       <header className="sf-pagehead">
         <div className="sf-container sf-pagehead__inner sf-reveal">
           <div>
-            <p className="sf-eyebrow">{profile.shortName}</p>
             <h1 className="sf-display sf-display--page">Care services</h1>
             {serviceLines.length > 0 && (
               <nav aria-label="Service zones" style={{ display: 'flex', flexWrap: 'wrap', gap: '.4rem' }}>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Dot, Sign, StorefrontShell, zoneFor } from '@/features/storefront/components/StorefrontShell'
+import { Dot, EmergencyNotice, StorefrontShell, zoneFor } from '@/features/storefront/components/StorefrontShell'
 import { getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
 import { getHospitalBranding } from '@/features/storefront/lib/data/branding'
@@ -17,70 +17,62 @@ export async function HomePage() {
 
   return (
     <StorefrontShell profile={profile}>
-      <section className="sf-hero" aria-labelledby="home-heading">
-        <div className="sf-container sf-hero__grid">
-          <div className="sf-hero__copy sf-reveal">
-            <p className="sf-eyebrow">{profile.locationName}</p>
-            <h1 id="home-heading" className="sf-display sf-display--hero sf-hero__title">{profile.name}</h1>
-            {profile.description && <p className="sf-lead">{profile.description}</p>}
-            <div>
+      <section className="sf-front" aria-labelledby="home-heading">
+        <div className="sf-container">
+          <div className="sf-front__head">
+            <div className="sf-reveal">
+              <h1 id="home-heading" className="sf-display sf-display--hero sf-front__title">{profile.name}</h1>
+              {profile.description && <p className="sf-lead" style={{ marginTop: '1rem' }}>{profile.description}</p>}
+            </div>
+            <div className="sf-front__side">
               <div className="sf-track">
                 <Link className="sf-pill sf-pill--primary" href="/book">Request a visit <span className="sf-arrow">→</span></Link>
-                <Link className="sf-pill" href="/providers">Care team</Link>
-                <Link className="sf-pill" href="/intake">Intake</Link>
+                <Link className="sf-pill" href="/intake">Pre-visit intake</Link>
               </div>
-            </div>
-            <div className="sf-hero__facts">
-              <span><Dot tone={appointmentTypes.length ? 'ok' : undefined} />{appointmentTypes.length} visit {appointmentTypes.length === 1 ? 'type' : 'types'}</span>
-              <span><Dot tone={providers.length ? 'ok' : undefined} />{providers.length} {providers.length === 1 ? 'clinician' : 'clinicians'}</span>
-              {shortestVisit !== null && <span><Dot />From {shortestVisit} min</span>}
+              <p className="sf-front__facts">
+                <span>{profile.locationName}</span>
+                <span>{appointmentTypes.length} visit {appointmentTypes.length === 1 ? 'type' : 'types'}</span>
+                <span>{providers.length} {providers.length === 1 ? 'clinician' : 'clinicians'}</span>
+                {shortestVisit !== null && <span>From {shortestVisit} min</span>}
+              </p>
+              <EmergencyNotice />
             </div>
           </div>
-          <div className="sf-hero__media sf-reveal">
-            <img src={profile.media.hero} alt="A family talking with a physician" />
-            {serviceLines.length > 0 && (
-              <div className="sf-hero__signs" aria-hidden="true">
-                {serviceLines.map(line => <Sign key={line.key} zone={zoneFor(line.key)} label={line.title} />)}
-              </div>
+          <div className="sf-front__rack" aria-labelledby="directory-heading">
+            <h2 id="directory-heading" className="sf-sr">Care services</h2>
+            {serviceLines.length === 0 ? (
+              <div className="sf-empty"><p className="sf-empty__title">No visit types are open for online requests.</p><p className="sf-muted">Call the practice to arrange a visit.</p></div>
+            ) : (
+              <ul className="sf-rack">
+                {serviceLines.map(line => {
+                  const zone = zoneFor(line.key)
+                  const cover = line.key === 'primary-care' ? profile.media.primaryCare : line.key === 'behavioral-health' ? profile.media.behavioralHealth : profile.media.telehealth
+                  return (
+                    <li key={line.key} id={line.key} className={`sf-leaflet ${zone.className}`}>
+                      <div className="sf-leaflet__cover">
+                        {cover && <img src={cover} alt="" loading="lazy" />}
+                        <h3 className="sf-leaflet__title">{line.title}</h3>
+                        <p className="sf-leaflet__count">{line.appointmentTypes.length} {line.appointmentTypes.length === 1 ? 'visit' : 'visits'} open for requests</p>
+                      </div>
+                      <div className="sf-leaflet__inside">
+                        <p className="sf-leaflet__desc">{line.description}</p>
+                        <div className="sf-leaflet__visits">
+                          {line.appointmentTypes.map(type => (
+                            <Link key={type.id} className="sf-leaflet__visit" href={`/book/${type.slug}`}>
+                              <strong>{type.name}</strong>
+                              <span className="sf-leaflet__len">{type.durationMinutes} min</span>
+                              {type.providers.length > 0 && <span className="sf-leaflet__who">{type.providers.map(provider => provider.displayName).join(' · ')}</span>}
+                            </Link>
+                          ))}
+                        </div>
+                        <Link className="sf-leaflet__go" href={`/care#${line.key}`}>All {line.title.toLowerCase()} details <span className="sf-arrow">→</span></Link>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
           </div>
-        </div>
-      </section>
-
-      <section className="sf-container" aria-labelledby="directory-heading">
-        <div className="sf-directory">
-          <div className="sf-directory__head">
-            <div>
-              <p className="sf-eyebrow">Directory</p>
-              <h2 id="directory-heading" className="sf-display sf-display--section" style={{ marginTop: '.4rem' }}>Care services</h2>
-            </div>
-            <div className="sf-track sf-track--lobby">
-              <Link className="sf-pill sf-pill--raised" href="/care">All services <span className="sf-arrow">→</span></Link>
-            </div>
-          </div>
-          {serviceLines.length === 0 ? (
-            <p className="sf-directory__empty">No visit types are open for online requests.</p>
-          ) : (
-            <ul className="sf-directory__rows">
-              {serviceLines.map(line => {
-                const zone = zoneFor(line.key)
-                return (
-                  <li key={line.key} className={`sf-directory__row ${zone.className}`}>
-                    <span className="sf-directory__code" aria-hidden="true">{zone.code}</span>
-                    <h3 className="sf-directory__title">{line.title}</h3>
-                    <div className="sf-directory__visits">
-                      {line.appointmentTypes.map(type => (
-                        <Link key={type.id} className="sf-directory__visit" href={`/book/${type.slug}`}>
-                          {type.name}<span className="sf-mono">{type.durationMinutes} min</span>
-                        </Link>
-                      ))}
-                    </div>
-                    <Link className="sf-directory__go sf-eyebrow" style={{ color: 'var(--color-lobby-ink)' }} href={`/care#${line.key}`}>Zone {zone.code} →</Link>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
         </div>
       </section>
 
@@ -88,7 +80,6 @@ export async function HomePage() {
         <div className="sf-container">
           <div className="sf-section__head">
             <div>
-              <p className="sf-eyebrow">Getting seen</p>
               <h2 id="steps-heading" className="sf-display sf-display--section">Three steps</h2>
             </div>
           </div>
@@ -105,7 +96,6 @@ export async function HomePage() {
           <div className="sf-container">
             <div className="sf-section__head">
               <div>
-                <p className="sf-eyebrow">Care team</p>
                 <h2 id="team-heading" className="sf-display sf-display--section">Accepting requests</h2>
               </div>
               <div className="sf-track"><Link className="sf-pill sf-pill--raised" href="/providers">All clinicians <span className="sf-arrow">→</span></Link></div>

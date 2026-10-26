@@ -66,7 +66,7 @@ function Pagination({ total, page, link }: { total: number; page: number; link: 
   if (total <= PAGE_SIZE && page === 1) return null
   return (
     <nav aria-label="Audit pages" className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
-      <p className="font-mono text-xs tabular-nums text-muted-foreground">
+      <p className="tabular-nums text-xs  text-muted-foreground">
         Page {page} of {pages}{Math.ceil(total / PAGE_SIZE) > pages ? ' (bounded)' : ''}
       </p>
       <Track>
@@ -177,7 +177,7 @@ export async function AuditPage(props: { searchParams: Promise<Record<string, st
               <WardSection
                 id="audit-events"
                 title="Clinical events"
-                actions={<span className="font-mono text-xs tabular-nums text-muted-foreground">{events.data.clinicalAuditLogsCount} events</span>}
+                actions={<span className="tabular-nums text-xs  text-muted-foreground">{events.data.clinicalAuditLogsCount} events</span>}
               >
                 {!events.data.clinicalAuditLogs.length ? <EmptyBoard title={type || search ? 'No matching events' : 'No events in this range'} /> : (
                   <Board>
@@ -214,7 +214,7 @@ export async function AuditPage(props: { searchParams: Promise<Record<string, st
               <WardSection
                 id="audit-transitions"
                 title="Workflow transitions"
-                actions={<span className="font-mono text-xs tabular-nums text-muted-foreground">{transitions.data.workflowTransitionsCount} transitions</span>}
+                actions={<span className="tabular-nums text-xs  text-muted-foreground">{transitions.data.workflowTransitionsCount} transitions</span>}
               >
                 {!transitions.data.workflowTransitions.length ? <EmptyBoard title={type || search ? 'No matching transitions' : 'No transitions in this range'} /> : (
                   <Board>

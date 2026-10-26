@@ -122,7 +122,7 @@ export default async function ClinicalOperationsPage() {
       header={
         <WardHeader
           title="Clinical operations"
-          meta={<span className="font-mono text-xs tabular-nums">{data.facilitiesCount} facilities · {data.cliniciansCount} clinicians</span>}
+          meta={<span className="tabular-nums text-xs ">{data.facilitiesCount} facilities · {data.cliniciansCount} clinicians</span>}
           actions={
             <Actions>
               <Pill asChild><Link href="/dashboard/platform/patients">Patients</Link></Pill>
@@ -217,7 +217,7 @@ export default async function ClinicalOperationsPage() {
 
         <div className="grid min-w-0 gap-6 xl:grid-cols-2">
           <WardSection title="Wards, rooms and beds" count={data.wardsCount + data.roomsCount + data.bedsCount} id="clinical-capacity">
-            {beds.length > 0 && <p className="mb-2 text-xs text-muted-foreground"><span className="font-mono tabular-nums text-foreground">{occupiedBeds}</span> of {beds.length} recent beds occupied</p>}
+            {beds.length > 0 && <p className="mb-2 text-xs text-muted-foreground"><span className="tabular-nums  text-foreground">{occupiedBeds}</span> of {beds.length} recent beds occupied</p>}
             {wards.length || rooms.length || beds.length ? (
               <Board>
                 {wards.map((ward) => (
@@ -247,7 +247,7 @@ export default async function ClinicalOperationsPage() {
                 {clinicians.map((clinician) => (
                   <BoardRow key={clinician.id} tone={clinician.active ? 'ok' : 'idle'} status={clinician.active ? 'Active' : 'Inactive'} title={clinician.displayName}
                     meta={<><span>{statusLabel(clinician.clinicianType)}</span><span>{clinician.department?.name ?? 'No department'}</span><span>{clinician.active ? 'Active' : 'Inactive'}</span></>}
-                    aside={clinician.images[0]?.imagePath ? <img src={clinician.images[0].imagePath} alt={clinician.images[0].altText || clinician.displayName} className="size-10 rounded-full border object-cover" /> : undefined} />
+                    aside={clinician.images[0]?.imagePath ? <img src={clinician.images[0].imagePath} alt={clinician.images[0].altText || clinician.displayName} className="size-10 rounded-[4px] border object-cover" /> : undefined} />
                 ))}
               </Board>
             ) : <EmptyBoard title="No departments or clinicians found." />}
@@ -262,10 +262,10 @@ export default async function ClinicalOperationsPage() {
                   <BoardRow key={vital.id} title={vital.patient?.displayName ?? 'No patient'}
                     meta={<>
                       <span>Vitals</span>
-                      <span className="font-mono tabular-nums">Temp {vital.temperatureTenthsC != null ? `${(vital.temperatureTenthsC / 10).toFixed(1)}°C` : vital.temperatureC != null ? `${vital.temperatureC}°C` : '—'}</span>
-                      <span className="font-mono tabular-nums">BP {vital.systolicBp ?? '—'}/{vital.diastolicBp ?? '—'}</span>
-                      <span className="font-mono tabular-nums">HR {vital.heartRate ?? '—'}</span>
-                      <span className="font-mono tabular-nums">O₂ {vital.oxygenSaturation ?? '—'}%</span>
+                      <span className="tabular-nums ">Temp {vital.temperatureTenthsC != null ? `${(vital.temperatureTenthsC / 10).toFixed(1)}°C` : vital.temperatureC != null ? `${vital.temperatureC}°C` : '—'}</span>
+                      <span className="tabular-nums ">BP {vital.systolicBp ?? '—'}/{vital.diastolicBp ?? '—'}</span>
+                      <span className="tabular-nums ">HR {vital.heartRate ?? '—'}</span>
+                      <span className="tabular-nums ">O₂ {vital.oxygenSaturation ?? '—'}%</span>
                       {vital.encounter?.encounterNumber && <Code>{vital.encounter.encounterNumber}</Code>}
                     </>} />
                 ))}
@@ -286,10 +286,10 @@ export default async function ClinicalOperationsPage() {
           </WardSection>
 
           <WardSection title="Labs and claims" count={diagnosticsRows} id="clinical-external">
-            <div className="min-w-0 overflow-x-auto rounded-xl border bg-card">
+            <div className="min-w-0 overflow-x-auto rounded-[4px] border bg-card">
               <table className="w-full min-w-[30rem] text-sm">
                 <thead>
-                  <tr className="border-b text-left font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+                  <tr className="border-b text-left tabular-nums text-[11px]  text-muted-foreground">
                     <th className="px-4 py-2 font-medium">Lab test</th>
                     <th className="px-4 py-2 font-medium">Specimen</th>
                     <th className="px-4 py-2 font-medium">Turnaround</th>
@@ -301,7 +301,7 @@ export default async function ClinicalOperationsPage() {
                     <tr key={test.id}>
                       <td className="px-4 py-2.5"><div className="font-medium">{test.name}</div><div className="text-xs text-muted-foreground">{test.code || 'No code'} · {test.category || 'No category'}</div></td>
                       <td className="px-4 py-2.5">{test.specimenType || '—'}</td>
-                      <td className="px-4 py-2.5 font-mono tabular-nums">{test.turnaroundHours ?? 0}h</td>
+                      <td className="px-4 py-2.5 tabular-nums ">{test.turnaroundHours ?? 0}h</td>
                       <td className="px-4 py-2.5"><StatusTag status={test.active ? 'Active' : 'Inactive'} tone={test.active ? 'ok' : 'idle'} /></td>
                     </tr>
                   )) : <tr><td colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No lab tests found.</td></tr>}
@@ -316,7 +316,7 @@ export default async function ClinicalOperationsPage() {
                 ))}
                 {insuranceClaims.map((claim) => (
                   <BoardRow key={claim.id} tone={toneForStatus(claim.status)} status={statusLabel(claim.status)} title={<Code className="text-[13px] text-foreground">{claim.claimNumber}</Code>}
-                    meta={<><span>{claim.payerName || 'No payer'}</span><span className="font-mono tabular-nums">Billed {money(claim.billedAmountCents)}</span><span className="font-mono tabular-nums">Paid {money(claim.paidAmountCents)}</span></>} aside={<StatusTag status={claim.status} />} />
+                    meta={<><span>{claim.payerName || 'No payer'}</span><span className="tabular-nums ">Billed {money(claim.billedAmountCents)}</span><span className="tabular-nums ">Paid {money(claim.paidAmountCents)}</span></>} aside={<StatusTag status={claim.status} />} />
                 ))}
               </Board>
             )}

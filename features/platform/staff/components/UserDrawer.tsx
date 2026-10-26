@@ -152,7 +152,7 @@ export function UserDrawer({
               <legend className="mb-1 text-xs font-medium text-muted-foreground">Facilities</legend>
               {facilitiesTruncated && <Notice tone="warn">This user has more facilities than can be shown. Facilities are read-only here.</Notice>}
               {!facilities.length && <p className="text-sm text-muted-foreground">No facilities visible.</p>}
-              <div className="grid max-h-56 gap-1 overflow-y-auto rounded-lg border p-2">
+              <div className="grid max-h-56 gap-1 overflow-y-auto rounded-[4px] border p-2">
                 {facilities.map(facility => (
                   <label key={facility.id} className="flex min-w-0 items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted/50">
                     <input type="checkbox" checked={facilityIds.includes(facility.id)} onChange={() => toggleFacility(facility.id)} disabled={facilitiesTruncated} className="size-4 accent-teal-700" />

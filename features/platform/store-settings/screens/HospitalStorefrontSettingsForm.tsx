@@ -57,12 +57,12 @@ function LogoMark({ svg, hue, className }: { svg: string; hue: string | number; 
 function HeaderPreview({ form }: { form: HospitalStorefrontSettingsInput }) {
   const theme = HOSPITAL_BRAND_THEME_OPTIONS.find(option => option.value === form.brandTheme) ?? HOSPITAL_BRAND_THEME_OPTIONS[0]
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
+    <div className="overflow-hidden rounded-[4px] border bg-card">
       <div className="flex items-center gap-1.5 border-b bg-muted/50 px-3 py-2">
-        <span aria-hidden className="size-2 rounded-full bg-muted-foreground/30" />
-        <span aria-hidden className="size-2 rounded-full bg-muted-foreground/30" />
-        <span aria-hidden className="size-2 rounded-full bg-muted-foreground/30" />
-        <span className="ml-2 truncate font-mono text-[11px] text-muted-foreground">Patient site</span>
+        <span aria-hidden className="size-2 rounded-[4px] bg-muted-foreground/30" />
+        <span aria-hidden className="size-2 rounded-[4px] bg-muted-foreground/30" />
+        <span aria-hidden className="size-2 rounded-[4px] bg-muted-foreground/30" />
+        <span className="ml-2 truncate tabular-nums text-[11px] text-muted-foreground">Patient site</span>
       </div>
       {/* The patient site is light-themed; the preview stays light in both dashboard modes. */}
       <div className="bg-white text-zinc-900">
@@ -74,7 +74,7 @@ function HeaderPreview({ form }: { form: HospitalStorefrontSettingsInput }) {
               <small className="truncate text-[11px] text-zinc-500">{form.locationName || 'Primary location'}</small>
             </span>
           </div>
-          <span className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-white" style={{ backgroundColor: theme.swatch }}>Request a visit →</span>
+          <span className="shrink-0 whitespace-nowrap rounded-[4px] px-3 py-1.5 text-xs font-medium text-white" style={{ backgroundColor: theme.swatch }}>Request a visit →</span>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-zinc-100 px-4 py-2 text-[11px] text-zinc-600">
           <span>Care services</span>
@@ -143,14 +143,14 @@ export function HospitalStorefrontSettingsForm({ initialSettings }: { initialSet
             <legend className="sr-only">Logo</legend>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2">
               {hasSavedCustomMark && (
-                <label className="group relative grid cursor-pointer place-items-center gap-1 rounded-lg border bg-background p-2 text-center has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
+                <label className="group relative grid cursor-pointer place-items-center gap-1 rounded-[4px] border bg-background p-2 text-center has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
                   <input type="radio" name="merchant-logo-choice" value="saved" checked={selectedLogoId === 'saved'} readOnly className="sr-only" />
                   <LogoMark svg={form.logoIcon} hue={0} className="size-8" />
                   <span className="w-full truncate text-[10px] text-muted-foreground">Saved</span>
                 </label>
               )}
               {LOGO_ICONS.map(icon => (
-                <label key={icon.id} title={icon.name} className="relative grid cursor-pointer place-items-center gap-1 rounded-lg border bg-background p-2 text-center transition-colors hover:border-foreground/30 has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
+                <label key={icon.id} title={icon.name} className="relative grid cursor-pointer place-items-center gap-1 rounded-[4px] border bg-background p-2 text-center transition-colors hover:border-foreground/30 has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
                   <input type="radio" name="merchant-logo-choice" value={icon.id} checked={selectedLogoId === icon.id} onChange={() => setField('logoIcon', icon.lightSvg)} className="sr-only" aria-label={icon.name} />
                   <LogoMark svg={icon.lightSvg} hue={0} className="size-8 dark:hidden" />
                   <LogoMark svg={icon.darkSvg} hue={0} className="hidden size-8 dark:block" />
@@ -163,7 +163,7 @@ export function HospitalStorefrontSettingsForm({ initialSettings }: { initialSet
           <div className="grid min-w-0 gap-2">
             <label htmlFor="merchant-hue" className={cn(labelClass, 'flex items-center justify-between')}>
               <span>Hue</span>
-              <span className="font-mono tabular-nums text-foreground">{form.logoColor}°</span>
+              <span className="tabular-nums  text-foreground">{form.logoColor}°</span>
             </label>
             <input id="merchant-hue" className="w-full accent-teal-700 dark:accent-teal-400" type="range" min="0" max="359" step="1" value={form.logoColor} onChange={event => setField('logoColor', event.target.value)} />
             <Segmented
@@ -181,7 +181,7 @@ export function HospitalStorefrontSettingsForm({ initialSettings }: { initialSet
             <legend className="sr-only">Brand theme</legend>
             <div role="radiogroup" aria-label="Brand theme" className="grid grid-cols-3 gap-2">
               {HOSPITAL_BRAND_THEME_OPTIONS.map(option => (
-                <label key={option.value} htmlFor={`theme-${option.value}`} className="flex min-w-0 cursor-pointer flex-col gap-2 rounded-lg border bg-background p-2.5 has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
+                <label key={option.value} htmlFor={`theme-${option.value}`} className="flex min-w-0 cursor-pointer flex-col gap-2 rounded-[4px] border bg-background p-2.5 has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
                   <input id={`theme-${option.value}`} type="radio" name="brandTheme" value={option.value} checked={form.brandTheme === option.value} onChange={() => setField('brandTheme', option.value as HospitalStorefrontSettingsInput['brandTheme'])} className="sr-only" />
                   <span aria-hidden className="h-8 rounded-md" style={{ backgroundColor: option.swatch }} />
                   <span className="flex items-center justify-between gap-1 text-sm font-medium">
@@ -211,7 +211,7 @@ export function HospitalStorefrontSettingsForm({ initialSettings }: { initialSet
 
       <div className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
         <div className="space-y-2">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Preview</p>
+          <p className="tabular-nums text-xs font-medium text-muted-foreground">Preview</p>
           <HeaderPreview form={form} />
         </div>
 

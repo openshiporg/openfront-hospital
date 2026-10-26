@@ -54,11 +54,11 @@ function BedChip({ bed }: { bed: BedRecord }) {
   return (
     <Link
       href={INPATIENT}
-      className="inline-flex items-baseline gap-1.5 rounded-full border bg-background px-2.5 py-0.5 text-xs hover:bg-muted"
+      className="inline-flex items-baseline gap-1.5 rounded-[4px] border bg-background px-2.5 py-0.5 text-xs hover:bg-muted"
       title={`Bed ${bed.bedNumber}: ${statusLabel(bed.status)}`}
     >
       <StatusDot tone={toneForStatus(bed.status)} className="size-1.5 -translate-y-[0.1em] shadow-none" />
-      <span className="font-mono tabular-nums text-foreground">{bed.bedNumber}</span>
+      <span className="tabular-nums  text-foreground">{bed.bedNumber}</span>
       <span className="text-muted-foreground">{statusLabel(bed.status)}</span>
     </Link>
   )
@@ -70,7 +70,7 @@ function RoomRow({ room, beds, facilityId, roomOptions, canManage }: { room: Roo
     <div className="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 flex-1">
         <TitleLine as="h4" tone={room.status === 'maintenance' ? 'warn' : toneForStatus(room.status)} status={room.status ?? undefined} className="text-sm font-medium text-foreground">
-          Room <span className="font-mono tabular-nums">{room.roomNumber}</span>
+          Room <span className="tabular-nums ">{room.roomNumber}</span>
         </TitleLine>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 pl-4 text-xs text-muted-foreground">
           <span>{optionLabel(ROOM_TYPES, room.roomType)}</span>
@@ -118,7 +118,7 @@ function WardBlock({
   const open = ward.status !== 'closed'
   const bedTotal = rooms.reduce((sum, room) => sum + (bedsByRoom.get(room.id)?.length ?? 0), 0)
   return (
-    <div className="min-w-0 rounded-lg border bg-background px-3 py-3 md:px-4">
+    <div className="min-w-0 rounded-[4px] border bg-background px-3 py-3 md:px-4">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <TitleLine as="h4" tone={toneForStatus(ward.status)} status={ward.status ?? undefined} className="text-sm font-semibold text-foreground">{ward.name}</TitleLine>
@@ -271,7 +271,7 @@ export async function FacilityDetailPage({ params }: { params: Params }) {
         tone={toneForStatus(facility.status)}
         status={facility.status}
         eyebrow={optionLabel(FACILITY_TYPES, facility.facilityType)}
-        meta={<span className="inline-flex flex-wrap gap-x-3"><StatusTag status={facility.status} /><Code>{facility.slug}</Code><span className="font-mono">{facility.timeZone}</span></span>}
+        meta={<span className="inline-flex flex-wrap gap-x-3"><StatusTag status={facility.status} /><Code>{facility.slug}</Code><span className="tabular-nums">{facility.timeZone}</span></span>}
         actions={canManage ? (
           <>
             <FacilitySheet facility={facility} />

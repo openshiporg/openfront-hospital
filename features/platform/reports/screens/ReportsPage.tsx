@@ -50,7 +50,7 @@ export async function ReportsPage() {
   const header = (
     <WardHeader
       title="Reports"
-      meta={<span className="font-mono text-xs tabular-nums">Last 30 days</span>}
+      meta={<span className="tabular-nums text-xs ">Last 30 days</span>}
       actions={
         <Actions>
           <Pill asChild size="sm"><Link href="/dashboard/platform/appointments">Appointments</Link></Pill>
@@ -153,7 +153,7 @@ export async function ReportsPage() {
                   </>}
                   aside={<span className="flex items-center gap-3">
                     <Meter value={Math.min(100, provider.completionRate) / 100} label={`${provider.providerName} completion`} />
-                    <span className="w-12 text-right font-mono text-sm font-semibold tabular-nums">{provider.completionRate}%</span>
+                    <span className="w-12 text-right tabular-nums text-sm font-semibold ">{provider.completionRate}%</span>
                   </span>}
                 />
               ))}

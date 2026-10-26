@@ -28,7 +28,7 @@ export function MetricCard({
   return (
     <section className={cn('min-w-0 px-4 py-3 md:px-5 md:py-4', className)}>
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <TitleLine as="h3" tone={TONE[tone]} className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+        <TitleLine as="h3" tone={TONE[tone]} className="tabular-nums text-xs font-medium text-muted-foreground">
           {title}
         </TitleLine>
         <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground/60" />

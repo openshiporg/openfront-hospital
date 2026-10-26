@@ -21,7 +21,7 @@ export function LabResultReadbackPanel({ resultId }: { resultId?: string }) {
     } catch { setError('Scoped result readback unavailable. Retain the original command identity.') }
     finally { setPending(false) }
   }
-  return <details className="group rounded-xl border bg-card">
+  return <details className="group rounded-[4px] border bg-card">
     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
       Result readback and correction lineage
       <span aria-hidden="true" className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
@@ -33,7 +33,7 @@ export function LabResultReadbackPanel({ resultId }: { resultId?: string }) {
         <Track><Pill type="submit" size="sm" disabled={pending}>{pending ? 'Checking scope…' : 'Read result'}</Pill></Track>
       </form>
       {error && <Notice tone="bad" role="alert">{error}</Notice>}
-      {readback != null && <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-3 font-mono text-xs">{JSON.stringify(readback, null, 2)}</pre>}
+      {readback != null && <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-[4px] bg-muted p-3 tabular-nums text-xs">{JSON.stringify(readback, null, 2)}</pre>}
       {nextVersion && <Track><Pill size="sm" disabled={pending} onClick={() => load(nextVersion)}>Older transition receipts</Pill></Track>}
     </div>
   </details>

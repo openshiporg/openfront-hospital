@@ -102,7 +102,7 @@ export function AppointmentListPageClient({
             </div>
             {activeView === 'today' && (
               <label className={`${labelClass} w-full sm:w-44`}>
-                <span>Date{selectedFacility?.timeZone && <span className="font-mono font-normal"> · {selectedFacility.timeZone}</span>}</span>
+                <span>Date{selectedFacility?.timeZone && <span className="tabular-nums font-normal"> · {selectedFacility.timeZone}</span>}</span>
                 <input type="date" name="date" defaultValue={safeSearchParams.get('date') || ''} className={fieldClass} />
               </label>
             )}
@@ -131,7 +131,7 @@ export function AppointmentListPageClient({
 
         <section className="flex min-w-0 flex-col gap-3">
           <nav className="flex min-w-0 flex-wrap items-center justify-between gap-2" aria-label="Appointment pages">
-            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+            <span className="tabular-nums text-xs  text-muted-foreground">
               {initialData.requiresFacility ? 'Facility required' : `${initialData.items.length} of ${initialData.count} appointments`}
             </span>
             {(safeSearchParams.has('cursor') || initialData.nextCursor) && (

@@ -104,7 +104,7 @@ export function ClinicianSheet({
             </label>
             <label className={labelClass}>
               License number
-              <input className={`${fieldClass} font-mono`} value={form.licenseNumber} onChange={(e) => set('licenseNumber', e.target.value)} maxLength={200} />
+              <input className={`${fieldClass} tabular-nums`} value={form.licenseNumber} onChange={(e) => set('licenseNumber', e.target.value)} maxLength={200} />
             </label>
             <label className={labelClass}>
               Email
@@ -117,7 +117,7 @@ export function ClinicianSheet({
             {clinician ? (
               <div className={`${labelClass} sm:col-span-2`}>
                 Department
-                <p className="flex h-9 items-center rounded-lg border border-dashed px-3 text-sm text-foreground">{clinician.department?.name || 'None'}</p>
+                <p className="flex h-9 items-center rounded-[4px] border  px-3 text-sm text-foreground">{clinician.department?.name || 'None'}</p>
               </div>
             ) : (
               <label className={`${labelClass} sm:col-span-2`}>

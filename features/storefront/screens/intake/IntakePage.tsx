@@ -21,7 +21,6 @@ export function IntakePageContent({ intakeForm, profile }: { intakeForm: Patient
         <aside className="sf-work__rail sf-reveal">
           <Link className="sf-back" href="/book"><span aria-hidden="true">←</span> Appointments</Link>
           <div className="sf-ticket">
-            <p className="sf-eyebrow">Pre-visit intake</p>
             <h1 className="sf-ticket__title sf-titleline">
               <span aria-hidden="true" className={`sf-dot ${submitted ? 'sf-dot--ok' : 'sf-dot--warn'}`} />
               <span>{intakeForm.title}</span>
