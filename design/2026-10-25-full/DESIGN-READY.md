@@ -70,3 +70,23 @@ A sweep across 50 platform files removed mono-costume numerals, tracked caps lab
 ## Open
 
 - No `impeccable-finish-reviewer` pass was run yet, and DESIGN.md has not been generated. The FINISH line in the contracts is still open.
+
+## Finish review (impeccable-finish-reviewer, fresh context)
+
+- **Two recapture rounds:**
+  - Three desktops timed out.
+  - The session expired mid-run and saved sign-in pages under desk names. The capture script now re-logs in and refuses to save a sign-in page.
+- **Full review — fix (8 items), addressed in `41990bb`:**
+  - Leaflets end in "Request this visit".
+  - Visit rows show a request cue.
+  - Appointments opens on the first active facility's day sheet.
+  - The receipt and intake eyebrows are removed.
+  - Text arrows are replaced with Lucide icons.
+  - The sky-blue tone is retired; Confirmed now reads as waiting.
+  - Clinical overview shows real counts instead of summed aggregates.
+  - Reports tiles lose their decorative icons.
+  - Page titles no longer carry a state mark.
+  - The team grid no longer leaves an empty slot.
+- **Not applied:** the single facility control. The two-character minimum belongs to the facility search action and its bounded-search test, so it is a policy decision for the owner.
+- **Open (backend, pre-existing):** Providers, Lab tests and Visit types fail to load with a masked GraphQL error.
+- **DESIGN.md and .impeccable/design.json:** `a2fc387`.
