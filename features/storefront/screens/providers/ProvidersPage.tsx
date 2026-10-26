@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { Dot, EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
 import { getHospitalBranding } from '@/features/storefront/lib/data/branding'
@@ -48,7 +49,7 @@ export async function ProvidersPage() {
                         {provider.appointmentTypes.map(visitType => (
                           <li key={visitType.id}>
                             <Link className="sf-person__visit" href={`/book/${visitType.slug}?providerId=${provider.id}`}>
-                              <span>{visitType.name} <span className="sf-arrow">→</span></span>
+                              <span>{visitType.name} <ArrowRight aria-hidden="true" className="sf-arrow" /></span>
                               <span className="sf-mono">{[visitType.durationMinutes ? `${visitType.durationMinutes} min` : '', visitType.formattedPrice || ''].filter(Boolean).join(' · ')}</span>
                             </Link>
                           </li>

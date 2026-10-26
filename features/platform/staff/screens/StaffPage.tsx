@@ -91,7 +91,7 @@ export async function StaffPage(props: { searchParams: Promise<Record<string, st
     <PageContainer
       title="Staff"
       breadcrumbs={breadcrumbs}
-      header={<WardHeader title="Staff" meta={`${rolesResponse.data.rolesCount} roles visible`} actions={headerActions} />}
+      header={<WardHeader title="Staff" meta={`${rolesResponse.data.rolesCount} ${rolesResponse.data.rolesCount === 1 ? 'role' : 'roles'} visible`} actions={headerActions} />}
     >
       <WardBody>
         <SegmentedLinks

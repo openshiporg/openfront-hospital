@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { Dot, EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
@@ -72,7 +73,7 @@ export async function ProviderDetailPage({ params }: { params: Promise<{ id: str
                       </p>
                     </div>
                     <div className="sf-track">
-                      <Link className="sf-pill sf-pill--primary" href={`/book/${visitType.slug}?providerId=${provider.id}`}>Choose a time <span className="sf-arrow">→</span></Link>
+                      <Link className="sf-pill sf-pill--primary" href={`/book/${visitType.slug}?providerId=${provider.id}`}>Choose a time <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
                     </div>
                   </li>
                 ))}

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { normalizeHospitalBrandTheme } from '@/features/lib/hospitalBrandTheme'
 import type { HospitalBranding } from '@/features/storefront/lib/data/branding'
@@ -23,7 +24,7 @@ export function Sign({ zone, label, arrow = true }: { zone: Zone; label: string;
     <span className={`sf-sign ${zone.className}`}>
       <span className="sf-sign__code" aria-hidden="true">{zone.code}</span>
       <span className="sf-sign__label">{label}</span>
-      {arrow && <span className="sf-sign__arrow" aria-hidden="true">→</span>}
+      {arrow && <ArrowRight aria-hidden="true" className="sf-sign__arrow" />}
     </span>
   )
 }
@@ -62,16 +63,16 @@ export function StorefrontNav({ profile, current }: { profile: HospitalBranding;
           </nav>
           <div className="sf-nav__actions sf-track">
             {profile.supportPhoneHref && <a className="sf-pill" href={profile.supportPhoneHref}>Call</a>}
-            <Link className="sf-pill sf-pill--primary" href="/book">Request a visit <span className="sf-arrow">→</span></Link>
+            <Link className="sf-pill sf-pill--primary" href="/book">Request a visit <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
           </div>
           <details className="sf-mobile-nav">
             <summary aria-label="Open patient navigation"><span className="sf-mobile-nav__lines" /></summary>
             <nav className="sf-mobile-nav__panel" aria-label="Mobile patient navigation">
-              <Link href="/care">Care services <span aria-hidden="true">→</span></Link>
-              <Link href="/providers">Care team <span aria-hidden="true">→</span></Link>
-              <Link href="/book">Request a visit <span aria-hidden="true">→</span></Link>
-              <Link href="/locations">Locations <span aria-hidden="true">→</span></Link>
-              {profile.supportPhoneHref && <a href={profile.supportPhoneHref}>Call {profile.supportPhone} <span aria-hidden="true">→</span></a>}
+              <Link href="/care">Care services <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
+              <Link href="/providers">Care team <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
+              <Link href="/book">Request a visit <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
+              <Link href="/locations">Locations <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
+              {profile.supportPhoneHref && <a href={profile.supportPhoneHref}>Call {profile.supportPhone} <ArrowRight aria-hidden="true" className="sf-arrow" /></a>}
             </nav>
           </details>
         </div>

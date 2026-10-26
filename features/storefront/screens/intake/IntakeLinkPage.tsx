@@ -83,7 +83,6 @@ export function IntakeLinkPage({ profile }: { profile: HospitalBranding }) {
   return (
     <StorefrontShell profile={profile}>
       <section className="sf-container sf-state">
-        <p className="sf-eyebrow">Pre-visit intake</p>
         <div
           role={state.kind === 'loading' ? 'status' : 'alert'}
           aria-live="polite"

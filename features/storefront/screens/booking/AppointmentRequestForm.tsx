@@ -1,6 +1,7 @@
 'use client'
 
 import { useDraftExitGuard } from '@/features/lib/useDraftExitGuard'
+import { ArrowRight } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import type { AvailableAppointmentSlot, BookableAppointmentType } from '@/features/storefront/lib/data/booking'
 import { requestAppointmentAction } from '@/features/storefront/actions/booking'
@@ -55,12 +56,11 @@ export function AppointmentRequestForm({
   if (result?.type === 'success') {
     return (
       <div ref={feedbackRef} role="status" aria-live="polite" tabIndex={-1} className="sf-receipt">
-        <p className="sf-eyebrow">Request receipt</p>
         <h2 className="sf-step-title sf-titleline"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>Received · not yet confirmed</span></h2>
         <p className="sf-receipt__ref"><span className="sf-eyebrow">Ref</span>{result.reference}</p>
         <p>{result.message}</p>
         {result.intakeHref && (
-          <div><div className="sf-track"><a className="sf-pill sf-pill--primary" href={result.intakeHref}>Continue to private intake <span className="sf-arrow">→</span></a></div></div>
+          <div><div className="sf-track"><a className="sf-pill sf-pill--primary" href={result.intakeHref}>Continue to private intake <ArrowRight aria-hidden="true" className="sf-arrow" /></a></div></div>
         )}
       </div>
     )

@@ -31,7 +31,7 @@ export function MetricCard({
         <TitleLine as="h3" tone={TONE[tone]} className="tabular-nums text-xs font-medium text-muted-foreground">
           {title}
         </TitleLine>
-        <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground/60" />
+
       </div>
       <p className="mt-1.5 truncate text-2xl font-semibold tabular-nums tracking-tight text-foreground">{value}</p>
       {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}

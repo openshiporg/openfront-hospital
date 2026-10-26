@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import type { CareServiceLine } from '@/features/storefront/lib/careServices'
 import { Sign, zoneFor } from './StorefrontShell'
@@ -31,7 +32,7 @@ export function VisitZones({ serviceLines, headingLevel = 'h2' }: { serviceLines
                     </p>
                   </div>
                   <div className="sf-track">
-                    <Link className="sf-pill sf-pill--primary" href={`/book/${type.slug}`}>Choose a time <span className="sf-arrow">→</span></Link>
+                    <Link className="sf-pill sf-pill--primary" href={`/book/${type.slug}`}>Choose a time <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
                   </div>
                 </li>
               ))}

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { Dot, EmergencyNotice, StorefrontShell, zoneFor } from '@/features/storefront/components/StorefrontShell'
 import { getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
@@ -26,7 +27,7 @@ export async function HomePage() {
             </div>
             <div className="sf-front__side">
               <div className="sf-track">
-                <Link className="sf-pill sf-pill--primary" href="/book">Request a visit <span className="sf-arrow">→</span></Link>
+                <Link className="sf-pill sf-pill--primary" href="/book">Request a visit <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
                 <Link className="sf-pill" href="/intake">Pre-visit intake</Link>
               </div>
               <p className="sf-front__facts">
@@ -62,10 +63,12 @@ export async function HomePage() {
                               <strong>{type.name}</strong>
                               <span className="sf-leaflet__len">{type.durationMinutes} min</span>
                               {type.providers.length > 0 && <span className="sf-leaflet__who">{type.providers.map(provider => provider.displayName).join(' · ')}</span>}
+                              <span className="sf-leaflet__req">Request <ArrowRight aria-hidden="true" className="sf-arrow" /></span>
                             </Link>
                           ))}
                         </div>
-                        <Link className="sf-leaflet__go" href={`/care#${line.key}`}>All {line.title.toLowerCase()} details <span className="sf-arrow">→</span></Link>
+                        <Link className="sf-leaflet__more" href={`/care#${line.key}`}>All {line.title.toLowerCase()} details</Link>
+                        <Link className="sf-leaflet__go" href={line.appointmentTypes.length === 1 ? `/book/${line.appointmentTypes[0].slug}` : `/care#${line.key}`}>Request this visit <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
                       </div>
                     </li>
                   )
@@ -98,7 +101,7 @@ export async function HomePage() {
               <div>
                 <h2 id="team-heading" className="sf-display sf-display--section">Accepting requests</h2>
               </div>
-              <div className="sf-track"><Link className="sf-pill sf-pill--raised" href="/providers">All clinicians <span className="sf-arrow">→</span></Link></div>
+              <div className="sf-track"><Link className="sf-pill sf-pill--raised" href="/providers">All clinicians <ArrowRight aria-hidden="true" className="sf-arrow" /></Link></div>
             </div>
             <ul className="sf-people">
               {previewProviders.map(provider => (

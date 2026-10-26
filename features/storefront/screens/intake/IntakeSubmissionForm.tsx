@@ -24,7 +24,6 @@ export function IntakeSubmissionForm({ intakeForm }: { intakeForm: PatientIntake
   if (result?.type === 'success') {
     return (
       <div ref={feedbackRef} role="status" aria-live="polite" tabIndex={-1} className="sf-receipt">
-        <p className="sf-eyebrow">Intake receipt</p>
         <h2 className="sf-step-title sf-titleline"><span aria-hidden="true" className="sf-dot sf-dot--ok" /><span>Intake submitted</span></h2>
         <p>{result.message}</p>
       </div>

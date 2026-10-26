@@ -15,7 +15,8 @@ const DOT_TONE: Record<WardTone, string> = {
   ok: 'bg-emerald-600 dark:bg-emerald-400',
   warn: 'bg-amber-500',
   bad: 'bg-red-600 dark:bg-red-400',
-  info: 'bg-sky-600 dark:bg-sky-400',
+  // The 'info' family shares the teal in-care line: four line colours only (in care, waiting, stopped, closed).
+  info: 'bg-teal-600 dark:bg-teal-400',
   idle: 'bg-zinc-400 dark:bg-zinc-500',
   accent: 'bg-teal-700 dark:bg-teal-400',
 }
@@ -25,6 +26,7 @@ export function toneForStatus(status: string | null | undefined): WardTone {
   const value = String(status || '').toLowerCase()
   if (!value) return 'idle'
   if (/(cancel|no_show|denied|reject|fail|error|expired|blocked|overdue|critical|abnormal|void|dead)/.test(value)) return 'bad'
+  if (value === 'confirmed') return 'warn'
   if (/(request|pending|waiting|queued|draft|needs|hold|review|submitted|due|reserved|partial|retry|appeal|unverified|preliminary)/.test(value)) return 'warn'
   if (/(complete|closed|paid|delivered|reviewed|discharged|confirmed_final|final|resolved|available|active|ready|accepted|sent|clean)/.test(value)) return 'ok'
   if (/(confirm|check|in_visit|in_progress|admitted|occupied|scheduled|open|started|arrived|transfer)/.test(value)) return 'info'
@@ -92,9 +94,10 @@ export function WardHeader({
   return (
     <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <TitleLine as="h1" tone={tone} status={status} className="text-xl font-semibold tracking-tight text-foreground">
+        <h1 className="min-w-0 break-words text-xl font-semibold tracking-tight text-foreground">
+          {status && <span className="sr-only">{status}: </span>}
           {title}
-        </TitleLine>
+        </h1>
         {meta && <div className="mt-0.5 text-sm tabular-nums text-muted-foreground">{meta}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}

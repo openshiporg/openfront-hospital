@@ -96,9 +96,6 @@ export default async function ClinicalOperationsPage() {
   const procedures = data.procedures;
   const insuranceClaims = data.insuranceClaims;
   const carePlans = data.carePlans;
-
-  const facilityRows = data.facilitiesCount + data.departmentsCount + data.wardsCount + data.roomsCount + data.bedsCount;
-  const careRows = data.encountersCount + data.admissionsCount + data.carePlansCount + data.cliniciansCount;
   const clinicalRows = data.vitalSignsCount + data.medicalOrdersCount + data.prescriptionsCount + data.proceduresCount;
   const diagnosticsRows = data.labTestsCount + data.labResultsCount + data.insuranceClaimsCount;
   const boundedSamples = [
@@ -135,10 +132,11 @@ export default async function ClinicalOperationsPage() {
     >
       <WardBody>
         <ReadoutStrip>
-          <Readout label="Facility map" value={facilityRows} sub={`${data.facilitiesCount} facilities · ${data.bedsCount} beds`} />
-          <Readout label="Care coordination" value={careRows} sub={`${data.encountersCount} encounters · ${data.admissionsCount} admissions`} tone="info" />
-          <Readout label="Operational records" value={clinicalRows} sub={`${data.medicalOrdersCount} orders · ${data.prescriptionsCount} Rx`} />
-          <Readout label="External records" value={diagnosticsRows} sub={`${data.labResultsCount} results · ${data.insuranceClaimsCount} claims`} />
+          <Readout label="Open encounters" value={data.encountersCount} />
+          <Readout label="Admissions" value={data.admissionsCount} />
+          <Readout label="Medical orders" value={data.medicalOrdersCount} sub={`${data.prescriptionsCount} prescriptions`} />
+          <Readout label="Lab results" value={data.labResultsCount} sub={`${data.insuranceClaimsCount} claims`} />
+          <Readout label="Facilities" value={data.facilitiesCount} sub={`${data.bedsCount} beds`} />
         </ReadoutStrip>
 
         <BoundedDataNotice messages={sampleNotices} />
