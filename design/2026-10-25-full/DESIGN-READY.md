@@ -69,7 +69,6 @@ A sweep across 50 platform files removed mono-costume numerals, tracked caps lab
 
 ## Open
 
-- No `impeccable-finish-reviewer` pass was run yet, and DESIGN.md has not been generated. The FINISH line in the contracts is still open.
 
 ## Finish review (impeccable-finish-reviewer, fresh context)
 
