@@ -1,0 +1,824 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T07:42:56+00:00",
+  "title": "Design System: Openfront Hospital",
+  "extensions": {
+    "colorMeta": {
+      "leaflet-paper": {
+        "role": "neutral",
+        "displayName": "Leaflet Stock",
+        "canonical": "#fbfcfa",
+        "tonalRamp": [
+          "oklch(15% 0.001 128.5)",
+          "oklch(26% 0.002 128.5)",
+          "oklch(37% 0.002 128.5)",
+          "oklch(48% 0.003 128.5)",
+          "oklch(60% 0.003 128.5)",
+          "oklch(72% 0.002 128.5)",
+          "oklch(84% 0.002 128.5)",
+          "oklch(95% 0.001 128.5)"
+        ]
+      },
+      "leaflet-paper-2": {
+        "role": "neutral",
+        "displayName": "Leaflet Stock 2",
+        "canonical": "#f0f2ee",
+        "tonalRamp": [
+          "oklch(15% 0.003 128.5)",
+          "oklch(26% 0.004 128.5)",
+          "oklch(37% 0.004 128.5)",
+          "oklch(48% 0.005 128.5)",
+          "oklch(60% 0.005 128.5)",
+          "oklch(72% 0.004 128.5)",
+          "oklch(84% 0.004 128.5)",
+          "oklch(95% 0.003 128.5)"
+        ]
+      },
+      "leaflet-paper-3": {
+        "role": "neutral",
+        "displayName": "Leaflet Stock 3",
+        "canonical": "#dfe2da",
+        "tonalRamp": [
+          "oklch(15% 0.006 123.5)",
+          "oklch(26% 0.007 123.5)",
+          "oklch(37% 0.009 123.5)",
+          "oklch(48% 0.010 123.5)",
+          "oklch(60% 0.010 123.5)",
+          "oklch(72% 0.009 123.5)",
+          "oklch(84% 0.007 123.5)",
+          "oklch(95% 0.006 123.5)"
+        ]
+      },
+      "leaflet-card": {
+        "role": "neutral",
+        "displayName": "Card White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(26% 0.000 89.9)",
+          "oklch(37% 0.000 89.9)",
+          "oklch(48% 0.000 89.9)",
+          "oklch(60% 0.000 89.9)",
+          "oklch(72% 0.000 89.9)",
+          "oklch(84% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "leaflet-ink": {
+        "role": "neutral",
+        "displayName": "Clinical Ink",
+        "canonical": "#0e1f1c",
+        "tonalRamp": [
+          "oklch(15% 0.012 181.5)",
+          "oklch(26% 0.015 181.5)",
+          "oklch(37% 0.018 181.5)",
+          "oklch(48% 0.022 181.5)",
+          "oklch(60% 0.022 181.5)",
+          "oklch(72% 0.019 181.5)",
+          "oklch(84% 0.015 181.5)",
+          "oklch(95% 0.012 181.5)"
+        ]
+      },
+      "leaflet-ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#3c4e4a",
+        "tonalRamp": [
+          "oklch(15% 0.012 180.0)",
+          "oklch(26% 0.015 180.0)",
+          "oklch(37% 0.018 180.0)",
+          "oklch(48% 0.021 180.0)",
+          "oklch(60% 0.022 180.0)",
+          "oklch(72% 0.019 180.0)",
+          "oklch(84% 0.015 180.0)",
+          "oklch(95% 0.012 180.0)"
+        ]
+      },
+      "leaflet-ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#6b7975",
+        "tonalRamp": [
+          "oklch(15% 0.009 176.6)",
+          "oklch(26% 0.011 176.6)",
+          "oklch(37% 0.014 176.6)",
+          "oklch(48% 0.016 176.6)",
+          "oklch(60% 0.017 176.6)",
+          "oklch(72% 0.014 176.6)",
+          "oklch(84% 0.011 176.6)",
+          "oklch(95% 0.009 176.6)"
+        ]
+      },
+      "leaflet-rule": {
+        "role": "neutral",
+        "displayName": "Keyline",
+        "canonical": "#dde2dd",
+        "tonalRamp": [
+          "oklch(15% 0.004 145.5)",
+          "oklch(26% 0.005 145.5)",
+          "oklch(37% 0.007 145.5)",
+          "oklch(48% 0.008 145.5)",
+          "oklch(60% 0.008 145.5)",
+          "oklch(72% 0.007 145.5)",
+          "oklch(84% 0.005 145.5)",
+          "oklch(95% 0.004 145.5)"
+        ]
+      },
+      "leaflet-rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Keyline",
+        "canonical": "#b9c2bd",
+        "tonalRamp": [
+          "oklch(15% 0.006 162.0)",
+          "oklch(26% 0.008 162.0)",
+          "oklch(37% 0.009 162.0)",
+          "oklch(48% 0.011 162.0)",
+          "oklch(60% 0.011 162.0)",
+          "oklch(72% 0.010 162.0)",
+          "oklch(84% 0.008 162.0)",
+          "oklch(95% 0.006 162.0)"
+        ]
+      },
+      "leaflet-accent": {
+        "role": "primary",
+        "displayName": "Leaflet Teal",
+        "canonical": "#0f5c4c",
+        "tonalRamp": [
+          "oklch(15% 0.038 174.5)",
+          "oklch(26% 0.048 174.5)",
+          "oklch(37% 0.058 174.5)",
+          "oklch(48% 0.069 174.5)",
+          "oklch(60% 0.071 174.5)",
+          "oklch(72% 0.059 174.5)",
+          "oklch(84% 0.048 174.5)",
+          "oklch(95% 0.038 174.5)"
+        ]
+      },
+      "leaflet-accent-deep": {
+        "role": "primary",
+        "displayName": "Leaflet Teal Deep",
+        "canonical": "#0f4a3e",
+        "tonalRamp": [
+          "oklch(15% 0.031 175.8)",
+          "oklch(26% 0.040 175.8)",
+          "oklch(37% 0.048 175.8)",
+          "oklch(48% 0.057 175.8)",
+          "oklch(60% 0.058 175.8)",
+          "oklch(72% 0.049 175.8)",
+          "oklch(84% 0.040 175.8)",
+          "oklch(95% 0.031 175.8)"
+        ]
+      },
+      "leaflet-accent-soft": {
+        "role": "primary",
+        "displayName": "Leaflet Teal Wash",
+        "canonical": "#dcebe4",
+        "tonalRamp": [
+          "oklch(15% 0.009 166.4)",
+          "oklch(26% 0.012 166.4)",
+          "oklch(37% 0.014 166.4)",
+          "oklch(48% 0.017 166.4)",
+          "oklch(60% 0.017 166.4)",
+          "oklch(72% 0.015 166.4)",
+          "oklch(84% 0.012 166.4)",
+          "oklch(95% 0.009 166.4)"
+        ]
+      },
+      "leaflet-focus": {
+        "role": "primary",
+        "displayName": "Leaflet Focus Teal",
+        "canonical": "#0d7160",
+        "tonalRamp": [
+          "oklch(15% 0.044 177.0)",
+          "oklch(26% 0.056 177.0)",
+          "oklch(37% 0.068 177.0)",
+          "oklch(48% 0.080 177.0)",
+          "oklch(60% 0.083 177.0)",
+          "oklch(72% 0.069 177.0)",
+          "oklch(84% 0.056 177.0)",
+          "oklch(95% 0.044 177.0)"
+        ]
+      },
+      "zone-violet": {
+        "role": "secondary",
+        "displayName": "Zone Violet",
+        "canonical": "#4b3f8f",
+        "tonalRamp": [
+          "oklch(15% 0.064 286.5)",
+          "oklch(26% 0.081 286.5)",
+          "oklch(37% 0.099 286.5)",
+          "oklch(48% 0.116 286.5)",
+          "oklch(60% 0.119 286.5)",
+          "oklch(72% 0.100 286.5)",
+          "oklch(84% 0.081 286.5)",
+          "oklch(95% 0.064 286.5)"
+        ]
+      },
+      "zone-ochre": {
+        "role": "secondary",
+        "displayName": "Zone Ochre",
+        "canonical": "#9a5412",
+        "tonalRamp": [
+          "oklch(15% 0.059 57.0)",
+          "oklch(26% 0.075 57.0)",
+          "oklch(37% 0.091 57.0)",
+          "oklch(48% 0.108 57.0)",
+          "oklch(60% 0.110 57.0)",
+          "oklch(72% 0.093 57.0)",
+          "oklch(84% 0.075 57.0)",
+          "oklch(95% 0.059 57.0)"
+        ]
+      },
+      "lobby": {
+        "role": "neutral",
+        "displayName": "Lobby",
+        "canonical": "#0f2421",
+        "tonalRamp": [
+          "oklch(15% 0.014 183.7)",
+          "oklch(26% 0.018 183.7)",
+          "oklch(37% 0.022 183.7)",
+          "oklch(48% 0.025 183.7)",
+          "oklch(60% 0.026 183.7)",
+          "oklch(72% 0.022 183.7)",
+          "oklch(84% 0.018 183.7)",
+          "oklch(95% 0.014 183.7)"
+        ]
+      },
+      "lobby-ink": {
+        "role": "neutral",
+        "displayName": "Lobby Ink",
+        "canonical": "#e9f0ec",
+        "tonalRamp": [
+          "oklch(15% 0.005 161.3)",
+          "oklch(26% 0.006 161.3)",
+          "oklch(37% 0.007 161.3)",
+          "oklch(48% 0.008 161.3)",
+          "oklch(60% 0.009 161.3)",
+          "oklch(72% 0.007 161.3)",
+          "oklch(84% 0.006 161.3)",
+          "oklch(95% 0.005 161.3)"
+        ]
+      },
+      "lobby-ink-2": {
+        "role": "neutral",
+        "displayName": "Lobby Ink 2",
+        "canonical": "#9fb3ad",
+        "tonalRamp": [
+          "oklch(15% 0.012 175.7)",
+          "oklch(26% 0.015 175.7)",
+          "oklch(37% 0.018 175.7)",
+          "oklch(48% 0.022 175.7)",
+          "oklch(60% 0.022 175.7)",
+          "oklch(72% 0.019 175.7)",
+          "oklch(84% 0.015 175.7)",
+          "oklch(95% 0.012 175.7)"
+        ]
+      },
+      "notice-warn": {
+        "role": "neutral",
+        "displayName": "Warning Ground",
+        "canonical": "#fbf1d6",
+        "tonalRamp": [
+          "oklch(15% 0.018 90.1)",
+          "oklch(26% 0.024 90.1)",
+          "oklch(37% 0.029 90.1)",
+          "oklch(48% 0.034 90.1)",
+          "oklch(60% 0.035 90.1)",
+          "oklch(72% 0.029 90.1)",
+          "oklch(84% 0.024 90.1)",
+          "oklch(95% 0.018 90.1)"
+        ]
+      },
+      "notice-warn-ink": {
+        "role": "neutral",
+        "displayName": "Warning Ink",
+        "canonical": "#6d4b12",
+        "tonalRamp": [
+          "oklch(15% 0.042 75.3)",
+          "oklch(26% 0.053 75.3)",
+          "oklch(37% 0.065 75.3)",
+          "oklch(48% 0.076 75.3)",
+          "oklch(60% 0.078 75.3)",
+          "oklch(72% 0.066 75.3)",
+          "oklch(84% 0.053 75.3)",
+          "oklch(95% 0.042 75.3)"
+        ]
+      },
+      "notice-error": {
+        "role": "neutral",
+        "displayName": "Error Ground",
+        "canonical": "#fbe4df",
+        "tonalRamp": [
+          "oklch(15% 0.013 32.2)",
+          "oklch(26% 0.017 32.2)",
+          "oklch(37% 0.020 32.2)",
+          "oklch(48% 0.024 32.2)",
+          "oklch(60% 0.025 32.2)",
+          "oklch(72% 0.021 32.2)",
+          "oklch(84% 0.017 32.2)",
+          "oklch(95% 0.013 32.2)"
+        ]
+      },
+      "notice-error-ink": {
+        "role": "neutral",
+        "displayName": "Error Ink",
+        "canonical": "#8a2c1f",
+        "tonalRamp": [
+          "oklch(15% 0.065 30.8)",
+          "oklch(26% 0.083 30.8)",
+          "oklch(37% 0.101 30.8)",
+          "oklch(48% 0.119 30.8)",
+          "oklch(60% 0.122 30.8)",
+          "oklch(72% 0.103 30.8)",
+          "oklch(84% 0.083 30.8)",
+          "oklch(95% 0.065 30.8)"
+        ]
+      },
+      "notice-success": {
+        "role": "neutral",
+        "displayName": "Success Ground",
+        "canonical": "#def0e5",
+        "tonalRamp": [
+          "oklch(15% 0.012 159.1)",
+          "oklch(26% 0.015 159.1)",
+          "oklch(37% 0.019 159.1)",
+          "oklch(48% 0.022 159.1)",
+          "oklch(60% 0.023 159.1)",
+          "oklch(72% 0.019 159.1)",
+          "oklch(84% 0.015 159.1)",
+          "oklch(95% 0.012 159.1)"
+        ]
+      },
+      "notice-success-ink": {
+        "role": "neutral",
+        "displayName": "Success Ink",
+        "canonical": "#17513c",
+        "tonalRamp": [
+          "oklch(15% 0.035 165.2)",
+          "oklch(26% 0.044 165.2)",
+          "oklch(37% 0.054 165.2)",
+          "oklch(48% 0.064 165.2)",
+          "oklch(60% 0.065 165.2)",
+          "oklch(72% 0.055 165.2)",
+          "oklch(84% 0.044 165.2)",
+          "oklch(95% 0.035 165.2)"
+        ]
+      },
+      "dot-ok": {
+        "role": "tertiary",
+        "displayName": "Dot Green",
+        "canonical": "#1f9d6b",
+        "tonalRamp": [
+          "oklch(15% 0.065 160.7)",
+          "oklch(26% 0.083 160.7)",
+          "oklch(37% 0.101 160.7)",
+          "oklch(48% 0.119 160.7)",
+          "oklch(60% 0.122 160.7)",
+          "oklch(72% 0.102 160.7)",
+          "oklch(84% 0.083 160.7)",
+          "oklch(95% 0.065 160.7)"
+        ]
+      },
+      "dot-warn": {
+        "role": "tertiary",
+        "displayName": "Dot Amber",
+        "canonical": "#d99a1e",
+        "tonalRamp": [
+          "oklch(15% 0.072 77.7)",
+          "oklch(26% 0.092 77.7)",
+          "oklch(37% 0.112 77.7)",
+          "oklch(48% 0.132 77.7)",
+          "oklch(60% 0.136 77.7)",
+          "oklch(72% 0.114 77.7)",
+          "oklch(84% 0.092 77.7)",
+          "oklch(95% 0.072 77.7)"
+        ]
+      },
+      "dot-bad": {
+        "role": "tertiary",
+        "displayName": "Dot Red",
+        "canonical": "#d0452f",
+        "tonalRamp": [
+          "oklch(15% 0.090 31.7)",
+          "oklch(26% 0.114 31.7)",
+          "oklch(37% 0.139 31.7)",
+          "oklch(48% 0.163 31.7)",
+          "oklch(60% 0.168 31.7)",
+          "oklch(72% 0.141 31.7)",
+          "oklch(84% 0.114 31.7)",
+          "oklch(95% 0.090 31.7)"
+        ]
+      },
+      "ward-teal": {
+        "role": "primary",
+        "displayName": "Ward Teal",
+        "canonical": "#0f766e",
+        "tonalRamp": [
+          "oklch(15% 0.043 186.4)",
+          "oklch(26% 0.055 186.4)",
+          "oklch(37% 0.067 186.4)",
+          "oklch(48% 0.079 186.4)",
+          "oklch(60% 0.081 186.4)",
+          "oklch(72% 0.068 186.4)",
+          "oklch(84% 0.055 186.4)",
+          "oklch(95% 0.043 186.4)"
+        ]
+      },
+      "ward-teal-deep": {
+        "role": "primary",
+        "displayName": "Ward Teal Deep",
+        "canonical": "#115e59",
+        "tonalRamp": [
+          "oklch(15% 0.035 188.2)",
+          "oklch(26% 0.045 188.2)",
+          "oklch(37% 0.055 188.2)",
+          "oklch(48% 0.064 188.2)",
+          "oklch(60% 0.066 188.2)",
+          "oklch(72% 0.056 188.2)",
+          "oklch(84% 0.045 188.2)",
+          "oklch(95% 0.035 188.2)"
+        ]
+      },
+      "ward-line-care": {
+        "role": "tertiary",
+        "displayName": "In-care Line",
+        "canonical": "#0d9488",
+        "tonalRamp": [
+          "oklch(15% 0.052 184.7)",
+          "oklch(26% 0.066 184.7)",
+          "oklch(37% 0.080 184.7)",
+          "oklch(48% 0.095 184.7)",
+          "oklch(60% 0.097 184.7)",
+          "oklch(72% 0.082 184.7)",
+          "oklch(84% 0.066 184.7)",
+          "oklch(95% 0.052 184.7)"
+        ]
+      },
+      "ward-line-waiting": {
+        "role": "tertiary",
+        "displayName": "Waiting Line",
+        "canonical": "#f59e0b",
+        "tonalRamp": [
+          "oklch(15% 0.082 70.1)",
+          "oklch(26% 0.105 70.1)",
+          "oklch(37% 0.128 70.1)",
+          "oklch(48% 0.150 70.1)",
+          "oklch(60% 0.154 70.1)",
+          "oklch(72% 0.130 70.1)",
+          "oklch(84% 0.105 70.1)",
+          "oklch(95% 0.082 70.1)"
+        ]
+      },
+      "ward-line-stopped": {
+        "role": "tertiary",
+        "displayName": "Stopped Line",
+        "canonical": "#dc2626",
+        "tonalRamp": [
+          "oklch(15% 0.108 27.3)",
+          "oklch(26% 0.137 27.3)",
+          "oklch(37% 0.167 27.3)",
+          "oklch(48% 0.196 27.3)",
+          "oklch(60% 0.202 27.3)",
+          "oklch(72% 0.169 27.3)",
+          "oklch(84% 0.137 27.3)",
+          "oklch(95% 0.108 27.3)"
+        ]
+      },
+      "ward-line-closed": {
+        "role": "tertiary",
+        "displayName": "Closed Line",
+        "canonical": "#a1a1aa",
+        "tonalRamp": [
+          "oklch(15% 0.006 286.1)",
+          "oklch(26% 0.008 286.1)",
+          "oklch(37% 0.010 286.1)",
+          "oklch(48% 0.012 286.1)",
+          "oklch(60% 0.012 286.1)",
+          "oklch(72% 0.010 286.1)",
+          "oklch(84% 0.008 286.1)",
+          "oklch(95% 0.006 286.1)"
+        ]
+      },
+      "ward-line-ok": {
+        "role": "tertiary",
+        "displayName": "Completed Line",
+        "canonical": "#059669",
+        "tonalRamp": [
+          "oklch(15% 0.064 163.2)",
+          "oklch(26% 0.081 163.2)",
+          "oklch(37% 0.099 163.2)",
+          "oklch(48% 0.116 163.2)",
+          "oklch(60% 0.119 163.2)",
+          "oklch(72% 0.100 163.2)",
+          "oklch(84% 0.081 163.2)",
+          "oklch(95% 0.064 163.2)"
+        ]
+      },
+      "shell-background": {
+        "role": "neutral",
+        "displayName": "Shell White",
+        "canonical": "oklch(100% 0 0)",
+        "tonalRamp": [
+          "oklch(15% 0.000 0.0)",
+          "oklch(26% 0.000 0.0)",
+          "oklch(37% 0.000 0.0)",
+          "oklch(48% 0.000 0.0)",
+          "oklch(60% 0.000 0.0)",
+          "oklch(72% 0.000 0.0)",
+          "oklch(84% 0.000 0.0)",
+          "oklch(95% 0.000 0.0)"
+        ]
+      },
+      "shell-foreground": {
+        "role": "neutral",
+        "displayName": "Shell Ink",
+        "canonical": "oklch(9.65% 0 0)",
+        "tonalRamp": [
+          "oklch(15% 0.000 0.0)",
+          "oklch(26% 0.000 0.0)",
+          "oklch(37% 0.000 0.0)",
+          "oklch(48% 0.000 0.0)",
+          "oklch(60% 0.000 0.0)",
+          "oklch(72% 0.000 0.0)",
+          "oklch(84% 0.000 0.0)",
+          "oklch(95% 0.000 0.0)"
+        ]
+      },
+      "shell-muted": {
+        "role": "neutral",
+        "displayName": "Shell Muted",
+        "canonical": "oklch(96.08% 0 0)",
+        "tonalRamp": [
+          "oklch(15% 0.000 0.0)",
+          "oklch(26% 0.000 0.0)",
+          "oklch(37% 0.000 0.0)",
+          "oklch(48% 0.000 0.0)",
+          "oklch(60% 0.000 0.0)",
+          "oklch(72% 0.000 0.0)",
+          "oklch(84% 0.000 0.0)",
+          "oklch(95% 0.000 0.0)"
+        ]
+      },
+      "shell-muted-foreground": {
+        "role": "neutral",
+        "displayName": "Shell Muted Ink",
+        "canonical": "oklch(45.47% 0.004 270.54)",
+        "tonalRamp": [
+          "oklch(15% 0.002 270.5)",
+          "oklch(26% 0.003 270.5)",
+          "oklch(37% 0.003 270.5)",
+          "oklch(48% 0.004 270.5)",
+          "oklch(60% 0.004 270.5)",
+          "oklch(72% 0.003 270.5)",
+          "oklch(84% 0.003 270.5)",
+          "oklch(95% 0.002 270.5)"
+        ]
+      },
+      "shell-border": {
+        "role": "neutral",
+        "displayName": "Shell Hairline",
+        "canonical": "oklch(89.84% 0 0)",
+        "tonalRamp": [
+          "oklch(15% 0.000 0.0)",
+          "oklch(26% 0.000 0.0)",
+          "oklch(37% 0.000 0.0)",
+          "oklch(48% 0.000 0.0)",
+          "oklch(60% 0.000 0.0)",
+          "oklch(72% 0.000 0.0)",
+          "oklch(84% 0.000 0.0)",
+          "oklch(95% 0.000 0.0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "leaflet-display": {
+        "displayName": "Leaflet Display",
+        "purpose": "Practice name on the storefront home front only."
+      },
+      "leaflet-headline": {
+        "displayName": "Leaflet Headline",
+        "purpose": "Storefront page titles."
+      },
+      "leaflet-cover": {
+        "displayName": "Leaflet Cover",
+        "purpose": "Service names printed in white on leaflet covers."
+      },
+      "leaflet-title": {
+        "displayName": "Leaflet Title",
+        "purpose": "Storefront section headings, ticket titles, footer name."
+      },
+      "leaflet-body": {
+        "displayName": "Leaflet Body",
+        "purpose": "All patient reading text."
+      },
+      "leaflet-lead": {
+        "displayName": "Leaflet Lead",
+        "purpose": "One plain line under a title, max 46ch."
+      },
+      "leaflet-label": {
+        "displayName": "Leaflet Label",
+        "purpose": "Buttons, form labels, visit names."
+      },
+      "ward-title": {
+        "displayName": "Ward Title",
+        "purpose": "Platform desk page title."
+      },
+      "ward-section": {
+        "displayName": "Ward Section",
+        "purpose": "Platform section heading over a hairline."
+      },
+      "ward-body": {
+        "displayName": "Ward Body",
+        "purpose": "Row titles, facts and notices on desks."
+      },
+      "ward-label": {
+        "displayName": "Ward Label",
+        "purpose": "Status tags, readout labels, field labels, identifiers; tabular."
+      }
+    },
+    "shadows": [
+      {
+        "name": "keyline-ring",
+        "value": "0 0 0 1px var(--color-rule)",
+        "purpose": "Storefront stand-in for a 1px border on panels, people, visit lists, tickets and receipts. Not elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Storefront state transitions and the reveal."
+      },
+      {
+        "name": "dur-short",
+        "value": "160ms",
+        "purpose": "Storefront hover colour shifts and the 3px arrow nudge."
+      },
+      {
+        "name": "dur-medium",
+        "value": "380ms",
+        "purpose": "Storefront 8px rise-in reveal; removed under reduced motion."
+      },
+      {
+        "name": "ward-colors",
+        "value": "150ms colour-only transition",
+        "purpose": "Platform button and tab colour changes; nothing moves."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "storefront-phone",
+        "value": "40rem"
+      },
+      {
+        "name": "storefront-tablet",
+        "value": "48rem"
+      },
+      {
+        "name": "storefront-desktop",
+        "value": "62rem"
+      },
+      {
+        "name": "ward-sm",
+        "value": "640px"
+      },
+      {
+        "name": "ward-md",
+        "value": "768px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Leaflet Primary Button",
+      "kind": "button",
+      "refersTo": "leaflet-button-primary",
+      "description": "Storefront's single solid action, e.g. Request a visit.",
+      "html": "<a class=\"ds-sf-btn ds-sf-btn--primary\" href=\"#\">Request a visit <svg class=\"ds-sf-arrow\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a>",
+      "css": ".ds-sf-btn { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.75rem; padding: 0 1.1rem; border: 1px solid #b9c2bd; border-radius: 3px; background: #fff; color: #0e1f1c; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; font-weight: 700; font-size: .875rem; text-decoration: none; transition: background-color 160ms cubic-bezier(0.16,1,0.3,1), border-color 160ms; } .ds-sf-btn--primary { background: #0f5c4c; border-color: #0f5c4c; color: #fff; } .ds-sf-btn--primary:hover { background: #0f4a3e; border-color: #0f4a3e; } .ds-sf-btn:focus-visible { outline: 2px solid #0d7160; outline-offset: 2px; } .ds-sf-arrow { width: 1em; height: 1em; transition: transform 160ms cubic-bezier(0.16,1,0.3,1); } .ds-sf-btn:hover .ds-sf-arrow { transform: translateX(3px); }"
+    },
+    {
+      "name": "Leaflet Secondary Button",
+      "kind": "button",
+      "refersTo": "leaflet-button",
+      "description": "Keylined secondary action on the storefront.",
+      "html": "<a class=\"ds-sf-btn2\" href=\"#\">Pre-visit intake</a>",
+      "css": ".ds-sf-btn2 { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1.1rem; border: 1px solid #b9c2bd; border-radius: 3px; background: #fff; color: #0e1f1c; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; font-weight: 700; font-size: .875rem; text-decoration: none; transition: border-color 160ms; } .ds-sf-btn2:hover { border-color: #0e1f1c; } .ds-sf-btn2:focus-visible { outline: 2px solid #0d7160; outline-offset: 2px; }"
+    },
+    {
+      "name": "Leaflet",
+      "kind": "custom",
+      "refersTo": "leaflet-cover",
+      "description": "Storefront signature: one folded leaflet per service line, zone-colour cover over a ruled visit list ending in a request band.",
+      "html": "<article class=\"ds-leaflet\"><div class=\"ds-leaflet__cover\"><h3 class=\"ds-leaflet__title\">Primary care</h3><p class=\"ds-leaflet__count\">2 visits open for requests</p></div><p class=\"ds-leaflet__desc\">New-patient, preventive and follow-up visits.</p><div class=\"ds-leaflet__visits\"><a class=\"ds-leaflet__visit\" href=\"#\"><strong>Follow-up Visit</strong><span class=\"ds-leaflet__len\">30 min</span><span class=\"ds-leaflet__who\">Elliot Chen, NP · Maya Patel, MD</span></a><a class=\"ds-leaflet__visit\" href=\"#\"><strong>New Patient Visit</strong><span class=\"ds-leaflet__len\">45 min</span><span class=\"ds-leaflet__who\">Elliot Chen, NP</span></a></div><a class=\"ds-leaflet__go\" href=\"#\">Request this visit <span aria-hidden=\"true\">→</span></a></article>",
+      "css": ".ds-leaflet { --zone: #0f5c4c; max-width: 22rem; border: 1px solid #b9c2bd; border-radius: 3px; background: #fff; overflow: hidden; color: #0e1f1c; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-leaflet__cover { display: grid; align-content: end; min-height: 15rem; padding: 1.5rem; background: linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--zone) 80%, #000) 100%), var(--zone); color: #fff; } .ds-leaflet__title { margin: 0; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif; font-weight: 800; font-size: 2.2rem; line-height: .98; letter-spacing: -0.03em; } .ds-leaflet__count { margin: .5rem 0 0; font-weight: 700; color: rgba(255,255,255,.88); } .ds-leaflet__desc { margin: 0; padding: 1rem 1.5rem 0; font-size: .875rem; color: #3c4e4a; } .ds-leaflet__visits { display: grid; margin-top: .75rem; border-top: 1px solid #dde2dd; } .ds-leaflet__visit { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .25rem 1rem; padding: .85rem 1.5rem; border-bottom: 1px solid #dde2dd; color: inherit; text-decoration: none; } .ds-leaflet__visit:hover { background: #fbfcfa; } .ds-leaflet__len { font-variant-numeric: tabular-nums; color: #3c4e4a; } .ds-leaflet__who { grid-column: 1 / -1; font-size: .75rem; color: #6b7975; } .ds-leaflet__go { display: flex; justify-content: space-between; margin: .75rem 1.5rem 1.5rem; padding: .8rem 1rem; border-radius: 3px; background: var(--zone); color: #fff; font-weight: 700; text-decoration: none; } .ds-leaflet__go:hover { background: color-mix(in srgb, var(--zone) 85%, #000); } .ds-leaflet__go:focus-visible, .ds-leaflet__visit:focus-visible { outline: 2px solid #0d7160; outline-offset: 2px; }"
+    },
+    {
+      "name": "Leaflet Field",
+      "kind": "input",
+      "refersTo": "leaflet-input",
+      "description": "Storefront text input for booking and intake.",
+      "html": "<label class=\"ds-sf-field\"><span class=\"ds-sf-label\">Date of birth</span><input class=\"ds-sf-input\" placeholder=\"MM/DD/YYYY\" /></label>",
+      "css": ".ds-sf-field { display: grid; gap: .35rem; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #0e1f1c; } .ds-sf-label { font-size: .875rem; font-weight: 700; } .ds-sf-input { min-height: 2.9rem; padding: .65rem .9rem; border: 1px solid #b9c2bd; border-radius: 3px; background: #fff; color: #0e1f1c; font: inherit; font-size: 1rem; transition: border-color 160ms, box-shadow 160ms; } .ds-sf-input:focus { outline: none; border-color: #0d7160; box-shadow: 0 0 0 1px #0d7160; }"
+    },
+    {
+      "name": "Storefront Nav",
+      "kind": "nav",
+      "description": "Lobby utility strip with emergency line over a white nav bar with underline current page.",
+      "html": "<div class=\"ds-sf-util\"><span>100 Market Street · +1-555-0100</span><span><i class=\"ds-sf-dot\"></i>Emergency: call your local emergency number</span></div><nav class=\"ds-sf-nav\"><strong class=\"ds-sf-word\">Northstar Family Care</strong><span class=\"ds-sf-links\"><a href=\"#\" aria-current=\"page\">Care services</a><a href=\"#\">Care team</a><a href=\"#\">Locations</a></span></nav>",
+      "css": ".ds-sf-util { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 1rem; background: #0f2421; color: #9fb3ad; font: .75rem 'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-sf-util span:last-child { color: #e9f0ec; } .ds-sf-dot { display: inline-block; width: .5rem; height: .5rem; margin-right: .45rem; border-radius: 1px; background: #d0452f; } .ds-sf-nav { display: flex; align-items: stretch; justify-content: space-between; min-height: 4.25rem; padding: 0 1rem; background: #fff; border-bottom: 1px solid #dde2dd; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-sf-word { align-self: center; font-family: 'Schibsted Grotesk', Arial, sans-serif; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; color: #0e1f1c; } .ds-sf-links { display: flex; } .ds-sf-links a { display: flex; align-items: center; padding: 0 .9rem; border-bottom: 3px solid transparent; color: #3c4e4a; font-weight: 700; font-size: .875rem; text-decoration: none; } .ds-sf-links a:hover { color: #0e1f1c; } .ds-sf-links a[aria-current='page'] { color: #0e1f1c; border-bottom-color: #0f5c4c; } .ds-sf-links a:focus-visible { outline: 2px solid #0d7160; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ward Primary Button",
+      "kind": "button",
+      "refersTo": "ward-button-primary",
+      "description": "The platform's one primary action: square 4px teal button.",
+      "html": "<button class=\"ds-ward-btn ds-ward-btn--primary\">Apply</button> <button class=\"ds-ward-btn\">Reset</button>",
+      "css": ".ds-ward-btn { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid oklch(89.84% 0 0); border-radius: 4px; background: #fff; color: oklch(9.65% 0 0); font: 500 14px Geist, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-ward-btn:hover { background: oklch(96.08% 0 0); } .ds-ward-btn--primary { background: #0f766e; border-color: #115e59; color: #fff; } .ds-ward-btn--primary:hover { background: #115e59; } .ds-ward-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(9.65% 0 0); }"
+    },
+    {
+      "name": "Ward Underline Tabs",
+      "kind": "nav",
+      "description": "Platform view switch: underline tabs on a hairline, floor-line and tabular count per option.",
+      "html": "<div class=\"ds-ward-tabs\" role=\"group\" aria-label=\"Status\"><button aria-pressed=\"true\">All <span>3</span></button><button><i class=\"ds-ward-line\" style=\"background:#f59e0b\"></i>Requested <span>1</span></button><button><i class=\"ds-ward-line\" style=\"background:#0d9488\"></i>Checked in <span>0</span></button><button><i class=\"ds-ward-line\" style=\"background:#dc2626\"></i>No show <span>0</span></button></div>",
+      "css": ".ds-ward-tabs { display: flex; border-bottom: 1px solid oklch(89.84% 0 0); font-family: Geist, system-ui, sans-serif; } .ds-ward-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-bottom: -1px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: oklch(45.47% 0.004 270.54); font: 500 14px Geist, system-ui, sans-serif; cursor: pointer; transition: color 150ms; } .ds-ward-tabs button:hover { color: oklch(9.65% 0 0); } .ds-ward-tabs button[aria-pressed='true'] { border-bottom-color: #0f766e; color: oklch(9.65% 0 0); } .ds-ward-tabs button:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(9.65% 0 0); } .ds-ward-tabs span { font-size: 12px; font-variant-numeric: tabular-nums; color: oklch(45.47% 0.004 270.54); } .ds-ward-line { display: inline-block; width: 10px; height: 3px; border-radius: 1px; }"
+    },
+    {
+      "name": "Ward Field",
+      "kind": "input",
+      "refersTo": "ward-field",
+      "description": "Platform native input chrome with stacked 12px label.",
+      "html": "<label class=\"ds-ward-label\">Patient<input class=\"ds-ward-field\" placeholder=\"Patient, reference\" /></label>",
+      "css": ".ds-ward-label { display: grid; gap: 4px; font: 500 12px Geist, system-ui, sans-serif; color: oklch(45.47% 0.004 270.54); } .ds-ward-field { height: 32px; padding: 0 10px; border: 1px solid oklch(89.84% 0 0); border-radius: 4px; background: #fff; color: oklch(9.65% 0 0); font: 14px Geist, system-ui, sans-serif; outline: none; } .ds-ward-field:focus-visible { border-color: #0f766e; box-shadow: 0 0 0 2px rgb(10 10 10 / .4); }"
+    },
+    {
+      "name": "Board Row with Floor-line",
+      "kind": "card",
+      "refersTo": "ward-floor-line",
+      "description": "Platform signature: divided board row led by a 14x3 floor-line in the state's line colour, wristband identity, row action.",
+      "html": "<div class=\"ds-board\"><div class=\"ds-row\"><div><p class=\"ds-row__title\"><i class=\"ds-floor\" style=\"background:#f59e0b\"></i><span class=\"ds-wrist\"><b>Ana Ruiz</b><em>MRN 004812</em></span></p><p class=\"ds-row__meta\">New Patient Visit · 09:30 · Requested</p></div><button class=\"ds-row__act\">Confirm</button></div><div class=\"ds-row\"><div><p class=\"ds-row__title\"><i class=\"ds-floor\" style=\"background:#0d9488\"></i><span class=\"ds-wrist\"><b>Jon Park</b><em>MRN 003377</em></span></p><p class=\"ds-row__meta\">Follow-up Visit · 10:00 · Checked in</p></div><button class=\"ds-row__act\">Open chart</button></div></div>",
+      "css": ".ds-board { border: 1px solid oklch(89.84% 0 0); border-radius: 4px; background: #fff; overflow: hidden; font-family: Geist, system-ui, sans-serif; color: oklch(9.65% 0 0); } .ds-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 10px 12px; } .ds-row + .ds-row { border-top: 1px solid oklch(89.84% 0 0); } .ds-row:hover { background: oklch(96.08% 0 0 / .3); } .ds-row__title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 600; } .ds-floor { display: inline-block; width: 14px; height: 3px; border-radius: 1px; flex: none; } .ds-wrist { display: inline-flex; border: 1px solid oklch(89.84% 0 0); border-radius: 3px; font-size: 12px; overflow: hidden; } .ds-wrist b { padding: 2px 8px; } .ds-wrist em { padding: 2px 8px; border-left: 1px solid oklch(89.84% 0 0); background: oklch(96.08% 0 0 / .6); font: 500 11px Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; color: oklch(45.47% 0.004 270.54); } .ds-row__meta { margin: 2px 0 0 22px; font-size: 12px; color: oklch(45.47% 0.004 270.54); } .ds-row__act { height: 28px; padding: 0 10px; border: 1px solid oklch(89.84% 0 0); border-radius: 4px; background: #fff; font: 500 12px Geist, system-ui, sans-serif; cursor: pointer; } .ds-row__act:hover { background: oklch(96.08% 0 0); } .ds-row__act:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(9.65% 0 0); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Floor Lines and the Leaflet Rack",
+    "overview": "Openfront Hospital runs two deliberately separate worlds that share one clinical temperament. The staff desks under `/dashboard/platform` are hospital floor wayfinding: a white clinical ground inherited from the shared dashboard shell, hairline rules, 4px corners, no shadows, and every workflow state carried by a short floor-line segment in its line colour. Deep teal is the single primary action. Density is high; lists are ruled boards, not stacks of cards.\n\nThe patient site is the practice's leaflet rack. Leaflet-stock white and a teal-black ink carry everything; each service line is a folded leaflet whose cover is a full-strength zone colour with a photograph printed into it, and whose inside lists the real visits, their lengths and clinicians, ending in a solid \"Request this visit\". Covers and headings are set in heavy Schibsted Grotesk; reading text is Atkinson Hyperlegible. Corners are 3px, edges are 1px keylines, and a dark lobby band frames the page top and bottom.\n\nBoth worlds use sentence case, tabular figures for identifiers and counts, and no monospace. The shared dashboard shell (sidebar, header, base tokens) is not part of this system's authority and stays byte-identical to Openfront E-commerce.",
+    "keyCharacteristics": [
+      "Platform: one teal primary, four status line colours, 4px corners, hairlines, no shadows.",
+      "Platform: the floor-line marker (14x3px) leads every status, and selected views are underline tabs.",
+      "Storefront: one full-strength cover colour per service line (teal, violet, ochre), with photographs printed into it.",
+      "Storefront: 3px corners, 1px keylines, heavy grotesk covers over a hyperlegible reading face.",
+      "Both: sentence case, tabular numerals, no mono, no eyebrows."
+    ],
+    "rules": [
+      {
+        "name": "The One Teal Rule",
+        "body": "Each world has exactly one primary fill: Leaflet Teal or Ward Teal. A second solid action colour is not allowed. The storefront's zone colours fill covers and the leaflet's own request band, not general buttons.",
+        "section": "colors"
+      },
+      {
+        "name": "The Line Colour Rule",
+        "body": "A platform state shows its colour only as a floor-line segment beside its text, never as a coloured card edge, a filled badge or a tinted row. Tinted grounds are allowed only on Notices.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Clinical Colour Rule",
+        "body": "Brand themes (navy, plum) may change the storefront accent, ink, lobby and focus. Warning, error, success and dot colours never change.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Costume Mono Rule",
+        "body": "Neither world uses a monospace face. Identifiers, times and lengths use tabular figures in the running sans. The storefront's mono token is an alias for Atkinson Hyperlegible.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "Labels, tabs and buttons are sentence case. No uppercase tracked labels sit above headings.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Floor Rule",
+        "body": "No drop shadows in either world. Use a hairline instead.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** lead every platform status with the floor-line marker and its sr-only text, using `toneForStatus` for the colour.",
+      "**Do** keep one teal primary per region: Ward Teal on desks, Leaflet Teal on the site.",
+      "**Do** use 4px corners on desks and 3px (or 2px for small marks) on the storefront.",
+      "**Do** separate platform regions with spacing and a hairline (WardSection), and list records as divided Board rows.",
+      "**Do** show patient identity with the Wristband wherever a record is acted on.",
+      "**Do** give each storefront service line a single fixed zone colour (A teal, B violet, C ochre) used on its cover, ticket band and request band.",
+      "**Do** set identifiers, times and counts in tabular figures in the running sans.",
+      "**Do** keep the emergency notice visible in the storefront utility strip and on the home front."
+    ],
+    "donts": [
+      "**Don't** use pill or rounded tabs, chips or rounded record cards on platform desks. Tabs are underlines and radius stays at 6px or less.",
+      "**Don't** add drop shadows to either world, including raised pagination buttons.",
+      "**Don't** colour a platform card edge or row background by state. The state colour lives in the floor-line.",
+      "**Don't** introduce a monospace face or an uppercase tracked label above a heading.",
+      "**Don't** theme the clinical warning, error, success or dot colours.",
+      "**Don't** replace the leaflet rack with a lifestyle-photo hero or a dark rounded directory card."
+    ]
+  }
+}
