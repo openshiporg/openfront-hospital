@@ -37,6 +37,13 @@ export async function refundPaymentFunction({ paymentId, amount, idempotencyKey 
   return { id: refund.id, status: refund.status, amount: refund.amount, currency: refund.currency?.toUpperCase() }
 }
 export async function getPaymentStatusFunction({ paymentId }: { paymentId: string }) {
+  // Bill payments store the Checkout Session id (cs_…); read its PaymentIntent for the money facts.
+  if (paymentId.startsWith('cs_')) {
+    const session = await stripeRequest(`checkout/sessions/${encodeURIComponent(paymentId)}?expand[]=payment_intent`)
+    const intent = session.payment_intent && typeof session.payment_intent === 'object' ? session.payment_intent : null
+    const status = session.payment_status === 'paid' && intent?.status === 'succeeded' ? 'succeeded' : session.status === 'expired' ? 'canceled' : (intent?.status || 'requires_payment_method')
+    return { id: session.id, paymentIntentId: intent?.id ?? null, url: session.status === 'open' ? session.url : null, status, amount: intent ? (intent.amount_received || intent.amount) : session.amount_total, currency: String(session.currency).toUpperCase() }
+  }
   const intent = await stripeRequest(`payment_intents/${encodeURIComponent(paymentId)}`)
   return { id: intent.id, status: intent.status, amount: intent.amount_received || intent.amount, currency: intent.currency.toUpperCase() }
 }

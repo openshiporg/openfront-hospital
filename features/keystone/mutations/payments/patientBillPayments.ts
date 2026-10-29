@@ -9,7 +9,9 @@ function digest(value: string) { return createHash('sha256').update(value).diges
 function equal(a: string, b: string) { const left = digest(a); const right = digest(b); return timingSafeEqual(left, right) }
 
 export async function lookupPatientBill(_root: unknown, { paymentNumber, dateOfBirth }: { paymentNumber: string; dateOfBirth: string }, context: Context) {
-  const number = paymentNumber.trim().toUpperCase()
+  // Payment numbers are issued as PAY-<uuid> (lowercase hex); accept either case from the patient.
+  const typed = paymentNumber.trim()
+  const number = /^pay-/i.test(typed) ? `PAY-${typed.slice(4).toLowerCase()}` : typed
   if (!/^PAY-[A-Z0-9-]{20,80}$/i.test(number) || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) throw new Error('Unable to locate a balance')
   const prisma = context.sudo().prisma as any
   const headers = Object.fromEntries(Object.entries((context.req as any)?.headers || {}).map(([key, value]) => [key.toLowerCase(), value as string]))
@@ -33,7 +35,11 @@ export async function initiatePatientBillPayment(_root: unknown, { paymentToken 
   const paymentProvider = payment?.paymentProviderId ? await prisma.paymentProvider.findFirst({ where: { id: payment.paymentProviderId, facilityId: payment.facilityId, isInstalled: true } }) : null
   if (!payment || payment.status !== 'pending' || payment.method !== 'card_online' || !paymentProvider) throw new Error('Payment is unavailable')
   if (context.session) throw new Error('Patient portal payment sessions are not supported')
-  if (payment.providerPaymentId) return { clientSecret: null, amountCents: payment.amountCents, currency: payment.currency }
+  if (payment.providerPaymentId) {
+    // Resume the patient's open Checkout Session instead of creating a second one.
+    const existing = await getPaymentStatus({ provider: paymentProvider, paymentId: payment.providerPaymentId })
+    return { clientSecret: existing?.url ?? null, amountCents: payment.amountCents, currency: payment.currency }
+  }
   const created = await createPayment({ provider: paymentProvider, amount: payment.amountCents, currency: payment.currency, patientPaymentId: payment.id, idempotencyKey: `bill:${payment.id}:v${payment.transitionVersion}` })
   if (created.amount !== payment.amountCents || created.currency !== payment.currency) throw new Error('Payment provider amount mismatch')
   await prisma.patientPayment.update({ where: { id: payment.id }, data: { providerPaymentId: created.id } })
