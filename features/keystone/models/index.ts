@@ -56,6 +56,7 @@ import { PatientCoverage } from './PatientCoverage'
 import { ClaimVersion } from './ClaimVersion'
 import { PatientPayment } from './PatientPayment'
 import { PatientRefund } from './PatientRefund'
+import { PaymentProvider } from './PaymentProvider'
 import { InventoryItem } from './InventoryItem'
 import { InventoryMovement } from './InventoryMovement'
 import { CommunicationPreference } from './CommunicationPreference'
@@ -121,6 +122,7 @@ const rawModels = {
   ClaimVersion,
   PatientPayment,
   PatientRefund,
+  PaymentProvider,
   InventoryItem,
   InventoryMovement,
   CommunicationPreference,
