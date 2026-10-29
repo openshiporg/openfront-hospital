@@ -35,6 +35,7 @@ import { createOnboardingAppointment, issueIntakeForm } from './onboarding/onboa
 import applyHospitalOnboarding from './onboarding/applyHospitalOnboarding'
 import bootstrapHospital from './bootstrap/bootstrapHospital'
 import { redeemUserPasswordResetToken, sendUserPasswordResetLink } from './passwordResetMutations'
+import { initiatePatientBillPayment, lookupPatientBill, reconcilePatientBillPayment } from './payments/patientBillPayments'
 
 const graphql = String.raw;
 
@@ -433,6 +434,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         replayed: Boolean
       }
 
+      type BillLookupResult { paymentToken: String!, amountCents: Int!, currency: String!, facilityName: String! }
       type Query {
         episodePolicyWorkspace(facilityId: ID!, beforeRevision: Int, take: Int): JSON!
         episodeClosureWorkspace(encounterId: ID!, beforeVersion: Int, beforeRejectedId: ID, take: Int): JSON!
@@ -459,6 +461,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         ): ScheduleConflictResult!
         workflowPatientCandidates(facilityId: ID!, search: String!, take: Int): [WorkflowPatientCandidate!]!
         workflowEncounterCandidates(facilityId: ID!, patientId: ID!, search: String!, take: Int, skip: Int): [WorkflowEncounterCandidate!]!
+        lookupPatientBill(paymentNumber: String!, dateOfBirth: String!): BillLookupResult!
       }
 
       type Mutation {
@@ -526,6 +529,8 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         requestExportJob(data: ExportJobWorkflowInput!): ExportJobWorkflowResult!
         processExportJob(operationKey: String!, jobId: ID!, expectedVersion: Int!): ControlledClinicalResult!
         applyHospitalOnboarding(configuration: JSON!): HospitalOnboardingResult!
+        initiatePatientBillPayment(paymentToken: String!): JSON!
+        reconcilePatientBillPayment(paymentId: ID!): JSON!
         createOnboardingAppointment(data: OnboardingAppointmentInput!): OnboardingAppointmentResult!
         issueIntakeForm(data: IntakeIssueInput!): OneTimeAccessResult!
 
@@ -615,6 +620,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         appointmentScheduleConflicts,
         workflowPatientCandidates,
         workflowEncounterCandidates,
+        lookupPatientBill,
       },
       Mutation: {
         reviewEpisodePolicy,
@@ -690,6 +696,8 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         applyHospitalOnboarding,
         createOnboardingAppointment,
         issueIntakeForm,
+        initiatePatientBillPayment,
+        reconcilePatientBillPayment: (_root: unknown, { paymentId }: { paymentId: string }, context: any) => reconcilePatientBillPayment(paymentId, context),
       },
     },
   });

@@ -21,13 +21,15 @@ async function stripeRequest(path: string, method = 'GET', body?: Record<string,
   return result
 }
 
-export async function createPaymentFunction({ amount, currency, paymentNumber, idempotencyKey }: { amount: number; currency: string; paymentNumber: string; idempotencyKey: string }) {
+export async function createPaymentFunction({ amount, currency, patientPaymentId, idempotencyKey }: { amount: number; currency: string; patientPaymentId: string; idempotencyKey: string }) {
   if (!Number.isSafeInteger(amount) || amount < 1) throw new Error('Invalid payment amount')
-  const intent = await stripeRequest('payment_intents', 'POST', {
-    amount, currency: currency.toLowerCase(), 'automatic_payment_methods[enabled]': 'true',
-    'metadata[paymentNumber]': paymentNumber,
+  const session = await stripeRequest('checkout/sessions', 'POST', {
+    mode: 'payment', success_url: `${process.env.PUBLIC_APP_URL}/pay?status=success`, cancel_url: `${process.env.PUBLIC_APP_URL}/pay?status=cancelled`,
+    'line_items[0][quantity]': 1, 'line_items[0][price_data][currency]': currency.toLowerCase(),
+    'line_items[0][price_data][unit_amount]': amount, 'line_items[0][price_data][product_data][name]': 'Healthcare balance payment',
+    'metadata[patientPaymentId]': patientPaymentId, 'payment_intent_data[metadata][patientPaymentId]': patientPaymentId,
   }, idempotencyKey)
-  return { id: intent.id, clientSecret: intent.client_secret, amount: intent.amount, currency: intent.currency.toUpperCase(), status: intent.status }
+  return { id: session.id, clientSecret: session.url, amount, currency: currency.toUpperCase(), status: session.payment_status }
 }
 
 export async function capturePaymentFunction({ paymentId, idempotencyKey }: { paymentId: string; idempotencyKey: string }) {
