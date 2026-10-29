@@ -1041,6 +1041,7 @@ model Facility {
   from_ClaimVersion_facility               ClaimVersion[]               @relation("ClaimVersion_facility")
   from_PatientPayment_facility             PatientPayment[]             @relation("PatientPayment_facility")
   from_PatientRefund_facility              PatientRefund[]              @relation("PatientRefund_facility")
+  from_PaymentProvider_facility            PaymentProvider[]            @relation("PaymentProvider_facility")
   from_InventoryItem_facility              InventoryItem[]              @relation("InventoryItem_facility")
   from_InventoryMovement_facility          InventoryMovement[]          @relation("InventoryMovement_facility")
   from_CommunicationPreference_facility    CommunicationPreference[]    @relation("CommunicationPreference_facility")
@@ -1274,11 +1275,13 @@ model PatientPayment {
   claimId                    String?                  @map("claim")
   installation               IntegrationInstallation? @relation("PatientPayment_installation", fields: [installationId], references: [id])
   installationId             String?                  @map("installation")
+  paymentProviderId          String?
   amountCents                Int
   refundedAmountCents        Int                      @default(0)
   currency                   String                   @default("USD")
   method                     String
   externalReference          String                   @default("")
+  providerPaymentId          String?                  @unique
   receivedAt                 DateTime?
   failedAt                   DateTime?
   createdAt                  DateTime                 @default(now())
@@ -1320,6 +1323,38 @@ model PatientRefund {
   @@index([patientId])
   @@index([paymentId])
   @@index([installationId])
+}
+
+model PaymentProvider {
+  id                          String   @id @default(cuid())
+  name                        String   @default("")
+  code                        String   @default("")
+  isInstalled                 Boolean  @default(false)
+  credentials                 Json?    @default("{}")
+  metadata                    Json?    @default("{}")
+  createPaymentFunction       String   @default("")
+  capturePaymentFunction      String   @default("")
+  refundPaymentFunction       String   @default("")
+  getPaymentStatusFunction    String   @default("")
+  generatePaymentLinkFunction String   @default("")
+  handleWebhookFunction       String   @default("")
+  facility                    Facility @relation("PaymentProvider_facility", fields: [facilityId], references: [id])
+  facilityId                  String   @map("facility")
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @default(now()) @updatedAt
+
+  @@unique([facilityId, code], map: "PaymentProvider_facility_code")
+}
+
+model PaymentWebhookReceipt {
+  id            String    @id @default(cuid())
+  receiptKey    String    @unique @default("")
+  eventId       String    @default("")
+  eventType     String    @default("")
+  status        String    @default("received")
+  payloadDigest String    @default("")
+  payload       Json?
+  processedAt   DateTime?
 }
 
 model InventoryItem {

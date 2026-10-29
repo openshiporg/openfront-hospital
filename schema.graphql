@@ -3749,11 +3749,13 @@ type PatientPayment {
   patient: Patient
   claim: InsuranceClaim
   installation: IntegrationInstallation
+  paymentProviderId: String
   amountCents: Int
   refundedAmountCents: Int
   currency: String
   method: String
   externalReference: String
+  providerPaymentId: String
   receivedAt: DateTime
   failedAt: DateTime
   createdAt: DateTime
@@ -3781,11 +3783,13 @@ input PatientPaymentWhereInput {
   patient: PatientWhereInput
   claim: InsuranceClaimWhereInput
   installation: IntegrationInstallationWhereInput
+  paymentProviderId: StringFilter
   amountCents: IntFilter
   refundedAmountCents: IntFilter
   currency: StringFilter
   method: StringFilter
   externalReference: StringFilter
+  providerPaymentId: StringFilter
   receivedAt: DateTimeNullableFilter
   failedAt: DateTimeNullableFilter
   createdAt: DateTimeFilter
@@ -3800,11 +3804,13 @@ input PatientPaymentOrderByInput {
   operationKeyHash: OrderDirection
   requestHash: OrderDirection
   actorReference: OrderDirection
+  paymentProviderId: OrderDirection
   amountCents: OrderDirection
   refundedAmountCents: OrderDirection
   currency: OrderDirection
   method: OrderDirection
   externalReference: OrderDirection
+  providerPaymentId: OrderDirection
   receivedAt: OrderDirection
   failedAt: OrderDirection
   createdAt: OrderDirection
@@ -3877,6 +3883,101 @@ input PatientRefundOrderByInput {
   failedAt: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
+}
+
+type PaymentProvider {
+  id: ID!
+  name: String
+  code: String
+  isInstalled: Boolean
+  credentials: JSON
+  metadata: JSON
+  createPaymentFunction: String
+  capturePaymentFunction: String
+  refundPaymentFunction: String
+  getPaymentStatusFunction: String
+  generatePaymentLinkFunction: String
+  handleWebhookFunction: String
+  facility: Facility
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderWhereUniqueInput {
+  id: ID
+}
+
+input PaymentProviderWhereInput {
+  AND: [PaymentProviderWhereInput!]
+  OR: [PaymentProviderWhereInput!]
+  NOT: [PaymentProviderWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  code: StringFilter
+  isInstalled: BooleanFilter
+  createPaymentFunction: StringFilter
+  capturePaymentFunction: StringFilter
+  refundPaymentFunction: StringFilter
+  getPaymentStatusFunction: StringFilter
+  generatePaymentLinkFunction: StringFilter
+  handleWebhookFunction: StringFilter
+  facility: FacilityWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentProviderOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  code: OrderDirection
+  isInstalled: OrderDirection
+  createPaymentFunction: OrderDirection
+  capturePaymentFunction: OrderDirection
+  refundPaymentFunction: OrderDirection
+  getPaymentStatusFunction: OrderDirection
+  generatePaymentLinkFunction: OrderDirection
+  handleWebhookFunction: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+type PaymentWebhookReceipt {
+  id: ID!
+  receiptKey: String
+  eventId: String
+  eventType: String
+  status: String
+  payloadDigest: String
+  payload: JSON
+  processedAt: DateTime
+}
+
+input PaymentWebhookReceiptWhereUniqueInput {
+  id: ID
+  receiptKey: String
+}
+
+input PaymentWebhookReceiptWhereInput {
+  AND: [PaymentWebhookReceiptWhereInput!]
+  OR: [PaymentWebhookReceiptWhereInput!]
+  NOT: [PaymentWebhookReceiptWhereInput!]
+  id: IDFilter
+  receiptKey: StringFilter
+  eventId: StringFilter
+  eventType: StringFilter
+  status: StringFilter
+  payloadDigest: StringFilter
+  processedAt: DateTimeNullableFilter
+}
+
+input PaymentWebhookReceiptOrderByInput {
+  id: OrderDirection
+  receiptKey: OrderDirection
+  eventId: OrderDirection
+  eventType: OrderDirection
+  status: OrderDirection
+  payloadDigest: OrderDirection
+  processedAt: OrderDirection
 }
 
 type InventoryItem {
@@ -5125,6 +5226,8 @@ type Mutation {
   requestExportJob(data: ExportJobWorkflowInput!): ExportJobWorkflowResult!
   processExportJob(operationKey: String!, jobId: ID!, expectedVersion: Int!): ControlledClinicalResult!
   applyHospitalOnboarding(configuration: JSON!): HospitalOnboardingResult!
+  initiatePatientBillPayment(paymentToken: String!): JSON!
+  reconcilePatientBillPayment(paymentId: ID!): JSON!
   createOnboardingAppointment(data: OnboardingAppointmentInput!): OnboardingAppointmentResult!
   issueIntakeForm(data: IntakeIssueInput!): OneTimeAccessResult!
   requestAppointment(appointmentTypeId: ID!, providerId: ID!, facilityId: ID!, startsAt: String!, patient: PatientAppointmentRequestInput!, reasonForVisit: String, preferredContactMethod: String, consent: WorkflowConsentInput!): AppointmentRequestResult
@@ -5287,6 +5390,12 @@ type Query {
   patientRefund(where: PatientRefundWhereUniqueInput!): PatientRefund
   patientRefunds(where: PatientRefundWhereInput! = {}, orderBy: [PatientRefundOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: PatientRefundWhereUniqueInput): [PatientRefund!]
   patientRefundsCount(where: PatientRefundWhereInput! = {}): Int
+  paymentProvider(where: PaymentProviderWhereUniqueInput!): PaymentProvider
+  paymentProviders(where: PaymentProviderWhereInput! = {}, orderBy: [PaymentProviderOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: PaymentProviderWhereUniqueInput): [PaymentProvider!]
+  paymentProvidersCount(where: PaymentProviderWhereInput! = {}): Int
+  paymentWebhookReceipt(where: PaymentWebhookReceiptWhereUniqueInput!): PaymentWebhookReceipt
+  paymentWebhookReceipts(where: PaymentWebhookReceiptWhereInput! = {}, orderBy: [PaymentWebhookReceiptOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: PaymentWebhookReceiptWhereUniqueInput): [PaymentWebhookReceipt!]
+  paymentWebhookReceiptsCount(where: PaymentWebhookReceiptWhereInput! = {}): Int
   inventoryItem(where: InventoryItemWhereUniqueInput!): InventoryItem
   inventoryItems(where: InventoryItemWhereInput! = {}, orderBy: [InventoryItemOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: InventoryItemWhereUniqueInput): [InventoryItem!]
   inventoryItemsCount(where: InventoryItemWhereInput! = {}): Int
@@ -5354,6 +5463,7 @@ type Query {
   appointmentScheduleConflicts(facilityId: ID!, providerId: ID!, startsAt: String!, endsAt: String!, excludeAppointmentId: ID): ScheduleConflictResult!
   workflowPatientCandidates(facilityId: ID!, search: String!, take: Int): [WorkflowPatientCandidate!]!
   workflowEncounterCandidates(facilityId: ID!, patientId: ID!, search: String!, take: Int, skip: Int): [WorkflowEncounterCandidate!]!
+  lookupPatientBill(paymentNumber: String!, dateOfBirth: String!): BillLookupResult!
 }
 
 union AuthenticatedItem = User
@@ -5964,6 +6074,7 @@ input PatientPaymentWorkflowInput {
   patientId: ID!
   claimId: ID
   installationId: ID
+  paymentProviderId: ID
   amountCents: Int!
   currency: String
   method: String!
@@ -6286,4 +6397,11 @@ type CareQueueResult {
   calledAt: DateTime
   completedAt: DateTime
   replayed: Boolean
+}
+
+type BillLookupResult {
+  paymentToken: String!
+  amountCents: Int!
+  currency: String!
+  facilityName: String!
 }

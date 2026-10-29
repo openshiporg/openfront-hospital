@@ -57,6 +57,7 @@ import { ClaimVersion } from './ClaimVersion'
 import { PatientPayment } from './PatientPayment'
 import { PatientRefund } from './PatientRefund'
 import { PaymentProvider } from './PaymentProvider'
+import { PaymentWebhookReceipt } from './PaymentWebhookReceipt'
 import { InventoryItem } from './InventoryItem'
 import { InventoryMovement } from './InventoryMovement'
 import { CommunicationPreference } from './CommunicationPreference'
@@ -123,6 +124,7 @@ const rawModels = {
   PatientPayment,
   PatientRefund,
   PaymentProvider,
+  PaymentWebhookReceipt,
   InventoryItem,
   InventoryMovement,
   CommunicationPreference,

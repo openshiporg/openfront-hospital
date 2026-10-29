@@ -6,7 +6,9 @@ import { trackingFields } from './trackingFields'
 export const PatientPayment = list({
   db: { extendPrismaSchema(schema) { return schema
     .replace(/facility\s+Facility\?/, 'facility Facility').replace(/facilityId\s+String\?/, 'facilityId String')
-    .replace(/patient\s+Patient\?/, 'patient Patient').replace(/patientId\s+String\?/, 'patientId String') } },
+    .replace(/patient\s+Patient\?/, 'patient Patient').replace(/patientId\s+String\?/, 'patientId String')
+    .replace(/paymentProviderId\s+String\s+@default\(""\)/, 'paymentProviderId String?')
+    .replace(/providerPaymentId\s+String\s+@default\(""\)/, 'providerPaymentId String? @unique') } },
   access: { operation: { query: isSignedIn, create: denyAccess, update: denyAccess, delete: denyAccess }, filter: { query: rules.canReadBillingRecords } },
   graphql: { omit: { create: true, update: true, delete: true } },
   ui: { hideCreate: true, hideDelete: true, listView: { initialColumns: ['paymentNumber', 'status', 'amountCents', 'method', 'patient', 'facility'] } },
@@ -20,7 +22,7 @@ export const PatientPayment = list({
     operationKeyHash: text({ isIndexed: 'unique', access: { read: permissions.canAccessAllClinicalData }, validation: { isRequired: true } }),
     requestHash: text({ access: { read: permissions.canAccessAllClinicalData }, validation: { isRequired: true } }),
     actorReference: text({ access: { read: permissions.canReadAuditMetadata }, validation: { isRequired: true } }),
-    facility: relationship({ ref: 'Facility' }), patient: relationship({ ref: 'Patient' }), claim: relationship({ ref: 'InsuranceClaim' }), installation: relationship({ ref: 'IntegrationInstallation' }), paymentProvider: relationship({ ref: 'PaymentProvider' }),
+    facility: relationship({ ref: 'Facility' }), patient: relationship({ ref: 'Patient' }), claim: relationship({ ref: 'InsuranceClaim' }), installation: relationship({ ref: 'IntegrationInstallation' }), paymentProviderId: text({ access: { read: permissions.canManageBilling } }),
     amountCents: integer({ validation: { isRequired: true, min: 1 }, access: { read: permissions.canManageBilling } }),
     refundedAmountCents: integer({ defaultValue: 0, validation: { isRequired: true, min: 0 }, access: { read: permissions.canManageBilling } }),
     currency: text({ defaultValue: 'USD', validation: { isRequired: true } }),
@@ -29,7 +31,7 @@ export const PatientPayment = list({
       { label: 'External card', value: 'card_external' }, { label: 'External bank', value: 'bank_external' }, { label: 'Online card', value: 'card_online' },
     ], validation: { isRequired: true } }),
     externalReference: text({ isIndexed: true, access: { read: permissions.canManageBilling } }),
-    providerPaymentId: text({ isIndexed: 'unique', access: { read: permissions.canManageBilling } }),
+    providerPaymentId: text({ access: { read: permissions.canManageBilling } }),
     receivedAt: timestamp(), failedAt: timestamp(), ...trackingFields,
   },
 })

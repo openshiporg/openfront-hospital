@@ -5,11 +5,7 @@ async function stripeRequest(path: string, method = 'GET', body?: Record<string,
   if (!secret || !secret.startsWith('sk_test_')) throw new Error('A Stripe test secret key is required')
   const response = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
-      ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
-    },
+    headers: { Authorization: `Bearer ${secret}`, ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
     body: body ? new URLSearchParams(Object.entries(body).flatMap(([key, value]) => {
       if (value === undefined || value === null) return []
       if (typeof value === 'object') return Object.entries(value as Record<string, unknown>).map(([nestedKey, nested]) => [`${key}[${nestedKey}]`, String(nested)] as [string, string])
@@ -36,21 +32,15 @@ export async function capturePaymentFunction({ paymentId, idempotencyKey }: { pa
   const intent = await stripeRequest(`payment_intents/${encodeURIComponent(paymentId)}/capture`, 'POST', {}, idempotencyKey)
   return { id: intent.id, status: intent.status, amount: intent.amount_received, currency: intent.currency.toUpperCase() }
 }
-
 export async function refundPaymentFunction({ paymentId, amount, idempotencyKey }: { paymentId: string; amount: number; idempotencyKey: string }) {
   const refund = await stripeRequest('refunds', 'POST', { payment_intent: paymentId, amount }, idempotencyKey)
   return { id: refund.id, status: refund.status, amount: refund.amount, currency: refund.currency?.toUpperCase() }
 }
-
 export async function getPaymentStatusFunction({ paymentId }: { paymentId: string }) {
   const intent = await stripeRequest(`payment_intents/${encodeURIComponent(paymentId)}`)
   return { id: intent.id, status: intent.status, amount: intent.amount_received || intent.amount, currency: intent.currency.toUpperCase() }
 }
-
-export async function generatePaymentLinkFunction({ paymentId }: { paymentId: string }) {
-  return `https://dashboard.stripe.com/test/payments/${encodeURIComponent(paymentId)}`
-}
-
+export async function generatePaymentLinkFunction({ paymentId }: { paymentId: string }) { return `https://dashboard.stripe.com/test/payments/${encodeURIComponent(paymentId)}` }
 export async function handleWebhookFunction({ headers, rawBody }: { headers: Record<string, string>; rawBody: string }) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET
   if (!secret || !rawBody) throw new Error('Stripe webhook verification is not configured')

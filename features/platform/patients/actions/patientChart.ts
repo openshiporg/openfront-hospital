@@ -71,6 +71,7 @@ export async function getPatientBilling(id: string) {
   )
 }
 
+
 export async function getPatientViewerRole() {
   const response = await keystoneClient<{ authenticatedItem: { role?: ViewerRole | null } | null }>(
     `query PatientChartViewer {

@@ -17,3 +17,19 @@ export async function beginBillPaymentAction(paymentToken: string) {
   )
   return response.success ? response.data.initiatePatientBillPayment : null
 }
+
+export async function recordPatientPaymentAction(data: Record<string, unknown>) {
+  const response = await keystoneClient<{ recordPatientPayment: { id: string; status: string } }>(
+    `mutation RecordOnlinePayment($data:PatientPaymentWorkflowInput!){recordPatientPayment(data:$data){id status}}`,
+    { data },
+  )
+  return response.success ? response.data.recordPatientPayment : null
+}
+
+export async function issuePatientPaymentLinkAction(paymentId: string) {
+  const response = await keystoneClient<{ initiatePatientBillPayment: { clientSecret: string | null; amountCents: number; currency: string } }>(
+    `mutation IssuePaymentLink($paymentToken:String!){initiatePatientBillPayment(paymentToken:$paymentToken)}`,
+    { paymentToken: paymentId },
+  )
+  return response.success ? response.data.initiatePatientBillPayment : null
+}

@@ -381,7 +381,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
       input CarePlanWorkflowInput { operationKey: String! facilityId: ID! patientId: ID! encounterId: ID providerId: ID! title: String! goals: String! interventions: String! }
       input InsuranceClaimWorkflowInput { operationKey: String! facilityId: ID! patientId: ID! encounterId: ID! coverageId: ID payerName: String! billedAmountCents: Int! }
       input PatientCoverageWorkflowInput { operationKey: String! facilityId: ID! patientId: ID! payerName: String! memberId: String! groupNumber: String effectiveAt: String terminatesAt: String }
-      input PatientPaymentWorkflowInput { operationKey: String! facilityId: ID! patientId: ID! claimId: ID installationId: ID amountCents: Int! currency: String method: String! externalReference: String }
+      input PatientPaymentWorkflowInput { operationKey: String! facilityId: ID! patientId: ID! claimId: ID installationId: ID paymentProviderId: ID amountCents: Int! currency: String method: String! externalReference: String }
       input PatientRefundWorkflowInput { operationKey: String! paymentId: ID! amountCents: Int! reasonCode: String! }
       input InventoryItemWorkflowInput { operationKey: String! facilityId: ID! sku: String! name: String! unit: String! initialQuantity: Int reorderPoint: Int }
       input InventoryMovementWorkflowInput { operationKey: String! itemId: ID! expectedVersion: Int! movementType: String! quantityDelta: Int! reservedDelta: Int reasonCode: String! }

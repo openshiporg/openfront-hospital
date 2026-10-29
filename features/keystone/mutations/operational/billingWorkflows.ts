@@ -147,11 +147,19 @@ export async function recordPatientPayment(_root: unknown, { data }: any, contex
   await scopedFacilityPatient(context, data.facilityId, data.patientId)
   const amountCents = requireSafeCents(data.amountCents, 'Payment amount')
   const method = bounded(data.method, 'Payment method', 40, true)
-  if (!['cash', 'check', 'card_external', 'bank_external'].includes(method)) throw new Error('Payment method is invalid')
+  if (!['cash', 'check', 'card_external', 'bank_external', 'card_online'].includes(method)) throw new Error('Payment method is invalid')
   const isExternal = method.endsWith('_external')
+  const isOnline = method === 'card_online'
   const installation = await scopedInstallation(context, data.installationId, data.facilityId, 'payment')
   if (isExternal && !installation) throw new Error('External payments require an active payment integration')
-  if (!isExternal && installation) throw new Error('Manual payments cannot use an external integration')
+  if (!isExternal && !isOnline && installation) throw new Error('Manual payments cannot use an external integration')
+  let paymentProviderId: string | null = null
+  if (isOnline) {
+    const providerId = bounded(data.paymentProviderId, 'Payment provider', 128, true)
+    const provider = await (context.sudo().prisma as any).paymentProvider.findFirst({ where: { id: providerId, facilityId: data.facilityId, isInstalled: true } })
+    if (!provider || provider.code !== 'pp_stripe_hospital') throw new Error('An installed Stripe provider for this facility is required')
+    paymentProviderId = provider.id
+  }
   if (data.claimId) {
     const claim = await context.query.InsuranceClaim.findOne({ where: { id: data.claimId }, query: 'id facility { id } patient { id }' }) as any
     if (!claim || claim.facility?.id !== data.facilityId || claim.patient?.id !== data.patientId) throw new Error('Claim does not match the payment scope')
@@ -171,9 +179,9 @@ export async function recordPatientPayment(_root: unknown, { data }: any, contex
     const payment = await prisma.patientPayment.create({
       data: {
         paymentNumber: `PAY-${randomUUID()}`,
-        status: isExternal ? 'pending' : 'succeeded', transitionVersion: 1, ...evidence,
+        status: isExternal || isOnline ? 'pending' : 'succeeded', transitionVersion: 1, ...evidence,
         actorReference: context.session!.itemId, facilityId: data.facilityId, patientId: data.patientId,
-        claimId: data.claimId || null, installationId: installation?.id || null,
+        claimId: data.claimId || null, installationId: installation?.id || null, paymentProviderId,
         amountCents, refundedAmountCents: 0, currency: input.currency, method,
         externalReference: bounded(data.externalReference, 'External reference', 300),
         receivedAt: isExternal ? null : now,
@@ -293,22 +301,25 @@ export async function requestPatientRefund(_root: unknown, { data }: any, contex
     })
     if (Number(reserved._sum.amountCents || 0) + amountCents > payment.amountCents) throw new Error('Refund would exceed the captured payment amount')
     const isExternal = ['card_external', 'bank_external'].includes(payment.method)
+    const isOnline = payment.method === 'card_online'
     if (isExternal && !payment.installationId) throw new Error('External payment is missing its payment integration')
     const paymentInstallation = isExternal ? await prisma.integrationInstallation.findUnique({ where: { id: payment.installationId } }) : null
+    const paymentProvider = isOnline ? await prisma.paymentProvider.findFirst({ where: { id: payment.paymentProviderId, facilityId: payment.facilityId, isInstalled: true } }) : null
     if (isExternal && (!paymentInstallation || paymentInstallation.status !== 'active' || paymentInstallation.facilityId !== payment.facilityId)) {
       throw new Error('External payment integration is no longer active')
     }
+    if (isOnline && !paymentProvider) throw new Error('Online payment provider is no longer active')
     const now = new Date()
     const refund = await prisma.patientRefund.create({
       data: {
         refundNumber: `REF-${randomUUID()}`,
-        status: isExternal ? 'pending' : 'succeeded', transitionVersion: 1, ...evidence,
+        status: isExternal || isOnline ? 'pending' : 'succeeded', transitionVersion: 1, ...evidence,
         actorReference: context.session!.itemId, facilityId: payment.facilityId, patientId: payment.patientId,
         paymentId: payment.id, installationId: payment.installationId, amountCents, reasonCode,
-        completedAt: isExternal ? null : now,
+        completedAt: isExternal || isOnline ? null : now,
       },
     })
-    if (!isExternal) {
+    if (!isExternal && !isOnline) {
       await prisma.patientPayment.update({ where: { id: payment.id }, data: { refundedAmountCents: { increment: amountCents } } })
     }
     await appendAuditAndOutbox(prisma, {
