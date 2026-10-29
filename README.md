@@ -1,6 +1,10 @@
+<!-- logo -->
+
 ![Openfront Hospital](https://openship.org/og/openfront-hospital.png)
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fopenshiporg%2Fopenfront-hospital&env=DATABASE_URL%2CSESSION_SECRET%2CS3_BUCKET_NAME%2CS3_REGION%2CS3_ACCESS_KEY_ID%2CS3_SECRET_ACCESS_KEY)
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/openfront-hospital)
 
 Openfront Hospital is a self-hostable care-booking and hospital-operations application. Visitors can explore care services and providers, request appointments, and complete intake. Staff coordinate registration, scheduling, patient records, encounters, inpatient capacity, clinical fulfillment, claims, communication, and reporting.
 
@@ -10,12 +14,10 @@ Openfront Hospital is a self-hostable care-booking and hospital-operations appli
 
 ![Consultation image used by the Hospital storefront](public/images/hero/family-consultation.jpg)
 
-Explore the application locally using the setup instructions below.
-
 | | |
 |---|---|
-| **Public application** | `/` on your development URL |
-| **Dashboard** | `/dashboard` on your development URL |
+| **Storefront** | [hospital.openship.org](https://hospital.openship.org) |
+| **Dashboard** | [hospital.openship.org/dashboard](https://hospital.openship.org/dashboard) |
 
 [Learn more →](https://openship.org/products/openfront-hospital)
 
