@@ -1,3 +1,4 @@
+import { formatTimeZoneLabel } from '@/features/storefront/lib/facilityTime'
 import Link from 'next/link'
 import { Dot, EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
 import { getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
@@ -66,10 +67,10 @@ export async function LocationsPage() {
               <li key={location.id} className="sf-ticket">
                 <h2 className="sf-ticket__title sf-titleline"><Dot tone="ok" /><span><span className="sf-sr">Taking requests: </span>{location.name}</span></h2>
                 <dl className="sf-dl">
-                  <div><dt>Time zone</dt><dd className="sf-mono">{location.timeZone}</dd></div>
+                  <div><dt>Time zone</dt><dd>{formatTimeZoneLabel(location.timeZone)}</dd></div>
                   <div><dt>Clinicians</dt><dd>{[...location.providers.values()].join(', ')}</dd></div>
                 </dl>
-                <div className="sf-track">
+                <div className="sf-track sf-track--wrap">
                   {[...location.visits.values()].map(visit => (
                     <Link key={visit.slug} className="sf-pill sf-pill--sm" href={`/book/${visit.slug}`}>{visit.name} · {visit.durationMinutes} min</Link>
                   ))}

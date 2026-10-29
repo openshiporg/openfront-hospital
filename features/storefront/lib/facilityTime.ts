@@ -17,6 +17,17 @@ export function nextFacilityCalendarDate(timeZone: string, now = new Date()) {
   return new Date(Date.UTC(year, month - 1, day + 1, 12)).toISOString().slice(0, 10)
 }
 
+/** Patient-facing name for an IANA zone, e.g. America/Los_Angeles -> Pacific Time. */
+export function formatTimeZoneLabel(timeZone: string) {
+  try {
+    const name = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longGeneric' })
+      .formatToParts(new Date(Date.UTC(2026, 0, 1)))
+      .find(part => part.type === 'timeZoneName')?.value
+    if (name && !/^GMT/.test(name)) return name
+  } catch {}
+  return timeZone.split('/').pop()?.replace(/_/g, ' ') || timeZone
+}
+
 export function formatFacilitySlotTime(value: string, timeZone: string) {
   return new Intl.DateTimeFormat(undefined, {
     timeZone,

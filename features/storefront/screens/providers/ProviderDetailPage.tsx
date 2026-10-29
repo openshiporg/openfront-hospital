@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { formatTimeZoneLabel } from '@/features/storefront/lib/facilityTime'
 import { notFound } from 'next/navigation'
 import { Dot, EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
@@ -86,7 +87,7 @@ export async function ProviderDetailPage({ params }: { params: Promise<{ id: str
               <h2 id="where-heading" className="sf-step-title">Where</h2>
               <dl className="sf-dl">
                 {[...facilities.values()].map(facility => (
-                  <div key={facility.id}><dt>{facility.name}</dt><dd className="sf-mono">{facility.timeZone}</dd></div>
+                  <div key={facility.id}><dt>{facility.name}</dt><dd>{formatTimeZoneLabel(facility.timeZone)}</dd></div>
                 ))}
               </dl>
             </section>

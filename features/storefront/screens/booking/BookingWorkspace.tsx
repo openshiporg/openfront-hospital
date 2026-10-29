@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react'
 import { loadAppointmentAvailability } from '@/features/storefront/actions/booking'
 import type { AvailableAppointmentSlot, BookableAppointmentType } from '@/features/storefront/lib/data/booking'
-import { formatCalendarDate, publicBookingDateError, publicBookingDateRange } from '@/features/storefront/lib/facilityTime'
+import { formatCalendarDate, formatTimeZoneLabel, publicBookingDateError, publicBookingDateRange } from '@/features/storefront/lib/facilityTime'
 import { AppointmentRequestForm } from './AppointmentRequestForm'
 
 export function BookingWorkspace({ appointmentType, brandName, initialProviderId, initialFacilityId, initialDate, initialSlots, initialError }: {
@@ -56,7 +56,7 @@ export function BookingWorkspace({ appointmentType, brandName, initialProviderId
       </fieldset>
       <div className="sf-form-actions">
         <div className="sf-track"><button type="submit" className="sf-pill sf-pill--raised" disabled={pending || requestPending}>{pending ? 'Checking…' : 'Check availability'}</button></div>
-        <span className="sf-hint">Times in {facility?.timeZone || 'the location’s time zone'}</span>
+        <span className="sf-hint">Times in {facility?.timeZone ? formatTimeZoneLabel(facility.timeZone) : 'the location’s time zone'}</span>
       </div>
     </form>
     {error && <p role="alert" className="sf-notice sf-notice--warn"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>{error}</span></p>}
