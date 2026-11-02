@@ -86,6 +86,10 @@ export function bookingContactIdentities(patient: ReturnType<typeof validatePati
   return identities
 }
 
+function facilityName(appointment: any): string {
+  return String(appointment.locationName || 'Our care team')
+}
+
 function serializeAppointmentRequestResult(appointment: any) {
   if (!appointment) return null
 
@@ -366,6 +370,26 @@ export default async function requestAppointment(_root: unknown, args: Args, con
         intakeForms: { select: { id: true, status: true } },
       },
     })
+    // After the commit, never inside it. Minimal content; failures never touch the request.
+    if (appointment) {
+      try {
+        const { deliverAppointmentRequestEmail } = await import('../../lib/appointmentRequestEmail')
+        await deliverAppointmentRequestEmail(sudo.prisma, {
+          appointmentId: appointment.id,
+          appointmentNumber: appointment.appointmentNumber,
+          facilityId: appointment.facilityId,
+          facilityName: facilityName(appointment),
+          timeZone: facilityConfiguration.timeZone,
+          startsAt: appointment.startsAt.toISOString(),
+          patientId: appointment.patientId,
+          to: patientInput.email || '',
+          firstName: patientInput.firstName,
+          intakeToken: intakeAccess.token,
+        })
+      } catch (mailError) {
+        console.error('Appointment request email not sent:', mailError instanceof Error ? mailError.message : 'Unknown error')
+      }
+    }
     const appointmentWithAccess = appointment
       ? {
           ...appointment,
