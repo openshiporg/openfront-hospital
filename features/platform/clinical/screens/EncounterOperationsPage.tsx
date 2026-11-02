@@ -83,7 +83,7 @@ function StageTrack({ encounter }: { encounter: Encounter }) {
             <span
               aria-current={current ? 'step' : undefined}
               className={cn(
-                'whitespace-nowrap rounded-[4px] px-2 py-0.5 text-[11px] font-medium',
+                'whitespace-nowrap rounded-[4px] px-2 py-0.5 text-xs font-medium',
                 current && 'bg-teal-700 text-white dark:bg-teal-500 dark:text-teal-950',
                 done && 'text-teal-700 dark:text-teal-300',
                 !done && !current && 'text-muted-foreground',

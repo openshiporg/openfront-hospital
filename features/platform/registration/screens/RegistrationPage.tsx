@@ -25,6 +25,7 @@ import {
   toneForStatus,
 } from '@/features/platform/components/ward'
 import { PatientRegistrationForm } from '../components/PatientRegistrationForm'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type Registration = {
   id: string
@@ -161,18 +162,18 @@ export default async function RegistrationPage({ searchParams }: { searchParams?
             </label>
             <label className="w-[calc(50%-0.25rem)] sm:w-48">
               <span className="sr-only">Duplicate resolution</span>
-              <select name="resolution" defaultValue={resolution} className={fieldClass}>
+              <OptionSelect name="resolution" defaultValue={resolution} className={fieldClass}>
                 <option value="all">All resolutions</option>
                 <option value="create_new">Created new</option>
                 <option value="link_existing">Linked existing</option>
-              </select>
+              </OptionSelect>
             </label>
             <label className="w-[calc(50%-0.25rem)] sm:w-40">
               <span className="sr-only">Sort registrations</span>
-              <select name="sort" defaultValue={sort} className={fieldClass}>
+              <OptionSelect name="sort" defaultValue={sort} className={fieldClass}>
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
-              </select>
+              </OptionSelect>
             </label>
             <Track>
               <Pill type="submit" variant="primary">Apply</Pill>

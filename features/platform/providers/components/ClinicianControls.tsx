@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Notice, Pill, Track, fieldClass, labelClass } from '@/features/platform/components/ward'
 import { createClinician, updateClinician } from '../actions/mutations'
 import { CLINICIAN_TYPES, type ClinicianInput, type ClinicianRecord, type Option } from '../actions/types'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 function toInput(record?: ClinicianRecord): ClinicianInput {
   return {
@@ -98,9 +99,9 @@ export function ClinicianSheet({
             </label>
             <label className={labelClass}>
               Type
-              <select className={fieldClass} value={form.clinicianType} onChange={(e) => set('clinicianType', e.target.value)}>
+              <OptionSelect className={fieldClass} value={form.clinicianType} onChange={(e) => set('clinicianType', e.target.value)}>
                 {CLINICIAN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              </OptionSelect>
             </label>
             <label className={labelClass}>
               License number
@@ -122,10 +123,10 @@ export function ClinicianSheet({
             ) : (
               <label className={`${labelClass} sm:col-span-2`}>
                 Department
-                <select className={fieldClass} value={form.departmentId} onChange={(e) => set('departmentId', e.target.value)}>
+                <OptionSelect className={fieldClass} value={form.departmentId} onChange={(e) => set('departmentId', e.target.value)}>
                   <option value="">None</option>
                   {departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
-                </select>
+                </OptionSelect>
               </label>
             )}
             <label className="flex items-center gap-2 text-sm text-foreground sm:col-span-2">

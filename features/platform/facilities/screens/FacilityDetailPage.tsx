@@ -35,6 +35,7 @@ import {
   type RoomRecord,
   type WardRecord,
 } from '../lib/structure'
+import { plural } from '@/features/platform/lib/plural'
 
 type Params = Promise<{ id: string }>
 
@@ -259,7 +260,7 @@ export async function FacilityDetailPage({ params }: { params: Params }) {
     data.departmentsCount > data.departments.length && `Showing ${data.departments.length} of ${data.departmentsCount} departments.`,
     data.wardsCount > data.wards.length && `Showing ${data.wards.length} of ${data.wardsCount} wards.`,
     data.roomsCount > data.rooms.length && `Showing ${data.rooms.length} of ${data.roomsCount} rooms.`,
-    data.bedsCount > data.beds.length && `Showing ${data.beds.length} of ${data.bedsCount} beds (limit ${STRUCTURE_LIMITS.beds}).`,
+    data.bedsCount > data.beds.length && `Showing ${data.beds.length} of ${plural(data.bedsCount, 'bed', 'beds')} (limit ${STRUCTURE_LIMITS.beds}).`,
   ].filter((message): message is string => Boolean(message))
 
   return (

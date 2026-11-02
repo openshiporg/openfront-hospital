@@ -21,6 +21,7 @@ import {
 import { getProviderWorkspace, normalizeProviderFilters } from '../actions/queries'
 import { providerStatusLabel, providerTone, type ProviderFilters } from '../actions/types'
 import { ProviderSheet } from '../components/ProviderSheet'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -89,17 +90,17 @@ export async function ProviderListPage({ searchParams }: { searchParams: SearchP
           </label>
           <label className="w-[calc(50%-0.25rem)] sm:w-44">
             <span className="sr-only">Facility</span>
-            <select name="facility" defaultValue={filters.facility} className={fieldClass}>
+            <OptionSelect name="facility" defaultValue={filters.facility} className={fieldClass}>
               <option value="">All facilities</option>
               {facilities.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-            </select>
+            </OptionSelect>
           </label>
           <label className="w-[calc(50%-0.25rem)] sm:w-44">
             <span className="sr-only">Specialty</span>
-            <select name="specialty" defaultValue={filters.specialty} className={fieldClass}>
+            <OptionSelect name="specialty" defaultValue={filters.specialty} className={fieldClass}>
               <option value="">All specialties</option>
               {specialties.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            </OptionSelect>
           </label>
           <Track>
             <Pill type="submit">Apply</Pill>

@@ -24,6 +24,7 @@ import {
   startAppointmentVisit,
   type AppointmentQueueItem,
 } from '../actions/appointments'
+import { plural } from '@/features/platform/lib/plural'
 
 const statusLabels: Record<string, string> = {
   requested: 'Requested',
@@ -183,7 +184,7 @@ export function AppointmentDetailsCard({ appointment }: { appointment: Appointme
             )}
             {Number(appointment.messagesCount || 0) > (appointment.messages?.length || 0) && (
               <span className="text-amber-700 dark:text-amber-300">
-                Showing {appointment.messages?.length || 0} of {appointment.messagesCount} messages
+                Showing {appointment.messages?.length || 0} of {plural(appointment.messagesCount ?? 0, 'message', 'messages')}
               </span>
             )}
           </div>

@@ -12,6 +12,7 @@ import { FacilitySearchField } from '@/features/platform/facilities/components/F
 import * as actions from '../actions/workflows'
 import { recoverLabCommand } from '../actions/labResults'
 import type { OperationsOption, OperationsWorkspaceOptions } from '../types'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type ActionResponse = { success: boolean; error?: string; readback?: unknown }
 type Field = {
@@ -208,7 +209,7 @@ function SearchableField({
         maxLength={100}
         disabled={!facilityId || requiresPatient}
       />
-      <select
+      <OptionSelect
         id={id}
         name={field.name}
         required={required}
@@ -222,7 +223,7 @@ function SearchableField({
       >
         <option value="">{requiresPatient ? 'Select facility and patient first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : `Select ${field.label.toLowerCase()}`}</option>
         {visibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {resultCount > options.length && <p className={hintClass}>Showing {options.length} of {resultCount} matches.</p>}
       {(field.name === 'patientId' || field.name === 'encounterId') && options.length === 25 && resultCount === options.length && <p className={hintClass}>Showing up to 25 matches.</p>}
       {requiresPatient && <p role="status" className={hintClass}>Select a facility and patient before searching {coverageSearch ? 'coverage' : 'encounters'}.</p>}
@@ -303,7 +304,7 @@ function AdmissionPatientSearchField({
         maxLength={100}
         disabled={!facilityId}
       />
-      <select
+      <OptionSelect
         id={id}
         name="patientId"
         required
@@ -318,7 +319,7 @@ function AdmissionPatientSearchField({
       >
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a patient'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {resultCount > options.length && <p className={hintClass}>Showing {options.length} of {resultCount} matching active patients in this facility.</p>}
       {unavailable && <p role="status" className={hintClass}>Patient search is unavailable for this session. Admission authority or facility/patient scope could not be verified; no empty result is being inferred.</p>}
       {noMatches && <p role="status" className={hintClass}>No matching active patients were found in the selected accessible facility.</p>}
@@ -404,7 +405,7 @@ function LabTestSearchField({
         aria-label="Search active lab tests by name or code"
         maxLength={100}
       />
-      <select
+      <OptionSelect
         id={id}
         name="labTestId"
         required
@@ -418,7 +419,7 @@ function LabTestSearchField({
       >
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a lab test'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {pending && <p role="status" className={hintClass}>Searching active lab tests…</p>}
       {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching active lab tests.</p>}
       {unavailable && <p role="status" className={hintClass}>Lab-test search is unavailable for this session; clinical fulfillment authority or the accessible catalog could not be verified.</p>}
@@ -512,7 +513,7 @@ function LabOrderSearchField({
         maxLength={100}
         disabled={!hasContext}
       />
-      <select
+      <OptionSelect
         id={id}
         name="medicalOrderId"
         required
@@ -527,7 +528,7 @@ function LabOrderSearchField({
       >
         <option value="">{!hasContext ? 'Select a facility, patient, and encounter first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a laboratory order'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {pending && <p role="status" className={hintClass}>Searching active laboratory orders in this encounter…</p>}
       {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching active laboratory orders.</p>}
       {denied && <p role="status" className={hintClass}>Laboratory-order search is denied for this session or selected scope.</p>}
@@ -625,7 +626,7 @@ function MedicationOrderSearchField({
         maxLength={100}
         disabled={!hasContext}
       />
-      <select
+      <OptionSelect
         id={id}
         name="medicalOrderId"
         className={selectClassName}
@@ -634,7 +635,7 @@ function MedicationOrderSearchField({
       >
         <option value="">No related medication order (optional)</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {hasContext && search.trim().length === 1 && <p role="status" className={hintClass}>Enter at least 2 characters to search.</p>}
       {pending && <p role="status" className={hintClass}>Searching eligible medication orders…</p>}
       {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching medication orders.</p>}
@@ -733,7 +734,7 @@ function ProcedureOrderSearchField({
         maxLength={100}
         disabled={!hasContext}
       />
-      <select
+      <OptionSelect
         id={id}
         name="medicalOrderId"
         className={selectClassName}
@@ -742,7 +743,7 @@ function ProcedureOrderSearchField({
       >
         <option value="">No related procedure order (optional)</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {hasContext && search.trim().length === 1 && <p role="status" className={hintClass}>Enter at least 2 characters to search.</p>}
       {pending && <p role="status" className={hintClass}>Searching eligible procedure orders…</p>}
       {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching procedure orders.</p>}
@@ -829,7 +830,7 @@ function CorrectableLabResultSearchField({ id }: { id: string }) {
         aria-label="Search eligible non-superseded lab results by result number"
         maxLength={100}
       />
-      <select
+      <OptionSelect
         id={id}
         name="resultId"
         required
@@ -839,7 +840,7 @@ function CorrectableLabResultSearchField({ id }: { id: string }) {
       >
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a correction target'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {pending && <p role="status" className={hintClass}>Searching non-superseded final, acknowledged, or corrected results…</p>}
       {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching correction targets.</p>}
       {denied && <p role="status" className={hintClass}>Lab-result search is denied for this session.</p>}
@@ -926,7 +927,7 @@ function ClinicianSearchField({
         maxLength={100}
         disabled={!facilityId}
       />
-      <select
+      <OptionSelect
         id={id}
         name="clinicianId"
         required
@@ -941,7 +942,7 @@ function ClinicianSearchField({
       >
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select a clinician'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {pending && <p role="status" className={hintClass}>Searching active clinicians in this facility…</p>}
       {resultCount > options.length && <p role="status" className={hintClass}>Showing {options.length} of {resultCount} matching active clinicians in this facility.</p>}
       {unavailable && <p role="status" className={hintClass}>Clinician search is unavailable for this session; clinical fulfillment authority, active facility access, or the accessible clinician list could not be verified.</p>}
@@ -993,7 +994,7 @@ function FieldControl({
   }
   if (field.kind === 'select') {
     return (
-      <select
+      <OptionSelect
         id={id}
         name={field.name}
         required={required}
@@ -1005,7 +1006,7 @@ function FieldControl({
       >
         <option value="">{field.options?.length ? `Select ${field.label.toLowerCase()}` : `No ${field.label.toLowerCase()} available`}</option>
         {field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
     )
   }
   if (field.kind === 'textarea') {

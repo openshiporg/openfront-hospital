@@ -80,6 +80,7 @@ import {
   type BedCursorRequest,
   type BedCursorRow,
 } from '../lib/bedCursor'
+import { plural } from '@/features/platform/lib/plural'
 
 type Admission = {
   id: string
@@ -429,7 +430,7 @@ export default async function InpatientOperationsPage({ searchParams }: PageProp
           eyebrow="Inpatient"
           title="Bed board"
           tone={bedsQueue.counts ? (bedsQueue.counts.availableBeds > 0 ? 'ok' : 'warn') : 'idle'}
-          status={bedsQueue.counts ? `${bedsQueue.counts.availableBeds} beds available` : 'Bed counts unavailable'}
+          status={bedsQueue.counts ? `${plural(bedsQueue.counts.availableBeds, 'bed', 'beds')} available` : 'Bed counts unavailable'}
           meta="Admissions, transfers, discharges and bed holds"
         />
       )}

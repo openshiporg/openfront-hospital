@@ -4,6 +4,7 @@ import { Track } from '@/features/platform/components/ward'
 
 import { inpatientCursorHref, type InpatientCursor } from '../lib/inpatientCursorHref'
 import { type BedCursorDirection, type BedCursorPage } from '../lib/bedCursor'
+import { plural } from '@/features/platform/lib/plural'
 
 type BedCursorPaginationProps = {
   page: Exclude<BedCursorPage, { state: 'inconsistent' }>
@@ -29,7 +30,7 @@ export function BedCursorPagination({ page, direction, cursorId, preservedCursor
     <nav aria-label="Bed board pagination" className={`mt-4 flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3 ${className || ''}`}>
       {page.state === 'empty'
         ? <p role="status" className="text-xs text-muted-foreground">No beds are available on this side of the cursor.</p>
-        : <p className="text-xs tabular-nums text-muted-foreground">Showing {page.beds.length} beds from {page.totalCount} accessible beds.</p>}
+        : <p className="text-xs tabular-nums text-muted-foreground">Showing {plural(page.beds.length, 'bed', 'beds')} from {page.totalCount} accessible beds.</p>}
       {page.overflow && <p role="status" className="text-xs text-muted-foreground">More accessible beds are available in this direction.</p>}
       <Track>
         {page.hasPrevious && firstId

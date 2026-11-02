@@ -26,6 +26,7 @@ import { getLabTestCatalog } from '../actions/labTestQueries'
 import { setLabTestActive } from '../actions/labTestMutations'
 import { LabTestSheet } from '../components/LabTestSheet'
 import { normalizeLabTestFilters, type LabTestFilters } from '../lib/labTests'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -93,10 +94,10 @@ export async function LabTestListPage({ searchParams }: { searchParams: SearchPa
           </label>
           <label className="w-full sm:w-48">
             <span className="sr-only">Category</span>
-            <select name="category" defaultValue={filters.category} className={fieldClass}>
+            <OptionSelect name="category" defaultValue={filters.category} className={fieldClass}>
               <option value="">All categories</option>
               {categories.map(category => <option key={category} value={category}>{category}</option>)}
-            </select>
+            </OptionSelect>
           </label>
           <Track>
             <Pill type="submit" variant="primary">Apply</Pill>

@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Notice, Pill, Track, fieldClass, labelClass } from '@/features/platform/components/ward'
 import { createStaffUser, updateStaffUser } from '../actions/staff'
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, type FacilityOption, type StaffRole, type StaffUser } from '../types'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type Capabilities = {
   /** Name can be written (create, or update when the viewer can edit this user). */
@@ -141,10 +142,10 @@ export function UserDrawer({
           {capabilities.canEditRole && (
             <label className={labelClass}>
               Role
-              <select className={fieldClass} value={roleId} onChange={event => setRoleId(event.target.value)}>
+              <OptionSelect className={fieldClass} value={roleId} onChange={event => setRoleId(event.target.value)}>
                 <option value="">No role</option>
                 {assignableRoles.map(role => <option key={role.id} value={role.id}>{role.name || 'Unnamed role'}</option>)}
-              </select>
+              </OptionSelect>
             </label>
           )}
           {capabilities.canEditFacilities && (

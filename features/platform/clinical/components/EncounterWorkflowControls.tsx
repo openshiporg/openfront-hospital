@@ -9,6 +9,8 @@ import type { OperationsOption, OperationsWorkspaceOptions } from '@/features/pl
 import { searchEncounterOpenPatientCandidates, searchOperationalDepartments, searchOperationalProviders } from '@/features/platform/operations/actions/workflows'
 import { openEncounter } from '../actions/transitions'
 import { EpisodeClosurePanel } from './EpisodePolicyWorkspace'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
+import { plural } from '@/features/platform/lib/plural'
 
 const selectClassName = fieldClass
 const hintClass = 'text-xs text-muted-foreground'
@@ -27,10 +29,10 @@ function SelectField({ id, name, label, options, required = true, onChange }: { 
   return (
     <div className="grid min-w-0 gap-1.5">
       <label htmlFor={id} className={labelClass}>{label}{required ? '' : ' (optional)'}</label>
-      <select id={id} name={name} required={required} className={selectClassName} defaultValue="" onChange={event => onChange?.(event.target.value)}>
+      <OptionSelect id={id} name={name} required={required} className={selectClassName} defaultValue="" onChange={event => onChange?.(event.target.value)}>
         <option value="">Select {label.toLowerCase()}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
     </div>
   )
 }
@@ -103,7 +105,7 @@ function DepartmentSearchField({ facilityId }: { facilityId: string }) {
         maxLength={100}
         disabled={!facilityId}
       />
-      <select
+      <OptionSelect
         id={`${id}-select`}
         name="departmentId"
         className={selectClassName}
@@ -114,7 +116,7 @@ function DepartmentSearchField({ facilityId }: { facilityId: string }) {
       >
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'No department selected (optional)' : 'Select department (optional)'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className={hintClass}>Showing {options.length} of {count} departments. Narrow the search.</p>}
       {unavailable && <p role="status" className={hintClass}>Department search is unavailable.</p>}
       {noMatches && <p role="status" className={hintClass}>No matching departments in this facility.</p>}
@@ -190,7 +192,7 @@ function EncounterPatientSearchField({ facilityId }: { facilityId: string }) {
         maxLength={100}
         disabled={!facilityId}
       />
-      <select
+      <OptionSelect
         id={`${id}-select`}
         name="patientId"
         required
@@ -202,8 +204,8 @@ function EncounterPatientSearchField({ facilityId }: { facilityId: string }) {
       >
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search patients' : 'Select patient'}</option>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-      {count > options.length && <p className={hintClass}>Showing {options.length} of {count} patients. Narrow the search.</p>}
+      </OptionSelect>
+      {count > options.length && <p className={hintClass}>Showing {options.length} of {plural(count, 'patient', 'patients')}. Narrow the search.</p>}
       {unavailable && <p role="status" className={hintClass}>Patient search is unavailable.</p>}
       {noMatches && <p role="status" className={hintClass}>No matching patients in this facility.</p>}
     </div>
@@ -277,7 +279,7 @@ function ProviderSearchField({ facilityId }: { facilityId: string }) {
         maxLength={100}
         disabled={!facilityId}
       />
-      <select
+      <OptionSelect
         id={`${id}-select`}
         name="providerId"
         required
@@ -287,8 +289,8 @@ function ProviderSearchField({ facilityId }: { facilityId: string }) {
       >
         <option value="">{!facilityId ? 'Select a facility first' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : pending ? 'Searching…' : 'Select provider'}</option>
         {visibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-      {count > options.length && <p className={hintClass}>Showing {options.length} of {count} providers. Narrow the search.</p>}
+      </OptionSelect>
+      {count > options.length && <p className={hintClass}>Showing {options.length} of {plural(count, 'provider', 'providers')}. Narrow the search.</p>}
       {error && <p role="status" className={hintClass}>{error}</p>}
     </div>
   )

@@ -22,6 +22,7 @@ import {
   type WardTone,
 } from '@/features/platform/components/ward'
 import { getScheduleWorkspace, normalizeScheduleFilters, type ScheduleBlock } from '../actions/schedules'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -127,25 +128,25 @@ export async function ScheduleListPage({ searchParams }: { searchParams: SearchP
           </label>
           <label className="w-[calc(50%-0.25rem)] sm:w-40">
             <span className="sr-only">Block type</span>
-            <select name="type" defaultValue={filters.blockType} className={fieldClass}>
+            <OptionSelect name="type" defaultValue={filters.blockType} className={fieldClass}>
               <option value="all">All types</option>
               {Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
+            </OptionSelect>
           </label>
           <label className="w-[calc(50%-0.25rem)] sm:w-44">
             <span className="sr-only">Time range</span>
-            <select name="range" defaultValue={filters.range} className={fieldClass}>
+            <OptionSelect name="range" defaultValue={filters.range} className={fieldClass}>
               <option value="upcoming">Current and upcoming</option>
               <option value="past">Past</option>
               <option value="all">All dates</option>
-            </select>
+            </OptionSelect>
           </label>
           <label className="w-full sm:w-40">
             <span className="sr-only">Sort schedules</span>
-            <select name="sort" defaultValue={filters.sort} className={fieldClass}>
+            <OptionSelect name="sort" defaultValue={filters.sort} className={fieldClass}>
               <option value="start_asc">Earliest first</option>
               <option value="start_desc">Latest first</option>
-            </select>
+            </OptionSelect>
           </label>
           <Track>
             <Pill type="submit" variant="primary">Apply</Pill>

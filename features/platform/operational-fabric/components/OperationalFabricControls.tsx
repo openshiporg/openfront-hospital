@@ -12,6 +12,8 @@ import { FacilitySearchField } from '@/features/platform/facilities/components/F
 import * as actions from '../actions/workflows'
 import type { ConsentCandidateSearchResult, EncounterHoldCandidateSearchResult, FabricPatientCandidateSearchResult, IntegrationCandidateSearchResult, InventoryCandidateSearchResult, PaymentClaimCandidateSearchResult, RefundPaymentCandidateSearchResult } from '../actions/workflows'
 import type { FabricOption, FabricWorkspace } from '../lib/getOperationalFabricWorkspace'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
+import { plural } from '@/features/platform/lib/plural'
 
 type Response = { success: boolean; error?: string; data?: any }
 type Field = {
@@ -76,10 +78,10 @@ function CoverageCandidateField({ id, name, label, required }: { id: string; nam
         setSearch(event.target.value)
         if (selected) setSelected(null)
       }} placeholder="Search coverage number or payer" aria-label={`Search ${label.toLowerCase()} by coverage number or payer`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
+      <OptionSelect id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select unverified coverage'}</option>
         {visibleOptions.map(option => <option key={option.id} value={valueFor(option)}>{option.coverageNumber} · {option.payerName}</option>)}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching unverified coverage records. Add more characters to narrow results.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Coverage search is unavailable for this session. Access could not be verified; no empty result is being inferred.</p>}
       {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching unverified coverage records were found in the accessible scope.</p>}
@@ -144,10 +146,10 @@ function EncounterHoldCandidateField({ id, name, label, facilityId }: { id: stri
         setCount(0)
         setUnavailable(false)
       }} placeholder={facilityId ? 'Search by encounter number' : 'Select a facility first'} aria-label={`Search ${label.toLowerCase()} by encounter number`} maxLength={100} disabled={!facilityId} />
-      <select id={id} name={name} required aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => setSelected(hasUniqueMatch && options[0]?.id === event.target.value ? options[0] : null)}>
+      <OptionSelect id={id} name={name} required aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => setSelected(hasUniqueMatch && options[0]?.id === event.target.value ? options[0] : null)}>
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : hasUniqueMatch ? 'Select the single matching encounter' : 'Refine search to one encounter'}</option>
         {hasUniqueMatch && <option value={options[0].id}>One eligible encounter matched</option>}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Search matched {count} eligible encounters; only the first {options.length} candidate IDs were retrieved. Add characters to narrow to one. No encounter choices are shown while the match is ambiguous.</p>}
       {!pending && !unavailable && count > 1 && count <= 25 && <p role="status" className="text-xs text-muted-foreground">Multiple eligible encounters match. Add characters to narrow to one; no encounter identifiers are displayed.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Encounter search is unavailable for this session. Authority or scope could not be verified; no empty result is being inferred.</p>}
@@ -212,14 +214,14 @@ function PatientCandidateField({ id, name, label, required, facilityId, onSelect
         setCount(0)
         setUnavailable(false)
       }} placeholder={facilityId ? 'Search active patients by name' : 'Select a facility first'} aria-label={`Search ${label.toLowerCase()} by patient name`} maxLength={100} disabled={!facilityId} />
-      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => {
+      <OptionSelect id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!facilityId} onChange={event => {
         const next = visibleOptions.find(option => option.id === event.target.value) || null
         setSelected(next)
         onSelect?.(next?.id || '')
       }}>
         <option value="">{!facilityId ? 'Select a facility first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select active patient'}</option>
         {visibleOptions.map(option => <option key={option.id} value={option.id}>{option.displayName}</option>)}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching active patients in this facility. Add more characters to narrow results.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Patient search is unavailable for this session. Access could not be verified; no empty result is being inferred.</p>}
       {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active patients were found in this accessible facility scope.</p>}
@@ -303,10 +305,10 @@ function ConsentCandidateField({ id, name, label, required, mode, facilityId, pa
 
   return (
     <div className="grid min-w-0 gap-1.5">
-      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
+      <OptionSelect id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
         <option value="">{placeholder}</option>
         {!ambiguous && visibleOptions.map(option => <option key={option.id} value={valueFor(option)}>{option.decision} · {option.policyVersion} · {option.effectiveAt}</option>)}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} current decisions matching this facility, patient, and exact consent type.</p>}
       {ambiguous && <p role="status" className="text-xs text-muted-foreground">Multiple current decisions match this scope. The server refuses ambiguous consent history; administrator review is required and no selection is offered.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Consent search is unavailable for this session. Access could not be verified; no empty result is being inferred.</p>}
@@ -371,11 +373,11 @@ function PaymentClaimCandidateField({ id, name, label, facilityId, patientId }: 
         setCount(0)
         setUnavailable(false)
       }} placeholder={hasContext ? 'Search claim number for selected patient' : 'Choose facility and patient first'} aria-label={`Search ${label.toLowerCase()} by claim number`} maxLength={100} disabled={!hasContext} />
-      <select id={id} name={name} aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!hasContext} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
+      <OptionSelect id={id} name={name} aria-label={label} className={fieldClass} value={selected?.id || ''} disabled={!hasContext} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
         <option value="">{!hasContext ? 'Choose facility and patient first' : pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'No claim selected (optional)'}</option>
         {visibleOptions.map(option => <option key={option.id} value={option.id}>{option.claimNumber} · {option.status}</option>)}
-      </select>
-      {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} claims matching this patient and facility. Add more characters to narrow results.</p>}
+      </OptionSelect>
+      {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {plural(count, 'claim', 'claims')} matching this patient and facility. Add more characters to narrow results.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Claim search is unavailable for this session. Access could not be verified; no empty result is being inferred.</p>}
       {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching claims were found for this patient in the accessible facility scope.</p>}
     </div>
@@ -438,10 +440,10 @@ function RefundPaymentCandidateField({ id, name, label, required }: { id: string
         setCount(0)
         setUnavailable(false)
       }} placeholder="Search succeeded payment number" aria-label={`Search ${label.toLowerCase()} by payment number`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
+      <OptionSelect id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select succeeded payment'}</option>
         {visibleOptions.map(option => <option key={option.id} value={option.id} disabled={option.refundedAmountCents >= option.amountCents}>{option.paymentNumber} · {option.currency} · {option.method}</option>)}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching succeeded payments. Narrow the payment number to find later results.</p>}
       {hasNoRecordedBalance && <p className="text-xs text-muted-foreground">Matches with no recorded unrefunded balance are disabled. Pending refund reservations are rechecked by the server.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Payment search is unavailable for this session. Access could not be verified; no empty result is being inferred.</p>}
@@ -508,10 +510,10 @@ function InventoryCandidateField({ id, name, label, required }: { id: string; na
         setCount(0)
         setUnavailable(false)
       }} placeholder="Search active inventory by SKU or name" aria-label={`Search ${label.toLowerCase()} by SKU or name`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
+      <OptionSelect id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected ? valueFor(selected) : ''} onChange={event => setSelected(visibleOptions.find(option => valueFor(option) === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select active inventory item'}</option>
         {visibleOptions.map(option => <option key={option.id} value={valueFor(option)}>{option.sku} · {option.name} · {option.facility?.name || 'Facility'} · {option.quantityOnHand - option.quantityReserved} available</option>)}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching active inventory items. Add more characters to narrow results.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Inventory search is unavailable for this session. Access could not be verified; no empty result is being inferred.</p>}
       {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active inventory items were found in the accessible facility scope.</p>}
@@ -576,10 +578,10 @@ function IntegrationCandidateField({ id, name, label, required }: { id: string; 
         setCount(0)
         setUnavailable(false)
       }} placeholder="Search active integrations by name or type" aria-label={`Search ${label.toLowerCase()} by name or type`} maxLength={100} />
-      <select id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
+      <OptionSelect id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select active integration'}</option>
         {visibleOptions.map(option => <option key={option.id} value={option.id}>{option.name} · {option.kind} · {option.facility?.name || 'Facility'}</option>)}
-      </select>
+      </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching active integrations. Add more characters to narrow results.</p>}
       {unavailable && <p role="status" className="text-xs text-muted-foreground">Integration search is unavailable for this session. Access could not be verified; no empty result is being inferred.</p>}
       {noMatches && <p role="status" className="text-xs text-muted-foreground">No matching active integrations were found in the accessible facility scope.</p>}
@@ -724,10 +726,10 @@ function Form({ title, fields, submit, action, accessibleFacilityCount }: {
             ) : field.name === 'consentType' ? (
               <input className={fieldClass} id={`${title}-${field.name}`} name={field.name} required={field.required !== false} type="text" maxLength={100} value={consentType} onChange={event => setConsentType(event.target.value)} placeholder="Enter the exact consent type" />
             ) : field.kind === 'select' ? (
-              <select id={`${title}-${field.name}`} name={field.name} required={field.required !== false} className={fieldClass} defaultValue={field.value || ''}>
+              <OptionSelect id={`${title}-${field.name}`} name={field.name} required={field.required !== false} className={fieldClass} defaultValue={field.value || ''}>
                 <option value="">{field.options?.length ? `Select ${field.label.toLowerCase()}` : `No ${field.label.toLowerCase()} available`}</option>
                 {field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
+              </OptionSelect>
             ) : field.kind === 'textarea' || field.kind === 'csv' ? (
               <textarea className={cn(fieldClass, 'h-auto min-h-20 py-2')} id={`${title}-${field.name}`} name={field.name} required={field.required !== false} rows={field.kind === 'csv' ? 7 : 3} placeholder={field.placeholder} defaultValue={field.value} />
             ) : (
@@ -858,16 +860,16 @@ function ExportWorkflowForm({ accessibleFacilityCount }: { accessibleFacilityCou
         </div>
         <div className="grid min-w-0 gap-1.5">
           <label className={labelClass} htmlFor="export-type">Export type</label>
-          <select id="export-type" name="exportType" required className={fieldClass} defaultValue="">
+          <OptionSelect id="export-type" name="exportType" required className={fieldClass} defaultValue="">
             <option value="">Select export type</option>
             {['patients','appointments','audit','inventory'].map(value => <option key={value} value={value}>{value}</option>)}
-          </select>
+          </OptionSelect>
         </div>
         <div className="grid min-w-0 gap-1.5">
           <label className={labelClass} htmlFor="export-format">Format</label>
-          <select id="export-format" name="format" required className={fieldClass} defaultValue="csv">
+          <OptionSelect id="export-format" name="format" required className={fieldClass} defaultValue="csv">
             <option value="csv">CSV</option><option value="json">JSON</option>
-          </select>
+          </OptionSelect>
         </div>
         {error && <Notice tone="bad" role="alert" className="sm:col-span-2">{error}</Notice>}
         {message && <Notice tone="ok" role="status" className="sm:col-span-2">{message}</Notice>}

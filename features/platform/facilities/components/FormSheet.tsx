@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Notice, Pill, Track, fieldClass, labelClass } from '@/features/platform/components/ward'
 import { cn } from '@/lib/utils'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 export type SheetFieldErrors = Record<string, string>
 export type SheetResult = { success: true; data?: unknown } | { success: false; error: string; fieldErrors?: SheetFieldErrors }
@@ -29,12 +30,12 @@ export function SheetInput({ name, className, ...props }: React.InputHTMLAttribu
   return <input name={name} aria-invalid={errors[name] ? true : undefined} aria-describedby={errors[name] ? `${name}-error` : undefined} className={cn(fieldClass, errors[name] && 'border-red-500', className)} {...props} />
 }
 
-export function SheetSelect({ name, options, className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { name: string; options: ReadonlyArray<{ value: string; label: string }> }) {
+export function SheetSelect({ name, options, className, ...props }: Omit<React.ComponentProps<typeof OptionSelect>, 'children' | 'name'> & { name: string; options: ReadonlyArray<{ value: string; label: string }> }) {
   const errors = React.useContext(ErrorsContext)
   return (
-    <select name={name} aria-invalid={errors[name] ? true : undefined} className={cn(fieldClass, errors[name] && 'border-red-500', className)} {...props}>
+    <OptionSelect name={name} aria-invalid={errors[name] ? true : undefined} className={cn(fieldClass, errors[name] && 'border-red-500', className)} {...props}>
       {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-    </select>
+    </OptionSelect>
   )
 }
 

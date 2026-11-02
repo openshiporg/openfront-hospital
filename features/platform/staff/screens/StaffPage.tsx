@@ -27,6 +27,7 @@ import { DeleteUserButton } from '../components/DeleteUserButton'
 import { RoleDrawer } from '../components/RoleDrawer'
 import { UserDrawer } from '../components/UserDrawer'
 import { PERMISSION_GROUPS, type StaffRole } from '../types'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 const PAGE_SIZE = 40
 const MAX_PAGE = 25
@@ -120,11 +121,11 @@ export async function StaffPage(props: { searchParams: Promise<Record<string, st
                 </label>
                 <label className="w-full sm:w-56">
                   <span className="sr-only">Role</span>
-                  <select name="role" defaultValue={roleFilter} className={fieldClass}>
+                  <OptionSelect name="role" defaultValue={roleFilter} className={fieldClass}>
                     <option value="">All roles</option>
                     <option value="none">No role</option>
                     {roles.map(role => <option key={role.id} value={role.id}>{role.name || 'Unnamed role'}</option>)}
-                  </select>
+                  </OptionSelect>
                 </label>
                 <Track>
                   <Pill type="submit" variant="primary">Search</Pill>
@@ -220,7 +221,7 @@ export async function StaffPage(props: { searchParams: Promise<Record<string, st
                           <dl className="grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2 lg:grid-cols-3">
                             {groups.map(group => (
                               <div key={group.label} className="min-w-0">
-                                <dt className="tabular-nums text-[11px]  text-muted-foreground">{group.label}</dt>
+                                <dt className="tabular-nums text-xs  text-muted-foreground">{group.label}</dt>
                                 <dd className="text-foreground">{group.flags.join(', ')}</dd>
                               </div>
                             ))}

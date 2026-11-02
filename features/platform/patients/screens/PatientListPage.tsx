@@ -21,6 +21,8 @@ import {
   fieldClass,
   type WardTone,
 } from '@/features/platform/components/ward'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
+import { plural } from '@/features/platform/lib/plural'
 
 type PatientRow = {
   id: string
@@ -104,7 +106,7 @@ function PatientDetails({ patient }: { patient: PatientRow }) {
         <section className="min-w-0 rounded-[4px] border bg-muted/30 p-3">
           <h3 className={evidenceLabel}>Recent appointments</h3>
           {visibleAppointments.length ? <ul className="mt-2 space-y-1.5 text-sm">{visibleAppointments.map(item => <li key={item.id} className="flex min-w-0 flex-wrap items-baseline gap-x-3"><Code>{item.appointmentNumber || 'No reference'}</Code><StatusTag status={item.status || 'unknown'} /><span className="text-muted-foreground">{formatDate(item.startsAt, item.facility?.timeZone)}</span></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">No appointments.</p>}
-          {Number(patient.appointmentsCount || 0) > visibleAppointments.length && <p className="mt-2 text-xs text-muted-foreground">Showing {visibleAppointments.length} of {patient.appointmentsCount} appointments.</p>}
+          {Number(patient.appointmentsCount || 0) > visibleAppointments.length && <p className="mt-2 text-xs text-muted-foreground">Showing {visibleAppointments.length} of {plural(patient.appointmentsCount ?? 0, 'appointment', 'appointments')}.</p>}
         </section>
         <section className="min-w-0 rounded-[4px] border bg-muted/30 p-3">
           <h3 className={evidenceLabel}>Registrations</h3>
@@ -172,12 +174,12 @@ export async function PatientListPage(props: { searchParams: Promise<Record<stri
           </label>
           <label className="w-full sm:w-52">
             <span className="sr-only">Sort patients</span>
-            <select name="sort" defaultValue={sort} className={`${fieldClass} h-10`}>
+            <OptionSelect name="sort" defaultValue={sort} className={`${fieldClass} h-10`}>
               <option value="name_asc">Name A–Z</option>
               <option value="name_desc">Name Z–A</option>
               <option value="newest">Newest registered</option>
               <option value="oldest">Oldest registered</option>
-            </select>
+            </OptionSelect>
           </label>
           <Track>
             <Pill type="submit" variant="primary">Search</Pill>
@@ -220,7 +222,7 @@ export async function PatientListPage(props: { searchParams: Promise<Record<stri
                     <StatusTag status={patient.status || 'unknown'} tone={patientTone[patient.status || ''] || 'idle'} className="font-normal" />
                     <span>{patient.facilities?.map(item => item.name).filter(Boolean).join(' · ') || 'No visible facility'}</span>
                     <span>{patient.preferredContactMethod || 'No contact preference'}</span>
-                    <span className="tabular-nums">{patient.appointmentsCount || 0} appts · {patient.registrationsCount || 0} reg</span>
+                    <span className="tabular-nums">{plural(patient.appointmentsCount || 0, 'appt', 'appts')} · {patient.registrationsCount || 0} reg</span>
                   </>}
                   aside={<PatientActions patient={patient} />}
                 >

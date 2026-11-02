@@ -18,6 +18,7 @@ import {
 import { getPracticeReportData } from '../actions/practiceReports'
 import { MetricCard } from '../components/MetricCard'
 import { ReportList } from '../components/ReportList'
+import { plural } from '@/features/platform/lib/plural'
 
 function percent(numerator: number, denominator: number) {
   if (!denominator) return '0%'
@@ -147,7 +148,7 @@ export async function ReportsPage() {
                   title={provider.providerName}
                   meta={<>
                     <span>{provider.specialty || 'Provider'}</span>
-                    <span className="tabular-nums">{provider.appointmentCount} appointments</span>
+                    <span className="tabular-nums">{plural(provider.appointmentCount, 'appointment', 'appointments')}</span>
                     <span className="tabular-nums">{provider.completedCount} completed</span>
                     <span className="tabular-nums">{provider.noShowCount} no-show</span>
                   </>}

@@ -21,6 +21,7 @@ import {
   toneForStatus,
   statusLabel,
 } from '@/features/platform/components/ward';
+import { plural } from '@/features/platform/lib/plural'
 
 type ClinicalOperationsData = {
   encounters: Array<{ id: string; encounterNumber: string; status: string; chiefComplaint?: string | null; patient?: { displayName: string } | null; provider?: { displayName: string } | null; department?: { name: string } | null }>;
@@ -135,8 +136,8 @@ export default async function ClinicalOperationsPage() {
           <Readout label="Open encounters" value={data.encountersCount} />
           <Readout label="Admissions" value={data.admissionsCount} />
           <Readout label="Medical orders" value={data.medicalOrdersCount} sub={`${data.prescriptionsCount} prescriptions`} />
-          <Readout label="Lab results" value={data.labResultsCount} sub={`${data.insuranceClaimsCount} claims`} />
-          <Readout label="Facilities" value={data.facilitiesCount} sub={`${data.bedsCount} beds`} />
+          <Readout label="Lab results" value={data.labResultsCount} sub={`${plural(data.insuranceClaimsCount, 'claim', 'claims')}`} />
+          <Readout label="Facilities" value={data.facilitiesCount} sub={`${plural(data.bedsCount, 'bed', 'beds')}`} />
         </ReadoutStrip>
 
         <BoundedDataNotice messages={sampleNotices} />
@@ -287,7 +288,7 @@ export default async function ClinicalOperationsPage() {
             <div className="min-w-0 overflow-x-auto rounded-[4px] border bg-card">
               <table className="w-full min-w-[30rem] text-sm">
                 <thead>
-                  <tr className="border-b text-left tabular-nums text-[11px]  text-muted-foreground">
+                  <tr className="border-b text-left tabular-nums text-xs  text-muted-foreground">
                     <th className="px-4 py-2 font-medium">Lab test</th>
                     <th className="px-4 py-2 font-medium">Specimen</th>
                     <th className="px-4 py-2 font-medium">Turnaround</th>

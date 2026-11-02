@@ -21,6 +21,7 @@ import {
 } from '@/features/platform/components/ward'
 import { getAuditViewerRole, getClinicalAuditEvents, getWorkflowTransitions } from '../actions/audit'
 import { APPOINTMENT_AGGREGATES, AUDIT_RANGES, CLINICAL_AGGREGATES, type AuditRange } from '../types'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 const PAGE_SIZE = 50
 const MAX_PAGE = 40
@@ -143,10 +144,10 @@ export async function AuditPage(props: { searchParams: Promise<Record<string, st
                 {range !== '7d' && <input type="hidden" name="range" value={range} />}
                 <label className="w-full sm:w-56">
                   <span className="sr-only">{tab === 'events' ? 'Event type' : 'Aggregate type'}</span>
-                  <select name="type" defaultValue={type} className={fieldClass}>
+                  <OptionSelect name="type" defaultValue={type} className={fieldClass}>
                     <option value="">{tab === 'events' ? 'All event types' : 'All aggregate types'}</option>
                     {typeOptions.map(option => <option key={option} value={option}>{humanize(option)}</option>)}
-                  </select>
+                  </OptionSelect>
                 </label>
                 <label className="relative w-full sm:min-w-56 sm:flex-1">
                   <span className="sr-only">Search by reference</span>

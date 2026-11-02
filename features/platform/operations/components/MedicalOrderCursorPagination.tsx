@@ -8,6 +8,7 @@ import {
   type MedicalOrderCursorPage,
   type MedicalOrderPreservedQueueState,
 } from '../lib/medicalOrderCursor'
+import { plural } from '@/features/platform/lib/plural'
 
 type MedicalOrderCursorPaginationProps = {
   page: Exclude<MedicalOrderCursorPage, { state: 'inconsistent' }>
@@ -32,7 +33,7 @@ export function MedicalOrderCursorPagination({ page, direction, cursorId, preser
     <nav aria-label="Medical order pagination" className="mt-4 flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
       {page.state === 'empty'
         ? <p role="status" className="text-xs text-muted-foreground">No orders are available on this side of the cursor.</p>
-        : <p className="text-xs tabular-nums text-muted-foreground">Showing {page.orders.length} orders from {page.totalCount} accessible orders.</p>}
+        : <p className="text-xs tabular-nums text-muted-foreground">Showing {plural(page.orders.length, 'order', 'orders')} from {page.totalCount} accessible orders.</p>}
       {page.overflow && <p role="status" className="text-xs text-muted-foreground">More accessible orders are available in this direction.</p>}
       <Track>
         {page.hasPrevious && firstId

@@ -21,6 +21,7 @@ import {
 import { IntakeDetailsCard } from '../components/IntakeDetailsCard'
 import { IntakeStatusTabs } from '../components/IntakeStatusTabs'
 import type { IntakeQueueItem } from '../actions/intake'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 const views = [
   { value: 'needs_review', label: 'Needs review' },
@@ -95,10 +96,10 @@ export function IntakeListPageClient({
             </label>
             <label className="w-full sm:w-48">
               <span className="sr-only">Sort intake records</span>
-              <select name="sort" defaultValue={safeSearchParams.get('sort') || 'updated_desc'} className={fieldClass}>
+              <OptionSelect name="sort" defaultValue={safeSearchParams.get('sort') || 'updated_desc'} className={fieldClass}>
                 <option value="updated_desc">Recently updated</option>
                 <option value="updated_asc">Oldest update first</option>
-              </select>
+              </OptionSelect>
             </label>
             <Track>
               <Pill type="submit" variant="primary">Apply</Pill>

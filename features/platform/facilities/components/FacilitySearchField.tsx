@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { fieldClass } from '@/features/platform/components/ward'
 import { searchAccessibleFacilities } from '../actions/searchFacilities'
 import type { FacilitySearchResult } from '../actions/searchFacilities'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 
 type FacilityOption = FacilitySearchResult['facilities'][number]
@@ -109,7 +110,7 @@ export function FacilitySearchField({
           disabled={disabled || accessibleFacilityCount === 0}
           className={fieldClass}
         />
-        <select
+        <OptionSelect
           id={id}
           name={name}
           required={required}
@@ -128,7 +129,7 @@ export function FacilitySearchField({
             const location = [option.city, option.region].filter(Boolean).join(', ')
             return <option key={option.id} value={option.id}>{[option.name || 'Facility', location].filter(Boolean).join(' · ')}</option>
           })}
-        </select>
+        </OptionSelect>
       </div>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count}. Keep typing to narrow.</p>}
       {status && <p role="status" className={`text-xs ${unavailable ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}>{status}</p>}

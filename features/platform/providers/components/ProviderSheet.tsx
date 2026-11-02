@@ -9,6 +9,7 @@ import { Notice, Pill, Track, fieldClass, labelClass } from '@/features/platform
 import { createProvider, updateProvider } from '../actions/mutations'
 import { PROVIDER_STATUSES, type Option, type ProviderInput } from '../actions/types'
 import { CheckList } from './CheckList'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 const EMPTY: ProviderInput = {
   firstName: '',
@@ -133,9 +134,9 @@ export function ProviderSheet({
             </label>
             <label className={labelClass}>
               Status
-              <select className={fieldClass} value={form.status} onChange={(e) => set('status', e.target.value)}>
+              <OptionSelect className={fieldClass} value={form.status} onChange={(e) => set('status', e.target.value)}>
                 {PROVIDER_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
+              </OptionSelect>
             </label>
             <label className={`${labelClass} sm:col-span-2`}>
               Bio

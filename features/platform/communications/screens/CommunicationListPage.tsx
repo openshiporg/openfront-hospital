@@ -25,6 +25,7 @@ import {
 import { getCommunicationTasks, type CommunicationTask } from '../actions/messages'
 import { normalizeCommunicationFilters } from '../lib/communicationFilters'
 import { ManualFollowUpButton } from '../components/ManualFollowUpButton'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 const statusTone: Record<string, WardTone> = {
   manual_required: 'warn',
@@ -107,7 +108,7 @@ export async function CommunicationListPage({ searchParams }: { searchParams?: P
         </label>
         <label className="w-full sm:w-44">
           <span className="sr-only">Communication status</span>
-          <select name="status" defaultValue={filters.status} className={fieldClass}>
+          <OptionSelect name="status" defaultValue={filters.status} className={fieldClass}>
             <option value="open">Open follow-up</option>
             <option value="all">All</option>
             <option value="manual_required">Manual required</option>
@@ -116,23 +117,23 @@ export async function CommunicationListPage({ searchParams }: { searchParams?: P
             <option value="sent">Sent</option>
             <option value="delivered">Delivered</option>
             <option value="completed">Completed manually</option>
-          </select>
+          </OptionSelect>
         </label>
         <label className="w-[calc(50%-0.25rem)] sm:w-36">
           <span className="sr-only">Channel</span>
-          <select name="channel" defaultValue={filters.channel} className={fieldClass}>
+          <OptionSelect name="channel" defaultValue={filters.channel} className={fieldClass}>
             <option value="all">All channels</option>
             <option value="phone">Phone</option>
             <option value="sms">SMS</option>
             <option value="email">Email</option>
-          </select>
+          </OptionSelect>
         </label>
         <label className="w-[calc(50%-0.25rem)] sm:w-36">
           <span className="sr-only">Sort communications</span>
-          <select name="sort" defaultValue={filters.sort} className={fieldClass}>
+          <OptionSelect name="sort" defaultValue={filters.sort} className={fieldClass}>
             <option value="oldest">Oldest first</option>
             <option value="newest">Newest first</option>
-          </select>
+          </OptionSelect>
         </label>
         <Track>
           <Pill type="submit" variant="primary">Apply</Pill>

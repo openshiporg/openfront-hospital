@@ -27,6 +27,7 @@ import { setStructureStatus } from '../actions/structureMutations'
 import { ActionGroup } from '../components/FormSheet'
 import { FacilitySheet } from '../components/StructureSheets'
 import { FACILITY_TYPES, normalizeFacilityFilters, optionLabel, type FacilityFilters } from '../lib/structure'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -92,10 +93,10 @@ export async function FacilityListPage({ searchParams }: { searchParams: SearchP
           </label>
           <label className="w-full sm:w-44">
             <span className="sr-only">Facility type</span>
-            <select name="type" defaultValue={filters.facilityType} className={fieldClass}>
+            <OptionSelect name="type" defaultValue={filters.facilityType} className={fieldClass}>
               <option value="all">All types</option>
               {FACILITY_TYPES.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
-            </select>
+            </OptionSelect>
           </label>
           <Track>
             <Pill type="submit" variant="primary">Apply</Pill>

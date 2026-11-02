@@ -8,6 +8,7 @@ import { FacilitySearchField } from '@/features/platform/facilities/components/F
 import { loadEpisode, loadEpisodeChildren, loadEpisodePolicy, recoverEpisode, reviewEpisodePolicy } from '../actions/episodes'
 import { transitionEncounter, type EncounterTransitionInput } from '../actions/transitions'
 import { LabResultReadbackPanel } from '@/features/platform/operations/components/LabResultReadbackPanel'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 const selectStyle = fieldClass
 const detailsClass = 'group min-w-0 rounded-[4px] border bg-card'
@@ -80,9 +81,9 @@ export function EpisodePolicyConfiguration() {
       {workspace.canConfigure ? <form className="grid min-w-0 gap-3 sm:grid-cols-2" action={submit} key={workspace.effective?.id || 'unconfigured'}>
         {Object.entries(choices).map(([key, options]) => <div key={key} className="grid min-w-0 gap-1.5">
           <label htmlFor={`${id}-${key}`} className={labelClass}>{labels[key]}</label>
-          <select id={`${id}-${key}`} name={key} required disabled={pending || Boolean(saved)} className={selectStyle} defaultValue={workspace.effective?.definition?.[key] || ''}>
+          <OptionSelect id={`${id}-${key}`} name={key} required disabled={pending || Boolean(saved)} className={selectStyle} defaultValue={workspace.effective?.definition?.[key] || ''}>
             <option value="">Select option</option>{options.map(value => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
-          </select>
+          </OptionSelect>
         </div>)}
         <div className="grid min-w-0 gap-1.5"><label htmlFor={`${id}-reference`} className={labelClass}>Review reference (no PHI)</label><input id={`${id}-reference`} className={fieldClass} name="reviewReference" required maxLength={200} disabled={Boolean(saved)} /></div>
         <label className="flex items-baseline gap-2 text-sm sm:col-span-2"><input name="attested" type="checkbox" required disabled={Boolean(saved)} className="translate-y-0.5" />I reviewed these operational options; no diagnosis, legal retention, or clinical-safety decision is made by software.</label>
@@ -178,26 +179,26 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
           expectedReviewFingerprint: workspace.reviewFingerprint, reviewedTuple: workspace.tuple, reason: String(form.get('reason') || ''), actorId: workspace.actorId })
       }}>
         <label htmlFor={`${id}-transition`} className={labelClass}>Transition</label>
-        <select className={selectStyle} name="toStatus" id={`${id}-transition`} required>
+        <OptionSelect className={selectStyle} name="toStatus" id={`${id}-transition`} required>
           {workspace.status === 'open' && <option value="in_progress">Start operational encounter</option>}
           {workspace.status === 'in_progress' && <option value="closed">Close operational encounter</option>}
           <option value="cancelled">Cancel operational encounter</option>
-        </select>
+        </OptionSelect>
         <label htmlFor={`${id}-reason`} className={labelClass}>Administrative reason (no PHI)</label>
         <textarea name="reason" id={`${id}-reason`} maxLength={1000} required rows={2} className={`${fieldClass} h-auto py-2`} />
         <Track className="justify-self-start"><Pill type="submit" size="sm" variant="primary" disabled={pending || (workspace.status === 'in_progress' && workspace.policy?.definition.operationalClosure !== 'enabled')}>Apply transition</Pill></Track>
       </form>}
-      <ul className="space-y-1 tabular-nums text-[11px] text-muted-foreground">{workspace.history.map((entry: any) => <li key={entry.id}>v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus} · {entry.provenance.replaceAll('_', ' ')} · policy {entry.policy?.revision || 'unknown'} · {entry.owned ? 'your receipt' : 'another authorized operator'}</li>)}</ul>
+      <ul className="space-y-1 tabular-nums text-xs text-muted-foreground">{workspace.history.map((entry: any) => <li key={entry.id}>v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus} · {entry.provenance.replaceAll('_', ' ')} · policy {entry.policy?.revision || 'unknown'} · {entry.owned ? 'your receipt' : 'another authorized operator'}</li>)}</ul>
       <ul className="space-y-1 text-xs text-red-700 dark:text-red-300">{workspace.rejectedHistory.map((entry: any) => <li key={entry.id}>Owned rejected command at v{entry.observedVersion}: {entry.reasonCode.replaceAll('_', ' ')} · policy {entry.policyRevision || 'unconfigured'} · no transition performed</li>)}</ul>
       {(workspace.nextRejectedId || workspace.nextVersion) && <Track>
         {workspace.nextRejectedId && <Pill size="sm" disabled={pending} onClick={() => refresh(undefined, workspace.nextRejectedId)}>Older rejections</Pill>}
         {workspace.nextVersion && <Pill size="sm" disabled={pending} onClick={() => refresh(workspace.nextVersion)}>Older receipts</Pill>}
       </Track>}
       {!workspace.history.length && <p className="text-xs text-muted-foreground">No transition receipt recorded.</p>}
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center"><label className="sr-only" htmlFor={`${id}-children`}>Child worklist</label><select id={`${id}-children`} className={`${selectStyle} sm:max-w-xs`} value={model} onChange={event => { setModel(event.target.value); setChildren(null) }}>
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center"><label className="sr-only" htmlFor={`${id}-children`}>Child worklist</label><OptionSelect id={`${id}-children`} className={`${selectStyle} sm:max-w-xs`} value={model} onChange={event => { setModel(event.target.value); setChildren(null) }}>
         {['MedicalOrder', 'LabResult', 'Prescription', 'Procedure', 'CarePlan', 'InsuranceClaim', 'Specimen', 'ClinicalDocument'].map(value => <option key={value}>{value}</option>)}
-      </select><Track className="self-start sm:self-auto"><Pill size="sm" disabled={pending} onClick={() => loadChildren()}>Load child records</Pill></Track></div>
-      {children && <div className="min-w-0 space-y-2 text-xs"><p className="text-muted-foreground">Showing {children.rows.length} of {children.count} {model} rows</p><ul className="divide-y rounded-[4px] border bg-card">{children.rows.map((row: any) => <li key={row.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-3 py-1.5"><span className="min-w-0 break-all tabular-nums text-[11px]">{row.id} · {row.status} · v{row.transitionVersion}</span><Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, row.id)}>History</Pill></Track></li>)}</ul>{!children.rows.length && <p className="text-muted-foreground">No accessible matching child rows.</p>}{children.childId && <div className="min-w-0 space-y-1 rounded-[4px] border bg-card p-2"><p className="break-all font-medium">Owned receipts for {children.childId}</p><ul className="tabular-nums text-[11px] text-muted-foreground">{children.ownedHistory.map((entry: any) => <li key={entry.id}>v{entry.fromVersion} → v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus}</li>)}</ul>{!children.ownedHistory.length && <p className="text-muted-foreground">No owned transition receipt in this page.</p>}{children.nextHistoryVersion && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, children.childId, children.nextHistoryVersion)}>Older child receipts</Pill></Track>}</div>}{children.nextCursor && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(children.nextCursor)}>Next page</Pill></Track>}</div>}
+      </OptionSelect><Track className="self-start sm:self-auto"><Pill size="sm" disabled={pending} onClick={() => loadChildren()}>Load child records</Pill></Track></div>
+      {children && <div className="min-w-0 space-y-2 text-xs"><p className="text-muted-foreground">Showing {children.rows.length} of {children.count} {model} rows</p><ul className="divide-y rounded-[4px] border bg-card">{children.rows.map((row: any) => <li key={row.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-3 py-1.5"><span className="min-w-0 break-all tabular-nums text-xs">{row.id} · {row.status} · v{row.transitionVersion}</span><Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, row.id)}>History</Pill></Track></li>)}</ul>{!children.rows.length && <p className="text-muted-foreground">No accessible matching child rows.</p>}{children.childId && <div className="min-w-0 space-y-1 rounded-[4px] border bg-card p-2"><p className="break-all font-medium">Owned receipts for {children.childId}</p><ul className="tabular-nums text-xs text-muted-foreground">{children.ownedHistory.map((entry: any) => <li key={entry.id}>v{entry.fromVersion} → v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus}</li>)}</ul>{!children.ownedHistory.length && <p className="text-muted-foreground">No owned transition receipt in this page.</p>}{children.nextHistoryVersion && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(undefined, children.childId, children.nextHistoryVersion)}>Older child receipts</Pill></Track>}</div>}{children.nextCursor && <Track><Pill size="sm" disabled={pending} onClick={() => loadChildren(children.nextCursor)}>Next page</Pill></Track>}</div>}
     </>}
     {children?.model === 'LabResult' && children.childId && <LabResultReadbackPanel key={children.childId} resultId={children.childId} />}
     {saved && <div className="min-w-0 space-y-2 rounded-[4px] border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-100">

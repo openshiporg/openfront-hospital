@@ -10,6 +10,7 @@ import { CheckList } from '@/features/platform/providers/components/CheckList'
 import type { Option } from '@/features/platform/providers/actions/types'
 import { createVisitType, setVisitTypeStatus, updateVisitType } from '../actions/mutations'
 import { INTAKE_SECTIONS, VISIT_STATUSES, slugify, validateVisitType, type VisitTypeInput } from '../actions/types'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type Draft = Omit<VisitTypeInput, 'durationMinutes' | 'bufferBeforeMinutes' | 'bufferAfterMinutes' | 'priceCents'> & {
   durationMinutes: string
@@ -190,9 +191,9 @@ export function VisitTypeSheet({
             </label>
             <label className={`${labelClass} sm:col-span-2`}>
               Status
-              <select className={fieldClass} value={draft.status} onChange={(e) => set('status', e.target.value)}>
+              <OptionSelect className={fieldClass} value={draft.status} onChange={(e) => set('status', e.target.value)}>
                 {VISIT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
+              </OptionSelect>
             </label>
             <div className="sm:col-span-2">
               <CheckList

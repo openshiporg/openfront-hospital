@@ -6,6 +6,7 @@ import { Pill, Track, fieldClass, labelClass } from '@/features/platform/compone
 import type { OperationsOption } from '@/features/platform/operations/types'
 import { arriveAppointment, transitionCareQueue } from '../actions/careQueue'
 import { QueueEncounterPicker } from './QueueEncounterPicker'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type Ticket = { id: string; status: string; transitionVersion: number; encounter?: { id: string } | null; patient?: { id: string } | null; facility?: { id: string } | null }
 export function CareQueueControls({ ticket, appointments = [] }: { ticket?: Ticket; appointments?: OperationsOption[] }) {
@@ -43,10 +44,10 @@ export function CareQueueControls({ ticket, appointments = [] }: { ticket?: Tick
     {exitGuard}
     <fieldset className="contents" disabled={pending || locked}>
       <label htmlFor="arrival-appointment" className={labelClass}>Appointment
-        <select id="arrival-appointment" name="appointmentId" required className={fieldClass} defaultValue=""><option value="">{appointments.length ? 'Select appointment' : 'No eligible appointments in this page'}</option>{appointments.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+        <OptionSelect id="arrival-appointment" name="appointmentId" required className={fieldClass} defaultValue=""><option value="">{appointments.length ? 'Select appointment' : 'No eligible appointments in this page'}</option>{appointments.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</OptionSelect>
       </label>
       <label htmlFor="arrival-reason" className={labelClass}>Arrival type
-        <select id="arrival-reason" name="reasonCode" className={fieldClass} defaultValue="scheduled_visit"><option value="scheduled_visit">Scheduled visit</option><option value="follow_up">Follow-up</option><option value="procedure">Procedure</option></select>
+        <OptionSelect id="arrival-reason" name="reasonCode" className={fieldClass} defaultValue="scheduled_visit"><option value="scheduled_visit">Scheduled visit</option><option value="follow_up">Follow-up</option><option value="procedure">Procedure</option></OptionSelect>
       </label>
       <Track className="justify-self-start"><Pill type="submit" variant="primary" disabled={!appointments.length}>Record arrival</Pill></Track>
     </fieldset>

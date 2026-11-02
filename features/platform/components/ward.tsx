@@ -439,8 +439,8 @@ export function Wristband({ name, identifier, detail, className }: { name: React
   return (
     <span className={cn('inline-flex min-w-0 max-w-full items-center overflow-hidden rounded-[3px] border bg-background text-xs', className)}>
       <span className="truncate px-2 py-0.5 font-semibold text-foreground">{name}</span>
-      {identifier && <span className="shrink-0 border-l bg-muted/60 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">{identifier}</span>}
-      {detail && <span className="hidden shrink-0 border-l px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground sm:inline">{detail}</span>}
+      {identifier && <span className="shrink-0 border-l bg-muted/60 px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{identifier}</span>}
+      {detail && <span className="hidden shrink-0 border-l px-2 py-0.5 text-xs tabular-nums text-muted-foreground sm:inline">{detail}</span>}
     </span>
   )
 }

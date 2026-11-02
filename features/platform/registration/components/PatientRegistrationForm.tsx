@@ -7,6 +7,8 @@ import { Loader2 } from 'lucide-react'
 import { Board, BoardRow, Code, Notice, Panel, Pill, Track, fieldClass } from '@/features/platform/components/ward'
 import { FacilitySearchField } from '@/features/platform/facilities/components/FacilitySearchField'
 import { submitPatientRegistration, type RegistrationResult, type RegistrationSubmission } from '../actions/registration'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
+import { PlatformDateInput } from '@/features/platform/components/PlatformDateTime'
 
 function newKey() {
   return `registration-ui-${crypto.randomUUID()}`
@@ -116,11 +118,11 @@ export function PatientRegistrationForm({ accessibleFacilityCount }: { accessibl
           <div className="sm:col-span-2"><FacilitySearchField key={facilityResetVersion} id="facilityId" accessibleFacilityCount={accessibleFacilityCount} /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="firstName">First name</label><input className={fieldClass} id="firstName" name="firstName" required /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="lastName">Last name</label><input className={fieldClass} id="lastName" name="lastName" required /></div>
-          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="dateOfBirth">Date of birth</label><input className={fieldClass} id="dateOfBirth" name="dateOfBirth" type="date" required /></div>
+          <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="dateOfBirth">Date of birth</label><PlatformDateInput id="dateOfBirth" name="dateOfBirth" required /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="medicalRecordNumber">MRN</label><input className={`${fieldClass} tabular-nums`} id="medicalRecordNumber" name="medicalRecordNumber" placeholder="NS-0042" required /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="phone">Phone</label><input className={fieldClass} id="phone" name="phone" type="tel" /></div>
           <div className="grid min-w-0 gap-1.5"><label className={fieldLabel} htmlFor="email">Email</label><input className={fieldClass} id="email" name="email" type="email" /></div>
-          <div className="grid min-w-0 gap-1.5 sm:col-span-2"><label className={fieldLabel} htmlFor="preferredContactMethod">Preferred contact</label><select id="preferredContactMethod" name="preferredContactMethod" className={fieldClass}><option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option></select></div>
+          <div className="grid min-w-0 gap-1.5 sm:col-span-2"><label className={fieldLabel} htmlFor="preferredContactMethod">Preferred contact</label><OptionSelect id="preferredContactMethod" name="preferredContactMethod" className={fieldClass}><option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option></OptionSelect></div>
           <label className="flex items-start gap-3 rounded-[4px] border bg-muted/30 p-3 text-sm sm:col-span-2" htmlFor="registrationAcknowledged"><input id="registrationAcknowledged" name="registrationAcknowledged" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-teal-700 dark:accent-teal-400" /><span>Patient was shown and acknowledged the registration notice.</span></label>
           </fieldset>
           {error && <Notice tone="bad" role="alert" className="sm:col-span-2">{error}</Notice>}

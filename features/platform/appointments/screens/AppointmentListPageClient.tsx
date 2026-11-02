@@ -23,6 +23,9 @@ import {
 import { AppointmentDetailsCard } from '../components/AppointmentDetailsCard'
 import { AppointmentStatusTabs } from '../components/AppointmentStatusTabs'
 import type { AppointmentQueueItem } from '../actions/appointments'
+import { OptionSelect } from '@/features/platform/components/OptionSelect'
+import { PlatformDateInput } from '@/features/platform/components/PlatformDateTime'
+import { plural } from '@/features/platform/lib/plural'
 
 const views = [
   { value: 'today', label: 'Facility day' },
@@ -103,7 +106,7 @@ export function AppointmentListPageClient({
             {activeView === 'today' && (
               <label className={`${labelClass} w-full sm:w-44`}>
                 <span>Date{selectedFacility?.timeZone && <span className="tabular-nums font-normal"> · {selectedFacility.timeZone}</span>}</span>
-                <input type="date" name="date" defaultValue={safeSearchParams.get('date') || ''} className={fieldClass} />
+                <PlatformDateInput name="date" defaultValue={safeSearchParams.get('date') || ''} />
               </label>
             )}
             <label className="relative w-full sm:min-w-56 sm:flex-1">
@@ -113,10 +116,10 @@ export function AppointmentListPageClient({
             </label>
             <label className="w-full sm:w-44">
               <span className="sr-only">Sort appointments</span>
-              <select name="sort" defaultValue={safeSearchParams.get('sort') || 'start_asc'} className={fieldClass}>
+              <OptionSelect name="sort" defaultValue={safeSearchParams.get('sort') || 'start_asc'} className={fieldClass}>
                 <option value="start_asc">Earliest first</option>
                 <option value="start_desc">Latest first</option>
-              </select>
+              </OptionSelect>
             </label>
             <Track>
               <Pill type="submit" variant="primary">Apply</Pill>
@@ -132,7 +135,7 @@ export function AppointmentListPageClient({
         <section className="flex min-w-0 flex-col gap-3">
           <nav className="flex min-w-0 flex-wrap items-center justify-between gap-2" aria-label="Appointment pages">
             <span className="tabular-nums text-xs  text-muted-foreground">
-              {initialData.requiresFacility ? 'Facility required' : `${initialData.items.length} of ${initialData.count} appointments`}
+              {initialData.requiresFacility ? 'Facility required' : `${initialData.items.length} of ${plural(initialData.count, 'appointment', 'appointments')}`}
             </span>
             {(safeSearchParams.has('cursor') || initialData.nextCursor) && (
               <Track>
