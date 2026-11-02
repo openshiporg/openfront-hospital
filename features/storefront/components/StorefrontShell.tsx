@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import { normalizeHospitalBrandTheme } from '@/features/lib/hospitalBrandTheme'
 import type { HospitalBranding } from '@/features/storefront/lib/data/branding'
 import type { CareServiceLine } from '@/features/storefront/lib/careServices'
+import { storeOwnMark } from '@/features/storefront/lib/store-mark'
+import { normalizeStoreLogoColor } from '@/features/platform/store-settings/lib/store-logo'
 import { practiceProfile } from '@/features/storefront/lib/practice'
 
 export type Zone = { code: string; className: string }
@@ -30,11 +32,14 @@ export function Sign({ zone, label, arrow = true }: { zone: Zone; label: string;
 }
 
 function Wordmark({ profile }: { profile: HospitalBranding }) {
+  const mark = storeOwnMark(profile.logoIcon)
   return (
     <Link href="/" className="sf-wordmark" aria-label={`${profile.name} home`}>
-      <span className="sf-wordmark__mark" aria-hidden="true">
-        <span style={{ filter: `hue-rotate(${Number(profile.logoColor) || 0}deg)` }} dangerouslySetInnerHTML={{ __html: profile.logoIcon }} />
-      </span>
+      {mark ? (
+        <span className="sf-wordmark__mark" aria-hidden="true" data-store-logo>
+          <span style={{ filter: `hue-rotate(${normalizeStoreLogoColor(profile.logoColor)}deg)` }} dangerouslySetInnerHTML={{ __html: mark }} />
+        </span>
+      ) : null}
       <span className="sf-wordmark__text">
         <span>{profile.name}</span>
         <small>{profile.locationName}</small>
@@ -82,11 +87,17 @@ export function StorefrontNav({ profile, current }: { profile: HospitalBranding;
 }
 
 export function StorefrontFooter({ profile }: { profile: HospitalBranding }) {
+  const mark = storeOwnMark(profile.logoIcon)
   return (
     <footer className="sf-footer">
       <div className="sf-container sf-footer__grid">
         <div>
-          <p className="sf-footer__name">{profile.name}</p>
+          <p className="sf-footer__name" style={mark ? { display: 'flex', alignItems: 'center', gap: '0.5rem' } : undefined}>
+            {mark ? (
+              <span aria-hidden="true" data-store-logo style={{ display: 'block', width: '1.5rem', height: '1.5rem', flex: 'none', filter: `hue-rotate(${normalizeStoreLogoColor(profile.logoColor)}deg)` }} dangerouslySetInnerHTML={{ __html: mark }} />
+            ) : null}
+            <span>{profile.name}</span>
+          </p>
           <p className="sf-footer__meta">
             {profile.locationName}
             {profile.addressLine1 && <><br />{profile.addressLine1}</>}
