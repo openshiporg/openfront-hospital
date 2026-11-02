@@ -89,7 +89,7 @@ export async function sendAppointmentRequestEmail(
       subject: `${details.facilityName}: we received your appointment request`,
       html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><p>Hi ${escape(details.firstName)}, ${escape(details.facilityName)} received your appointment request. We will contact you to confirm it.</p><p>Requested time: ${escape(details.whenLabel)}<br>Request number: ${escape(details.appointmentNumber)}</p>${details.intakeUrl ? `<p><a href="${escape(details.intakeUrl)}" style="background:#346df1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">Complete your intake form</a></p>` : ''}</body>`,
     });
-    return { sent: true, messageId: String((info as any)?.messageId || '') };
+    return { sent: true, messageId: [String((info as any)?.messageId || ''), String((info as any)?.response || '').slice(0,120)].filter(Boolean).join(' | ') };
   } catch (error) {
     return { sent: false, error: error instanceof Error ? error.message : 'send_failed' };
   }
