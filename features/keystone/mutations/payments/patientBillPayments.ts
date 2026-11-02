@@ -48,8 +48,22 @@ export async function initiatePatientBillPayment(_root: unknown, { paymentToken 
 
 export async function reconcilePatientBillPayment(paymentId: string, context: Context) {
   if (!context.session?.data.role?.canManageBilling) throw new Error('Not authorized to manage billing operations')
+  return settleFromProvider(context, { id: paymentId }, context.session!.itemId)
+}
+
+// The patient returns from Stripe Checkout with its session id; Stripe is asked
+// directly, so the browser can only confirm what Stripe already reports as paid.
+export async function confirmPatientBillPayment(_root: unknown, { sessionId }: { sessionId: string }, context: Context) {
+  if (!/^cs_(test|live)_[A-Za-z0-9]{10,200}$/.test(String(sessionId || ''))) throw new Error('Payment confirmation is invalid')
+  const result = await settleFromProvider(context, { providerPaymentId: sessionId }, 'patient_checkout_return')
   const prisma = context.sudo().prisma as any
-  const payment = await prisma.patientPayment.findUnique({ where: { id: paymentId } })
+  const payment = await prisma.patientPayment.findUnique({ where: { providerPaymentId: sessionId }, include: { facility: { select: { name: true } } } })
+  return { status: result.status, amountCents: payment?.amountCents ?? null, currency: payment?.currency ?? null, facilityName: payment?.facility?.name ?? null, reference: payment?.paymentNumber ? payment.paymentNumber.slice(0, 12).toUpperCase() : null }
+}
+
+async function settleFromProvider(context: Context, where: { id?: string; providerPaymentId?: string }, actorReference: string) {
+  const prisma = context.sudo().prisma as any
+  const payment = await prisma.patientPayment.findUnique({ where })
   const paymentProvider = payment?.paymentProviderId ? await prisma.paymentProvider.findFirst({ where: { id: payment.paymentProviderId, facilityId: payment.facilityId, isInstalled: true } }) : null
   if (!payment?.providerPaymentId || !paymentProvider) throw new Error('Provider payment is unavailable')
   const status = await getPaymentStatus({ provider: paymentProvider, paymentId: payment.providerPaymentId })
@@ -65,7 +79,7 @@ export async function reconcilePatientBillPayment(paymentId: string, context: Co
     if (current.transitionVersion !== payment.transitionVersion) throw new Error('Payment changed; reconcile again')
     const nextVersion = current.transitionVersion + 1
     const updated = await db.patientPayment.update({ where: { id: current.id }, data: { status: 'succeeded', transitionVersion: nextVersion, receivedAt: new Date(), externalReference: payment.providerPaymentId } })
-    await appendAuditAndOutbox(db, { eventKey: `payment:${updated.id}:v${nextVersion}:succeeded`, eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId, deliveryMode: 'internal', metadata: { source: 'payment_reconciliation', aggregateId: updated.id, providerPaymentId: updated.providerPaymentId, transitionVersion: nextVersion, amountCents: updated.amountCents, currency: updated.currency } })
+    await appendAuditAndOutbox(db, { eventKey: `payment:${updated.id}:v${nextVersion}:succeeded`, eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference, deliveryMode: 'internal', metadata: { source: 'payment_reconciliation', aggregateId: updated.id, providerPaymentId: updated.providerPaymentId, transitionVersion: nextVersion, amountCents: updated.amountCents, currency: updated.currency } })
     return { status: updated.status }
   }, { timeout: 30_000 })
 }

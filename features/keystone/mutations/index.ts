@@ -23,7 +23,7 @@ import registerPatient from "./registration/registerPatient";
 import { arriveAppointment, transitionCareQueue } from "./clinical/manageCareQueue";
 import dispatchClinicalOutbox from "./clinical/dispatchClinicalOutbox";
 import { admitPatient, transitionAdmission, transitionBedReadiness, createMedicalOrder, transitionMedicalOrder, recordLabResult, transitionLabResult, correctLabResult, createPrescription, transitionPrescription, createProcedure, transitionProcedure, createCarePlan, transitionCarePlan, prepareInsuranceClaim, transitionInsuranceClaim, workflowPatientCandidates, workflowEncounterCandidates } from "./clinical/controlledWorkflows";
-import { recordPatientCoverage, transitionPatientCoverage, recordPatientPayment, transitionPatientPayment, requestPatientRefund, transitionPatientRefund } from './operational/billingWorkflows'
+import { recordPatientCoverage, transitionPatientCoverage, recordPatientPayment, transitionPatientPayment, requestPatientRefund, transitionPatientRefund, enableFacilityCardPayments } from './operational/billingWorkflows'
 import { createInventoryItem, transitionInventoryItem, moveInventory } from './operational/inventoryWorkflows'
 import { createClinicalDocument, transitionClinicalDocument, amendClinicalDocument, collectSpecimen, transitionSpecimen, recordVitalSign } from './operational/clinicalEvidenceWorkflows'
 import { reserveBed, releaseBedReservation } from './operational/bedReservationWorkflows'
@@ -35,7 +35,7 @@ import { createOnboardingAppointment, issueIntakeForm } from './onboarding/onboa
 import applyHospitalOnboarding from './onboarding/applyHospitalOnboarding'
 import bootstrapHospital from './bootstrap/bootstrapHospital'
 import { redeemUserPasswordResetToken, sendUserPasswordResetLink } from './passwordResetMutations'
-import { initiatePatientBillPayment, lookupPatientBill, reconcilePatientBillPayment } from './payments/patientBillPayments'
+import { confirmPatientBillPayment, initiatePatientBillPayment, lookupPatientBill, reconcilePatientBillPayment } from './payments/patientBillPayments'
 
 const graphql = String.raw;
 
@@ -531,6 +531,8 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         applyHospitalOnboarding(configuration: JSON!): HospitalOnboardingResult!
         initiatePatientBillPayment(paymentToken: String!): JSON!
         reconcilePatientBillPayment(paymentId: ID!): JSON!
+        confirmPatientBillPayment(sessionId: String!): JSON!
+        enableFacilityCardPayments(facilityId: ID!): JSON!
         createOnboardingAppointment(data: OnboardingAppointmentInput!): OnboardingAppointmentResult!
         issueIntakeForm(data: IntakeIssueInput!): OneTimeAccessResult!
 
@@ -697,6 +699,8 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         createOnboardingAppointment,
         issueIntakeForm,
         initiatePatientBillPayment,
+        confirmPatientBillPayment,
+        enableFacilityCardPayments,
         reconcilePatientBillPayment: (_root: unknown, { paymentId }: { paymentId: string }, context: any) => reconcilePatientBillPayment(paymentId, context),
       },
     },

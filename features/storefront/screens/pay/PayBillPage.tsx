@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { beginBillPaymentAction, lookupBillAction } from '../../actions/payBill'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { beginBillPaymentAction, confirmBillPaymentAction, lookupBillAction } from '../../actions/payBill'
+
+type Receipt = Awaited<ReturnType<typeof confirmBillPaymentAction>>
 
 export function PayBillPage() {
   const [number, setNumber] = useState('')
@@ -9,6 +12,31 @@ export function PayBillPage() {
   const [bill, setBill] = useState<Awaited<ReturnType<typeof lookupBillAction>>>(null)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const params = useSearchParams()
+  const returnStatus = params?.get('status')
+  const sessionId = params?.get('session_id') || ''
+  const [receipt, setReceipt] = useState<Receipt>(null)
+  const [confirming, setConfirming] = useState(returnStatus === 'success' && Boolean(sessionId))
+
+  useEffect(() => {
+    if (returnStatus !== 'success' || !sessionId) return
+    let live = true
+    confirmBillPaymentAction(sessionId).then(result => { if (live) { setReceipt(result); setConfirming(false) } }).catch(() => { if (live) setConfirming(false) })
+    return () => { live = false }
+  }, [returnStatus, sessionId])
+
+  if (returnStatus === 'success' && sessionId) {
+    const paid = receipt?.status === 'succeeded'
+    return <main className="sf-container" style={{ paddingBlock: '4rem', maxWidth: '42rem' }}>
+      <h1 className="sf-display sf-display--page">{confirming ? 'Confirming your payment…' : paid ? 'Payment received' : 'Payment is processing'}</h1>
+      {paid && receipt && <section style={{ marginTop: '1.5rem', display: 'grid', gap: '0.5rem' }}>
+        <p>Thank you. {receipt.facilityName} has received your payment.</p>
+        {receipt.amountCents != null && receipt.currency && <p>Amount paid: {(receipt.amountCents / 100).toLocaleString(undefined, { style: 'currency', currency: receipt.currency })}</p>}
+        {receipt.reference && <p>Reference: {receipt.reference}</p>}
+      </section>}
+      {!confirming && !paid && <p style={{ marginTop: '1.5rem' }}>Your card payment has not settled yet. You do not need to pay again; the facility will see it as soon as it clears.</p>}
+    </main>
+  }
 
   async function lookup(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setMessage('')
@@ -25,6 +53,7 @@ export function PayBillPage() {
   return <main className="sf-container" style={{ paddingBlock: '4rem', maxWidth: '42rem' }}>
     <h1 className="sf-display sf-display--page">Pay a bill</h1>
     <p>Enter the payment number on your statement and your date of birth to view the balance.</p>
+    {returnStatus === 'cancelled' && <p role="status">Payment was cancelled. Nothing was charged.</p>}
     <form onSubmit={lookup} style={{ display: 'grid', gap: '1rem', marginTop: '2rem' }}>
       <label>Payment number<input required autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} /></label>
       <label>Date of birth<input required type="date" value={dob} onChange={event => setDob(event.target.value)} /></label>

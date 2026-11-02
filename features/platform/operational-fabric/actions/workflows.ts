@@ -377,6 +377,7 @@ export async function searchUnverifiedCoverageCandidates(rawSearch: string) {
 }
 export const recordConsent = async (data: Record<string, unknown>) => run(`mutation($data:ConsentDecisionWorkflowInput!){recordConsentDecision(data:$data){id decision effectiveAt replayed}}`, { data: withKey(data) })
 export const recordPayment = async (data: Record<string, unknown>) => run(`mutation($data:PatientPaymentWorkflowInput!){recordPatientPayment(data:$data){${controlled}}}`, { data: withKey(data) })
+export const enableCardPayments = async (data: Record<string, unknown>) => run(`mutation($facilityId:ID!){enableFacilityCardPayments(facilityId:$facilityId)}`, { facilityId: data.facilityId })
 export const requestRefund = async (data: Record<string, unknown>) => run(`mutation($data:PatientRefundWorkflowInput!){requestPatientRefund(data:$data){${controlled}}}`, { data: withKey(data) })
 export const registerInventory = async (data: Record<string, unknown>) => run(`mutation($data:InventoryItemWorkflowInput!){registerInventoryItem(data:$data){id status transitionVersion quantityOnHand quantityReserved replayed}}`, { data: withKey(data) })
 export const moveInventory = async (data: Record<string, unknown>) => run(`mutation($data:InventoryMovementWorkflowInput!){moveInventory(data:$data){id status transitionVersion quantityOnHand quantityReserved replayed}}`, { data: withKey(data) })

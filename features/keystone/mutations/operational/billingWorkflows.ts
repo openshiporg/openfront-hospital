@@ -15,6 +15,8 @@ import {
   requireSafeCents,
   scopedFacilityPatient,
 } from './evidence'
+import { getPaymentStatus, refundPayment } from '../../utils/paymentProviderAdapter'
+import { isPaymentProviderConfigured } from '../../utils/paymentProviderConfig'
 
 function requireBilling(context: Context) {
   const role = context.session?.data.role
@@ -155,8 +157,9 @@ export async function recordPatientPayment(_root: unknown, { data }: any, contex
   if (!isExternal && !isOnline && installation) throw new Error('Manual payments cannot use an external integration')
   let paymentProviderId: string | null = null
   if (isOnline) {
-    const providerId = bounded(data.paymentProviderId, 'Payment provider', 128, true)
-    const provider = await (context.sudo().prisma as any).paymentProvider.findFirst({ where: { id: providerId, facilityId: data.facilityId, isInstalled: true } })
+    // Staff pick the facility; its installed Stripe row is the only valid provider.
+    const providerId = bounded(data.paymentProviderId, 'Payment provider', 128, false)
+    const provider = await (context.sudo().prisma as any).paymentProvider.findFirst({ where: { ...(providerId ? { id: providerId } : { code: 'pp_stripe_hospital' }), facilityId: data.facilityId, isInstalled: true } })
     if (!provider || provider.code !== 'pp_stripe_hospital') throw new Error('An installed Stripe provider for this facility is required')
     paymentProviderId = provider.id
   }
@@ -284,13 +287,13 @@ export async function requestPatientRefund(_root: unknown, { data }: any, contex
   const scoped = await context.query.PatientPayment.findOne({ where: { id: data.paymentId }, query: 'id' })
   if (!scoped) throw new Error('Payment not found or not accessible')
   const evidence = operationEvidence({ ...data, amountCents, reasonCode })
-  return context.transaction(async (transactionContext: any) => {
+  const created: any = await context.transaction(async (transactionContext: any) => {
     const prisma = transactionContext.sudo().prisma
     await lockOperation(prisma, 'refund-create', evidence.operationKeyHash)
     const existing = await prisma.patientRefund.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
       if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
-      return result(existing, true)
+      return { ...result(existing, true), online: existing.status === 'pending' && !existing.installationId }
     }
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`payment-refund:${data.paymentId}`}, 0))::text AS "lock"`)
     const payment = await prisma.patientPayment.findUnique({ where: { id: data.paymentId } })
@@ -331,6 +334,55 @@ export async function requestPatientRefund(_root: unknown, { data }: any, contex
       metadata: { source: 'refund_workflow', aggregateId: refund.id, paymentId: payment.id, status: refund.status, transitionVersion: 1, amountCents },
       occurredAt: now,
     })
-    return result(refund)
+    return { ...result(refund), online: isOnline }
   }, { timeout: 30_000 })
+  if (!created.online || created.replayed && created.status !== 'pending') return result(created, created.replayed)
+  return settleOnlineRefund(context, created.id)
+}
+
+// Card refunds go to Stripe right away; the refund settles only on Stripe's answer.
+async function settleOnlineRefund(context: Context, refundId: string) {
+  const prisma = context.sudo().prisma as any
+  const refund = await prisma.patientRefund.findUnique({ where: { id: refundId } })
+  if (!refund || refund.status !== 'pending') return result(refund)
+  const payment = await prisma.patientPayment.findUnique({ where: { id: refund.paymentId } })
+  const provider = payment?.paymentProviderId ? await prisma.paymentProvider.findFirst({ where: { id: payment.paymentProviderId, facilityId: payment.facilityId, isInstalled: true } }) : null
+  if (!payment?.providerPaymentId || !provider) throw new Error('Online payment provider is no longer active')
+  const status = await getPaymentStatus({ provider, paymentId: payment.providerPaymentId })
+  const intentId = status.paymentIntentId || (String(status.id).startsWith('pi_') ? status.id : null)
+  if (!intentId) throw new Error('Card payment has no settled charge to refund')
+  const providerRefund = await refundPayment({ provider, paymentId: intentId, amount: refund.amountCents, idempotencyKey: `hospital-refund:${refund.id}` })
+  if (!['succeeded', 'pending'].includes(providerRefund.status) || providerRefund.amount !== refund.amountCents) throw new Error('Card refund was not accepted; reconcile before retrying')
+  return context.transaction(async (tx: any) => {
+    const db = tx.sudo().prisma
+    await db.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`payment-refund:${payment.id}`}, 0))::text AS "lock"`)
+    const current = await db.patientRefund.findUnique({ where: { id: refund.id } })
+    if (!current || current.status !== 'pending') return result(current)
+    const now = new Date()
+    const updated = await db.patientRefund.update({ where: { id: current.id }, data: { status: 'succeeded', transitionVersion: { increment: 1 }, completedAt: now, externalReference: providerRefund.id } })
+    await db.patientPayment.update({ where: { id: payment.id }, data: { refundedAmountCents: { increment: current.amountCents } } })
+    await appendAuditAndOutbox(db, {
+      eventKey: `refund:${updated.id}:v${updated.transitionVersion}:succeeded`, eventType: 'refund.succeeded', aggregateType: 'refund', aggregateId: updated.id,
+      facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
+      metadata: { source: 'card_refund', aggregateId: updated.id, paymentId: payment.id, providerRefundId: providerRefund.id, status: 'succeeded', transitionVersion: updated.transitionVersion, amountCents: updated.amountCents },
+      occurredAt: now,
+    })
+    return result(updated)
+  }, { timeout: 30_000 })
+}
+
+// Billing staff turn on online card payments for one of their facilities.
+export async function enableFacilityCardPayments(_root: unknown, { facilityId }: { facilityId: string }, context: Context) {
+  requireBilling(context)
+  const facility = await context.query.Facility.findOne({ where: { id: facilityId }, query: 'id status' }) as any
+  if (!facility || facility.status !== 'active') throw new Error('Facility not found or not accessible')
+  if (!isPaymentProviderConfigured('pp_stripe_hospital')) throw new Error('Card payments are not configured for this workspace')
+  const prisma = context.sudo().prisma as any
+  const functions = { createPaymentFunction: 'stripe', capturePaymentFunction: 'stripe', refundPaymentFunction: 'stripe', getPaymentStatusFunction: 'stripe', generatePaymentLinkFunction: 'stripe', handleWebhookFunction: 'stripe' }
+  const row = await prisma.paymentProvider.upsert({
+    where: { facilityId_code: { facilityId, code: 'pp_stripe_hospital' } },
+    create: { name: 'Card payments (Stripe)', code: 'pp_stripe_hospital', isInstalled: true, facilityId, ...functions },
+    update: { isInstalled: true, ...functions },
+  })
+  return { id: row.id, isInstalled: row.isInstalled }
 }

@@ -20,7 +20,7 @@ async function stripeRequest(path: string, method = 'GET', body?: Record<string,
 export async function createPaymentFunction({ amount, currency, patientPaymentId, idempotencyKey }: { amount: number; currency: string; patientPaymentId: string; idempotencyKey: string }) {
   if (!Number.isSafeInteger(amount) || amount < 1) throw new Error('Invalid payment amount')
   const session = await stripeRequest('checkout/sessions', 'POST', {
-    mode: 'payment', success_url: `${process.env.PUBLIC_APP_URL}/pay?status=success`, cancel_url: `${process.env.PUBLIC_APP_URL}/pay?status=cancelled`,
+    mode: 'payment', success_url: `${process.env.PUBLIC_APP_URL}/pay?status=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${process.env.PUBLIC_APP_URL}/pay?status=cancelled`,
     'line_items[0][quantity]': 1, 'line_items[0][price_data][currency]': currency.toLowerCase(),
     'line_items[0][price_data][unit_amount]': amount, 'line_items[0][price_data][product_data][name]': 'Healthcare balance payment',
     'metadata[patientPaymentId]': patientPaymentId, 'payment_intent_data[metadata][patientPaymentId]': patientPaymentId,

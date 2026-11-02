@@ -983,10 +983,13 @@ export function OperationalFabricControls({ workspace }: { workspace: FabricWork
             { name: 'payerName', label: 'Payer name' }, { name: 'memberId', label: 'Member ID' }, { name: 'groupNumber', label: 'Group number', required: false },
           ]} />}
           <CoverageDecisionForm />
-          {facilityScopeReady && patientDirectoryReady && <Form title="Record manual payment" submit="Record payment" action={actions.recordPayment} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+          {facilityScopeReady && patientDirectoryReady && <Form title="Record payment" submit="Record payment" action={actions.recordPayment} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'patientId', label: 'Patient', kind: 'patient-search' },
             { name: 'claimId', label: 'Claim', kind: 'claim-search', required: false }, { name: 'amountCents', label: 'Amount', kind: 'currency' },
-            { name: 'currency', label: 'Currency', value: 'USD' }, { name: 'method', label: 'Method', kind: 'select', options: [{ value: 'cash', label: 'Cash' }, { value: 'check', label: 'Check' }] },
+            { name: 'currency', label: 'Currency', value: 'USD' }, { name: 'method', label: 'Method', kind: 'select', options: [{ value: 'cash', label: 'Cash' }, { value: 'check', label: 'Check' }, { value: 'card_online', label: 'Card — patient pays online' }] },
+          ]} />}
+          {facilityScopeReady && <Form title="Turn on card payments" submit="Turn on card payments" action={actions.enableCardPayments} accessibleFacilityCount={workspace.facilitiesCount} fields={[
+            { name: 'facilityId', label: 'Facility', kind: 'facility' },
           ]} />}
           <Form title="Request refund" submit="Request refund" action={actions.requestRefund} fields={[
             { name: 'paymentId', label: 'Succeeded payment', kind: 'payment-search' }, { name: 'amountCents', label: 'Amount', kind: 'currency' }, { name: 'reasonCode', label: 'Reason code' },

@@ -33,3 +33,11 @@ export async function issuePatientPaymentLinkAction(paymentId: string) {
   )
   return response.success ? response.data.initiatePatientBillPayment : null
 }
+
+export async function confirmBillPaymentAction(sessionId: string) {
+  const response = await keystoneClient<{ confirmPatientBillPayment: { status: string; amountCents: number | null; currency: string | null; facilityName: string | null; reference: string | null } }>(
+    `mutation ConfirmBillPayment($sessionId:String!){confirmPatientBillPayment(sessionId:$sessionId)}`,
+    { sessionId },
+  )
+  return response.success ? response.data.confirmPatientBillPayment : null
+}
