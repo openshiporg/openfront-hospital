@@ -110,11 +110,13 @@ export function PlatformSelect({
             aria-describedby={aria["aria-describedby"]}
             className={cn(
               "flex w-full min-w-0 items-center justify-between gap-2 rounded-[6px] border border-input bg-background px-3 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive",
-              size === "sm" ? "h-9" : "h-10",
+              size === "sm" ? "min-h-9" : "min-h-10",
               className,
+              // Long labels wrap instead of clipping (phone audit); a fixed caller height would cut the second line.
+              "h-auto py-1.5",
             )}
           >
-            <span className={cn("min-w-0 truncate", !selected && "text-muted-foreground")}>{selected?.label ?? placeholder}</span>
+            <span className={cn("min-w-0 break-words leading-snug", !selected && "text-muted-foreground")}>{selected?.label ?? placeholder}</span>
             <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden="true" />
           </button>
         </PopoverTrigger>

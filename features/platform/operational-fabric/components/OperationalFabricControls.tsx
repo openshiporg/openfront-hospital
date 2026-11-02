@@ -13,6 +13,7 @@ import * as actions from '../actions/workflows'
 import type { ConsentCandidateSearchResult, EncounterHoldCandidateSearchResult, FabricPatientCandidateSearchResult, IntegrationCandidateSearchResult, InventoryCandidateSearchResult, PaymentClaimCandidateSearchResult, RefundPaymentCandidateSearchResult } from '../actions/workflows'
 import type { FabricOption, FabricWorkspace } from '../lib/getOperationalFabricWorkspace'
 import { OptionSelect } from '@/features/platform/components/OptionSelect'
+import { PlatformDateTimeInput } from '@/features/platform/components/PlatformDateTime'
 import { plural } from '@/features/platform/lib/plural'
 
 type Response = { success: boolean; error?: string; data?: any }
@@ -730,11 +731,13 @@ function Form({ title, fields, submit, action, accessibleFacilityCount }: {
                 <option value="">{field.options?.length ? `Select ${field.label.toLowerCase()}` : `No ${field.label.toLowerCase()} available`}</option>
                 {field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </OptionSelect>
+            ) : field.kind === 'datetime-local' ? (
+              <PlatformDateTimeInput id={`${title}-${field.name}`} name={field.name} required={field.required !== false} defaultValue={field.value} />
             ) : field.kind === 'textarea' || field.kind === 'csv' ? (
               <textarea className={cn(fieldClass, 'h-auto min-h-20 py-2')} id={`${title}-${field.name}`} name={field.name} required={field.required !== false} rows={field.kind === 'csv' ? 7 : 3} placeholder={field.placeholder} defaultValue={field.value} />
             ) : (
               <input className={fieldClass} id={`${title}-${field.name}`} name={field.name} required={field.required !== false}
-                type={field.kind === 'integer' || field.kind === 'signed-integer' || field.kind === 'currency' ? 'number' : field.kind === 'datetime-local' ? 'datetime-local' : 'text'}
+                type={field.kind === 'integer' || field.kind === 'signed-integer' || field.kind === 'currency' ? 'number' : 'text'}
                 min={field.kind === 'integer' || field.kind === 'currency' ? 0 : undefined} step={field.kind === 'currency' ? '0.01' : field.kind === 'integer' || field.kind === 'signed-integer' ? 1 : undefined}
                 placeholder={field.placeholder} defaultValue={field.value} />
             )}

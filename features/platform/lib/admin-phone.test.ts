@@ -29,4 +29,6 @@ test("platform screens use popover selects, not native <select>", () => {
 
 test("platform screens use the calendar and time popovers, not native date/time inputs", () => {
   assert.deepEqual(offenders(/type=["'](?:date|time|datetime-local)["']/).filter((hit) => hit.startsWith("features/platform")), []);
+  // Generic field renderers pick the input type at runtime ("kind === 'datetime-local' ? 'datetime-local' : ...").
+  assert.deepEqual(offenders(/\?\s*["'](?:date|time|datetime-local)["']\s*:/).filter((hit) => hit.startsWith("features/platform")), []);
 });

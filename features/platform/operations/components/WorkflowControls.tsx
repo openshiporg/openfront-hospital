@@ -13,6 +13,7 @@ import * as actions from '../actions/workflows'
 import { recoverLabCommand } from '../actions/labResults'
 import type { OperationsOption, OperationsWorkspaceOptions } from '../types'
 import { OptionSelect } from '@/features/platform/components/OptionSelect'
+import { PlatformDateTimeInput } from '@/features/platform/components/PlatformDateTime'
 
 type ActionResponse = { success: boolean; error?: string; readback?: unknown }
 type Field = {
@@ -1012,11 +1013,14 @@ function FieldControl({
   if (field.kind === 'textarea') {
     return <Textarea id={id} name={field.name} required={required} maxLength={field.maxLength} placeholder={field.placeholder} />
   }
+  if (field.kind === 'datetime-local') {
+    return <PlatformDateTimeInput id={id} name={field.name} required={required} />
+  }
   return (
     <Input
       id={id}
       name={field.name}
-      type={field.kind === 'datetime-local' ? 'datetime-local' : ['currency', 'decimal', 'integer'].includes(field.kind || '') ? 'number' : 'text'}
+      type={['currency', 'decimal', 'integer'].includes(field.kind || '') ? 'number' : 'text'}
       required={required}
       maxLength={field.maxLength}
       min={['currency', 'decimal', 'integer'].includes(field.kind || '') ? '0' : undefined}

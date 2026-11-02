@@ -87,12 +87,13 @@ export function PlatformDateInput({
             aria-invalid={aria["aria-invalid"] || undefined}
             aria-describedby={aria["aria-describedby"]}
             className={cn(
-              "flex h-10 w-full min-w-0 items-center gap-2 rounded-[6px] border border-input bg-background px-3 text-left text-sm outline-none transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive",
+              "flex min-h-10 w-full min-w-0 items-center gap-2 rounded-[6px] border border-input bg-background px-3 text-left text-sm outline-none transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive",
               className,
+              "h-auto py-1.5",
             )}
           >
             <CalendarDays className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <span className={cn("min-w-0 truncate tabular-nums", !selected && "text-muted-foreground")}>{selected ? formatDateKey(current) : placeholder}</span>
+            <span className={cn("min-w-0 break-words tabular-nums", !selected && "text-muted-foreground")}>{selected ? formatDateKey(current) : placeholder}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" sideOffset={4} collisionPadding={12} className="w-auto rounded-[6px] p-2">
