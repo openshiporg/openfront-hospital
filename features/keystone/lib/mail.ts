@@ -79,17 +79,17 @@ export async function sendPasswordResetEmail(resetToken: string, to: string, bas
 export async function sendAppointmentRequestEmail(
   to: string,
   details: { facilityName: string; firstName: string; appointmentNumber: string; whenLabel: string; intakeUrl: string },
-): Promise<{ sent: boolean; error?: string }> {
+): Promise<{ sent: boolean; error?: string; messageId?: string }> {
   if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) return { sent: false, error: 'not_configured' }
   const escape = (value: string) => value.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] as string)
   try {
-    await transport.sendMail({
+    const info = await transport.sendMail({
       to,
       from: process.env.SMTP_FROM,
       subject: `${details.facilityName}: we received your appointment request`,
       html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><p>Hi ${escape(details.firstName)}, ${escape(details.facilityName)} received your appointment request. We will contact you to confirm it.</p><p>Requested time: ${escape(details.whenLabel)}<br>Request number: ${escape(details.appointmentNumber)}</p>${details.intakeUrl ? `<p><a href="${escape(details.intakeUrl)}" style="background:#346df1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">Complete your intake form</a></p>` : ''}</body>`,
     });
-    return { sent: true };
+    return { sent: true, messageId: String((info as any)?.messageId || '') };
   } catch (error) {
     return { sent: false, error: error instanceof Error ? error.message : 'send_failed' };
   }

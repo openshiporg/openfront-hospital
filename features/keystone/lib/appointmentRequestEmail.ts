@@ -50,9 +50,9 @@ export async function deliverAppointmentRequestEmail(prisma: any, receipt: Appoi
   } catch {
     return // already claimed
   }
-  const mark = async (status: string, lastError = '') => {
+  const mark = async (status: string, lastError = '', messageId = '') => {
     try {
-      await prisma.clinicalOutboxEvent.update({ where: { id: rowId }, data: { status, lastError, ...(status === 'sent' ? { deliveredAt: new Date() } : {}) } })
+      await prisma.clinicalOutboxEvent.update({ where: { id: rowId }, data: { status, lastError, ...(status === 'sent' ? { deliveredAt: new Date(), payload: { source: 'public_booking', messageId } } : {}) } })
     } catch {
       // The request is committed; bookkeeping must never surface.
     }
@@ -72,7 +72,7 @@ export async function deliverAppointmentRequestEmail(prisma: any, receipt: Appoi
       whenLabel: formatAppointmentTime(receipt.startsAt, receipt.timeZone),
       intakeUrl: base && receipt.intakeToken ? `${base}/intake#accessCode=${encodeURIComponent(receipt.intakeToken)}` : '',
     })
-    if (result.sent) await mark('sent')
+    if (result.sent) await mark('sent', '', result.messageId || '')
     else await mark('failed', result.error || 'send_failed')
   } catch (error) {
     console.error('Appointment request email failed:', error instanceof Error ? error.message : 'Unknown error')
