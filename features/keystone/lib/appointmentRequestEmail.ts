@@ -28,9 +28,8 @@ export function formatAppointmentTime(iso: string, timeZone: string) {
 export async function deliverAppointmentRequestEmail(prisma: any, receipt: AppointmentReceipt) {
   if (!receipt.to) return
   const eventKey = `appointment_receipt_email:${receipt.appointmentId}`
-  let rowId: string
   try {
-    const row = await prisma.clinicalOutboxEvent.create({
+    await prisma.clinicalOutboxEvent.create({
       data: {
         eventKey,
         eventType: 'appointment.receipt_email',
@@ -46,23 +45,32 @@ export async function deliverAppointmentRequestEmail(prisma: any, receipt: Appoi
       },
       select: { id: true },
     })
-    rowId = row.id
   } catch {
     return // already claimed
   }
-  // ClinicalOutboxEvent.status is check-constrained, so the table value maps sent ->
-  // delivered, failed -> dead_letter, skipped -> recorded; the exact outcome is in payload.emailStatus.
+  // ClinicalOutboxEvent identity and payload are immutable (database trigger) and status is
+  // check-constrained, so the outcome is a second internal row keyed :result:
+  // sent -> delivered, failed -> dead_letter, skipped -> recorded; exact outcome in payload.emailStatus.
   const TABLE_STATUS: Record<string, string> = { sent: 'delivered', failed: 'dead_letter', skipped_not_configured: 'recorded' }
   const mark = async (status: string, lastError = '', messageId = '') => {
     try {
-      await prisma.clinicalOutboxEvent.update({
-        where: { id: rowId },
+      await prisma.clinicalOutboxEvent.create({
         data: {
+          eventKey: `${eventKey}:result`,
+          eventType: 'appointment.receipt_email_result',
+          aggregateType: 'appointment',
+          aggregateId: receipt.appointmentId,
+          deliveryMode: 'internal',
           status: TABLE_STATUS[status] || 'dead_letter',
+          attempts: 0,
           lastError,
           ...(status === 'sent' ? { deliveredAt: new Date() } : {}),
+          facilityId: receipt.facilityId,
+          patientId: receipt.patientId,
+          appointmentId: receipt.appointmentId,
           payload: { source: 'public_booking', emailStatus: status, messageId },
         },
+        select: { id: true },
       })
     } catch {
       // The request is committed; bookkeeping must never surface.
