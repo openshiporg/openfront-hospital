@@ -14,7 +14,7 @@ function fakePrisma() {
   return {
     rows,
     clinicalOutboxEvent: {
-      async create({ data }: any) { if (rows.has(data.eventKey)) throw new Error('unique'); const row = { id: `id-${rows.size}`, ...data }; rows.set(data.eventKey, row); return row },
+      async create({ data }: any) { if (rows.has(data.eventKey)) throw new Error('unique'); if (!['recorded','pending','processing','retry','delivered','dead_letter'].includes(data.status)) throw new Error('check'); const row = { id: `id-${rows.size}`, ...data }; rows.set(data.eventKey, row); return row },
       async update({ where, data }: any) { const row = [...rows.values()].find(r => r.id === where.id); Object.assign(row, data); return row },
     },
   }
@@ -29,16 +29,16 @@ describe('appointment request receipt email', () => {
     delete process.env.SMTP_HOST
     const prisma = fakePrisma()
     await deliverAppointmentRequestEmail(prisma, receipt)
-    assert.equal(prisma.rows.get('appointment_receipt_email:a1').status, 'skipped_not_configured')
+    assert.equal(prisma.rows.get('appointment_receipt_email:a1').payload.emailStatus, 'skipped_not_configured')
   })
 
   it('a replay does not claim the row twice', async () => {
     delete process.env.SMTP_HOST
     const prisma = fakePrisma()
     await deliverAppointmentRequestEmail(prisma, receipt)
-    prisma.rows.get('appointment_receipt_email:a1').status = 'sent'
+    prisma.rows.get('appointment_receipt_email:a1').status = 'delivered'
     await deliverAppointmentRequestEmail(prisma, receipt)
-    assert.equal(prisma.rows.get('appointment_receipt_email:a1').status, 'sent')
+    assert.equal(prisma.rows.get('appointment_receipt_email:a1').status, 'delivered')
   })
 
   it('a mail throw is recorded as failed and never surfaces', async () => {
@@ -48,8 +48,9 @@ describe('appointment request receipt email', () => {
     process.env.SMTP_PORT = '1'
     const prisma = fakePrisma()
     await assert.doesNotReject(deliverAppointmentRequestEmail(prisma, receipt))
-    const status = prisma.rows.get('appointment_receipt_email:a1').status
-    assert.ok(status === 'failed' || status === 'sent')
+    const row = prisma.rows.get('appointment_receipt_email:a1')
+    assert.ok(row.payload.emailStatus === 'failed' || row.payload.emailStatus === 'sent')
+    assert.ok(['dead_letter', 'delivered'].includes(row.status))
     delete process.env.SMTP_HOST
   })
 

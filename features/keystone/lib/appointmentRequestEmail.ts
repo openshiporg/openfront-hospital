@@ -1,7 +1,7 @@
 // Appointment-request receipt email. Sent AFTER the request transaction commits; a mail failure
 // never fails the request. Exactly-once: an internal ClinicalOutboxEvent row with a unique
 // eventKey is claimed first (replay/concurrent retry fails the create and exits) and its
-// status moves recorded -> sent | failed | skipped_not_configured. The outbox worker only
+// status moves processing -> delivered | dead_letter | recorded (exact outcome in payload.emailStatus). The outbox worker only
 // reads deliveryMode 'external', so this row is never picked up by it.
 // Content is deliberately minimal: patient first name, facility, appointment number, time and
 // the existing intake link. No provider, appointment type, reason or any clinical detail.
@@ -37,7 +37,7 @@ export async function deliverAppointmentRequestEmail(prisma: any, receipt: Appoi
         aggregateType: 'appointment',
         aggregateId: receipt.appointmentId,
         deliveryMode: 'internal',
-        status: 'sending',
+        status: 'processing',
         attempts: 0,
         facilityId: receipt.facilityId,
         patientId: receipt.patientId,
@@ -50,9 +50,20 @@ export async function deliverAppointmentRequestEmail(prisma: any, receipt: Appoi
   } catch {
     return // already claimed
   }
+  // ClinicalOutboxEvent.status is check-constrained, so the table value maps sent ->
+  // delivered, failed -> dead_letter, skipped -> recorded; the exact outcome is in payload.emailStatus.
+  const TABLE_STATUS: Record<string, string> = { sent: 'delivered', failed: 'dead_letter', skipped_not_configured: 'recorded' }
   const mark = async (status: string, lastError = '', messageId = '') => {
     try {
-      await prisma.clinicalOutboxEvent.update({ where: { id: rowId }, data: { status, lastError, ...(status === 'sent' ? { deliveredAt: new Date(), payload: { source: 'public_booking', messageId } } : {}) } })
+      await prisma.clinicalOutboxEvent.update({
+        where: { id: rowId },
+        data: {
+          status: TABLE_STATUS[status] || 'dead_letter',
+          lastError,
+          ...(status === 'sent' ? { deliveredAt: new Date() } : {}),
+          payload: { source: 'public_booking', emailStatus: status, messageId },
+        },
+      })
     } catch {
       // The request is committed; bookkeeping must never surface.
     }
