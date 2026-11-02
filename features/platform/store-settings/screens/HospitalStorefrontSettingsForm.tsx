@@ -3,11 +3,18 @@
 import { FormEvent, useState, useTransition } from 'react'
 import { useDraftExitGuard } from '@/features/platform/lib/useDraftExitGuard'
 import { HUE_PRESETS, LOGO_ICONS } from '../lib/icon-registry'
-import { Check, Save } from 'lucide-react'
+import { Check, Code, Save } from 'lucide-react'
+import * as SelectPrimitive from '@radix-ui/react-select'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 
 import { cn } from '@/lib/utils'
-import { Notice, Panel, Pill, Segmented, Track, fieldClass, labelClass } from '@/features/platform/components/ward'
+import { Notice, Panel, Pill, fieldClass, labelClass } from '@/features/platform/components/ward'
 import { HOSPITAL_BRAND_THEME_OPTIONS } from '@/features/lib/hospitalBrandTheme'
+import { StoreSettingsSaveBar } from '../components/StoreSettingsSaveBar'
 import { saveHospitalStorefrontSettings } from '@/features/platform/store-settings/actions/storefrontSettings'
 import type { HospitalStorefrontSettingsInput } from '@/features/platform/store-settings/lib/storefrontSettings'
 
@@ -62,7 +69,7 @@ function HeaderPreview({ form }: { form: HospitalStorefrontSettingsInput }) {
         <span aria-hidden className="size-2 rounded-[4px] bg-muted-foreground/30" />
         <span aria-hidden className="size-2 rounded-[4px] bg-muted-foreground/30" />
         <span aria-hidden className="size-2 rounded-[4px] bg-muted-foreground/30" />
-        <span className="ml-2 truncate tabular-nums text-[11px] text-muted-foreground">Patient site</span>
+        <span className="ml-2 truncate tabular-nums text-xs text-muted-foreground">Patient site</span>
       </div>
       {/* The patient site is light-themed; the preview stays light in both dashboard modes. */}
       <div className="bg-white text-zinc-900">
@@ -71,12 +78,12 @@ function HeaderPreview({ form }: { form: HospitalStorefrontSettingsInput }) {
             <LogoMark svg={form.logoIcon} hue={form.logoColor} className="size-8 shrink-0" />
             <span className="grid min-w-0 leading-tight">
               <span className="truncate text-sm font-semibold" style={{ color: theme.swatch }}>{form.name || 'Organization name'}</span>
-              <small className="truncate text-[11px] text-zinc-500">{form.locationName || 'Primary location'}</small>
+              <small className="truncate text-xs text-zinc-500">{form.locationName || 'Primary location'}</small>
             </span>
           </div>
           <span className="shrink-0 whitespace-nowrap rounded-[4px] px-3 py-1.5 text-xs font-medium text-white" style={{ backgroundColor: theme.swatch }}>Request a visit →</span>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-zinc-100 px-4 py-2 text-[11px] text-zinc-600">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-zinc-100 px-4 py-2 text-xs text-zinc-600">
           <span>Care services</span>
           <span>Care team</span>
           <span>Locations</span>
@@ -120,12 +127,17 @@ export function HospitalStorefrontSettingsForm({ initialSettings }: { initialSet
     })
   }
 
-  const selectedLogoId = LOGO_ICONS.find(icon => icon.lightSvg === form.logoIcon)?.id || 'saved'
-  const hasSavedCustomMark = !LOGO_ICONS.some(icon => icon.lightSvg === form.logoIcon)
+  // Same names as the E-commerce logo block, over this page's form state.
+  const logoIcon = form.logoIcon
+  const logoColor = form.logoColor
+  const setLogoIcon = (value: string) => setField('logoIcon', value)
+  const setLogoColor = (value: string) => setField('logoColor', value)
+  // Find matching preset icon, but don't default to first icon if not found
+  const selectedIcon = LOGO_ICONS.find((icon) => icon.lightSvg === logoIcon)
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
 
   return (
-    <form onSubmit={onSubmit} aria-busy={isPending}>
+    <form onSubmit={onSubmit} aria-busy={isPending} className="pb-24 md:pb-0">
       {exitGuard}
       <fieldset disabled={isPending} className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
       <div className="min-w-0 space-y-6">
@@ -139,40 +151,132 @@ export function HospitalStorefrontSettingsForm({ initialSettings }: { initialSet
         </FormSection>
 
         <FormSection title="Logo">
-          <fieldset id="merchant-logo" className="min-w-0">
-            <legend className="sr-only">Logo</legend>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2">
-              {hasSavedCustomMark && (
-                <label className="group relative grid cursor-pointer place-items-center gap-1 rounded-[4px] border bg-background p-2 text-center has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
-                  <input type="radio" name="merchant-logo-choice" value="saved" checked={selectedLogoId === 'saved'} readOnly className="sr-only" />
-                  <LogoMark svg={form.logoIcon} hue={0} className="size-8" />
-                  <span className="w-full truncate text-[10px] text-muted-foreground">Saved</span>
-                </label>
-              )}
-              {LOGO_ICONS.map(icon => (
-                <label key={icon.id} title={icon.name} className="relative grid cursor-pointer place-items-center gap-1 rounded-[4px] border bg-background p-2 text-center transition-colors hover:border-foreground/30 has-[:checked]:border-teal-600 has-[:checked]:ring-2 has-[:checked]:ring-teal-600/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring dark:has-[:checked]:border-teal-400">
-                  <input type="radio" name="merchant-logo-choice" value={icon.id} checked={selectedLogoId === icon.id} onChange={() => setField('logoIcon', icon.lightSvg)} className="sr-only" aria-label={icon.name} />
-                  <LogoMark svg={icon.lightSvg} hue={0} className="size-8 dark:hidden" />
-                  <LogoMark svg={icon.darkSvg} hue={0} className="hidden size-8 dark:block" />
-                  <span className="w-full truncate text-[10px] text-muted-foreground">{icon.name}</span>
-                  {selectedLogoId === icon.id && <Check aria-hidden className="absolute right-1 top-1 size-3 text-teal-700 dark:text-teal-400" />}
-                </label>
-              ))}
+          <div className="space-y-6">
+            {/* Logo Icon Selector */}
+            <div>
+              <Label>Logo Icon</Label>
+              <div className="mt-2 flex items-center gap-2">
+                <Select
+                  value={selectedIcon?.id || ''}
+                  onValueChange={(id) => {
+                    const icon = LOGO_ICONS.find((i) => i.id === id);
+                    if (icon) setLogoIcon(icon.lightSvg);
+                  }}
+                >
+                  <SelectPrimitive.Trigger
+                    className={cn(
+                      'flex h-12 w-12 shrink-0 rounded-lg border border-input bg-background focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 p-0 overflow-hidden items-center justify-center'
+                    )}
+                  >
+                    <div
+                      dangerouslySetInnerHTML={{ __html: logoIcon }}
+                      style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                      className="[&>svg]:w-6 [&>svg]:h-6"
+                    />
+                  </SelectPrimitive.Trigger>
+                  <SelectContent className="border-border dark:border-blue-700">
+                    {LOGO_ICONS.map((icon) => (
+                      <SelectItem key={icon.id} value={icon.id}>
+                        <span className="flex items-center gap-3">
+                          <div
+                            dangerouslySetInnerHTML={{ __html: icon.lightSvg }}
+                            style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                            className="[&>svg]:w-6 [&>svg]:h-6"
+                          />
+                          <span>
+                            <span className="block font-medium text-gray-900 dark:text-gray-100">
+                              {icon.name}
+                            </span>
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* SVG Code Editor Popover */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 shrink-0"
+                      type="button"
+                    >
+                      <Code className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[min(500px,calc(100vw-2rem))]" align="start">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Edit SVG Code</h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Edit the SVG code directly. Changes will be reflected in the icon preview.
+                        </p>
+                      </div>
+                      <Textarea
+                        value={logoIcon}
+                        onChange={(e) => setLogoIcon(e.target.value)}
+                        className="font-mono text-xs min-h-[300px]"
+                        placeholder="<svg>...</svg>"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm text-muted-foreground">Preview:</div>
+                        <div
+                          dangerouslySetInnerHTML={{ __html: logoIcon }}
+                          style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                          className="[&>svg]:w-8 [&>svg]:h-8 flex items-center justify-center p-2 border rounded"
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-          </fieldset>
-          <div className="grid min-w-0 gap-2">
-            <label htmlFor="merchant-hue" className={cn(labelClass, 'flex items-center justify-between')}>
-              <span>Hue</span>
-              <span className="tabular-nums  text-foreground">{form.logoColor}°</span>
-            </label>
-            <input id="merchant-hue" className="w-full accent-teal-700 dark:accent-teal-400" type="range" min="0" max="359" step="1" value={form.logoColor} onChange={event => setField('logoColor', event.target.value)} />
-            <Segmented
-              label="Hue presets"
-              size="sm"
-              value={String(Number(form.logoColor) || 0)}
-              onChange={value => setField('logoColor', value)}
-              options={HUE_PRESETS.map(preset => ({ value: String(preset.value), label: preset.name }))}
-            />
+
+            {/* Logo Color Selector */}
+            <div>
+              <Label>Logo Color</Label>
+              <div className="mt-2">
+                <Select
+                  value={logoColor}
+                  onValueChange={(value) => setLogoColor(value)}
+                >
+                  <SelectPrimitive.Trigger
+                    className={cn(
+                      'flex h-12 w-12 shrink-0 rounded-lg border border-input bg-background focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 p-0 overflow-hidden items-center justify-center'
+                    )}
+                  >
+                    <SelectValue>
+                      <div
+                        className="w-6 h-6 rounded-full"
+                        style={{
+                          background: `hsl(${(240 + parseInt(logoColor)) % 360}, 70%, 50%)`
+                        }}
+                      />
+                    </SelectValue>
+                  </SelectPrimitive.Trigger>
+                  <SelectContent className="border-border dark:border-blue-700">
+                    <div className="grid grid-cols-4 gap-2 p-2">
+                      {HUE_PRESETS.map((preset) => (
+                        <SelectItem
+                          key={preset.value}
+                          value={preset.value.toString()}
+                          className="cursor-pointer p-0 h-12 w-12 flex items-center justify-center [&>span:first-child]:hidden"
+                        >
+                          <div
+                            className="w-6 h-6 rounded-full"
+                            style={{
+                              background: `hsl(${(240 + preset.value) % 360}, 70%, 50%)`
+                            }}
+                          />
+                        </SelectItem>
+                      ))}
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </FormSection>
 
@@ -223,12 +327,15 @@ export function HospitalStorefrontSettingsForm({ initialSettings }: { initialSet
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">{dirty ? 'Unsaved changes' : 'Saved'}</span>
-          <Track>
-            <Pill type="submit" variant="primary" disabled={isPending}>
-              <Save aria-hidden />
-              {isPending ? 'Saving…' : 'Save storefront settings'}
-            </Pill>
-          </Track>
+          <StoreSettingsSaveBar
+            isSaving={isPending}
+            button={
+              <Pill type="submit" variant="primary" disabled={isPending}>
+                <Save aria-hidden />
+                {isPending ? 'Saving…' : 'Save storefront settings'}
+              </Pill>
+            }
+          />
         </div>
       </div>
       </fieldset>
