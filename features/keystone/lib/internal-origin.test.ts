@@ -42,32 +42,86 @@ test('short secret, missing secret or missing source sends unsigned and never th
   assert.deepEqual(internalIdentityHeaders(null, SECRET), {})
 })
 
-test('verifier accepts a fresh loopback signature as the forwarded identity', () => {
-  const now = Date.now()
-  const signed = signInternalClientIdentity('203.0.113.7', SECRET, now)!
-  const headers = {
-    'x-openfront-client-identity': signed.identity,
-    'x-openfront-client-timestamp': signed.timestamp,
-    'x-openfront-client-signature': signed.signature,
+function signedHeaders(now: number, source = '203.0.113.7', secret = SECRET) {
+  const signed = signInternalClientIdentity(source, secret, now)!
+  return {
+    signed,
+    headers: {
+      'x-openfront-client-identity': signed.identity,
+      'x-openfront-client-timestamp': signed.timestamp,
+      'x-openfront-client-signature': signed.signature,
+    } as Record<string, string>,
   }
-  assert.equal(requestIdentity(headers, '127.0.0.1', SECRET, now), `forwarded:${signed.identity}`)
-  assert.equal(requestIdentity(headers, '::ffff:127.0.0.1', SECRET, now), `forwarded:${signed.identity}`)
+}
+
+test('SECURITY (a) valid signature from a loopback socket becomes the forwarded identity', () => {
+  const now = Date.now()
+  const { signed, headers } = signedHeaders(now)
+  for (const socket of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) {
+    assert.equal(requestIdentity(headers, socket, SECRET, now), `forwarded:${signed.identity}`)
+  }
 })
 
-test('verifier ignores non-loopback sockets, stale timestamps and bad signatures', () => {
-  const now = Date.now()
-  const signed = signInternalClientIdentity('203.0.113.7', SECRET, now)!
-  const headers = {
-    'x-openfront-client-identity': signed.identity,
-    'x-openfront-client-timestamp': signed.timestamp,
-    'x-openfront-client-signature': signed.signature,
+test('SECURITY (b) the same valid headers from a non-loopback socket are ignored (normal IP identity)', () => {
+  const prevRailway = process.env.RAILWAY_ENVIRONMENT
+  process.env.RAILWAY_ENVIRONMENT = 'production'
+  try {
+    const now = Date.now()
+    const { headers } = signedHeaders(now)
+    // Even with spoofed forwarding headers the socket address, not a header, decides loopback.
+    const spoofed = { ...headers, 'x-forwarded-for': '127.0.0.1', 'x-real-ip': '127.0.0.1' }
+    for (const socket of ['10.0.0.5', '100.64.0.9', '203.0.113.99', '::ffff:10.0.0.5']) {
+      assert.equal(requestIdentity(spoofed, socket, SECRET, now), '127.0.0.1', `edge x-real-ip is used for ${socket}`)
+      const noReal = requestIdentity(headers, socket, SECRET, now)
+      assert.ok(!noReal.startsWith('forwarded:'), socket)
+      assert.equal(noReal, socket)
+    }
+    const undef = requestIdentity(headers, undefined, SECRET, now)
+    assert.ok(!undef.startsWith('forwarded:'))
+    assert.equal(undef, 'unknown-local-client')
+    assert.ok(!requestIdentity(headers, null, SECRET, now).startsWith('forwarded:'))
+    // A loopback address supplied only via headers never grants the signed path.
+    assert.ok(!requestIdentity({ 'x-real-ip': '127.0.0.1', 'x-forwarded-for': '127.0.0.1' }, '10.0.0.5', SECRET, now).startsWith('forwarded:'))
+  } finally {
+    if (prevRailway === undefined) delete process.env.RAILWAY_ENVIRONMENT
+    else process.env.RAILWAY_ENVIRONMENT = prevRailway
   }
-  const ignored = (h: typeof headers, socket: string, at = now) => !requestIdentity(h, socket, SECRET, at).startsWith('forwarded:')
-  assert.ok(ignored(headers, '203.0.113.99'))
-  assert.ok(ignored(headers, '127.0.0.1', now + 120_000))
-  assert.ok(ignored({ ...headers, 'x-openfront-client-signature': 'b'.repeat(64) }, '127.0.0.1'))
-  assert.ok(ignored({ ...headers, 'x-openfront-client-identity': 'c'.repeat(64) }, '127.0.0.1'))
-  assert.ok(!requestIdentity(headers, '127.0.0.1', 'z'.repeat(40), now).startsWith('forwarded:'))
+})
+
+test('SECURITY (c) a timestamp older (or newer) than 90 seconds is ignored; 89s still passes', () => {
+  const now = Date.now()
+  const { signed, headers } = signedHeaders(now)
+  assert.equal(requestIdentity(headers, '127.0.0.1', SECRET, now + 89_000), `forwarded:${signed.identity}`)
+  assert.ok(!requestIdentity(headers, '127.0.0.1', SECRET, now + 92_000).startsWith('forwarded:'))
+  assert.ok(!requestIdentity(headers, '127.0.0.1', SECRET, now - 92_000).startsWith('forwarded:'))
+})
+
+test('SECURITY (d) a bad signature, or a tampered identity or timestamp, is ignored', () => {
+  const now = Date.now()
+  const { headers } = signedHeaders(now)
+  const ok = (h: Record<string, string>) => !requestIdentity(h, '127.0.0.1', SECRET, now).startsWith('forwarded:')
+  assert.ok(ok({ ...headers, 'x-openfront-client-signature': 'b'.repeat(64) }))
+  assert.ok(ok({ ...headers, 'x-openfront-client-identity': 'c'.repeat(64) }))
+  assert.ok(ok({ ...headers, 'x-openfront-client-timestamp': String(Math.floor(now / 1000) + 1) }))
+  assert.ok(ok({ ...headers, 'x-openfront-client-signature': 'nothex' }))
+  assert.ok(ok({}))
+  assert.ok(ok({ ...headers, 'x-openfront-client-signature': signedHeaders(now, '203.0.113.7', 'z'.repeat(40)).signed.signature }))
+})
+
+test('SECURITY (e) a secret shorter than 32 characters is ignored and cannot sign', () => {
+  const now = Date.now()
+  const short = 's'.repeat(31)
+  assert.equal(signInternalClientIdentity('203.0.113.7', short, now), null)
+  // Headers signed with a long secret are not trusted by a verifier configured with a short one.
+  const { headers } = signedHeaders(now)
+  assert.ok(!requestIdentity(headers, '127.0.0.1', short, now).startsWith('forwarded:'))
+  // Headers forged with the short secret by hand are not trusted either.
+  const { createHash, createHmac } = require('node:crypto')
+  const identity = createHash('sha256').update('203.0.113.7').digest('hex')
+  const timestamp = String(Math.floor(now / 1000))
+  const signature = createHmac('sha256', short).update(`${timestamp}:${identity}`).digest('hex')
+  const forged = { 'x-openfront-client-identity': identity, 'x-openfront-client-timestamp': timestamp, 'x-openfront-client-signature': signature }
+  assert.ok(!requestIdentity(forged, '127.0.0.1', short, now).startsWith('forwarded:'))
 })
 
 test('internal fetch signs each server request and refuses other targets', async () => {
