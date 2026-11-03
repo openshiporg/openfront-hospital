@@ -132,8 +132,10 @@ export const User = list({
           permissions.canAccessAllClinicalData({ session }) && !(await hasGlobalClinicalRole(context, item)),
       },
       ui: {
+        // Same rule as the field's update access, so the form never offers an edit the server refuses.
         itemView: {
-          fieldMode: args => (permissions.canManagePeople(args) ? 'edit' : 'read'),
+          fieldMode: async ({ session, context, item }: any) =>
+            permissions.canAccessAllClinicalData({ session }) && !(await hasGlobalClinicalRole(context, item)) ? 'edit' : 'read',
         },
       },
     }),
