@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { Prisma } from '@prisma/client'
+import { signInternalClientIdentity } from './internalIdentity'
 import {
   GraphQLError,
   Kind,
@@ -395,13 +396,7 @@ function safeEqual(left: string, right: string) {
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
 }
 
-export function signInternalClientIdentity(source: string, secret: string, now = Date.now()) {
-  if (!source || secret.length < 32) return null
-  const identity = createHash('sha256').update(source).digest('hex')
-  const timestamp = String(Math.floor(now / 1_000))
-  const signature = createHmac('sha256', secret).update(`${timestamp}:${identity}`).digest('hex')
-  return { identity, timestamp, signature }
-}
+export { signInternalClientIdentity }
 
 function verifiedInternalIdentity(
   headers: Record<string, string | string[] | undefined>,
