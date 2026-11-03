@@ -1,6 +1,15 @@
 import 'server-only'
 
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
+import { scanChunks } from '@/features/platform/lib/chunkedScan'
+import { worklistPageSkip } from '@/features/platform/lib/worklistPagination'
+import {
+  PROVIDER_FACILITY_OPTIONS_QUERY,
+  PROVIDER_PAGE_SIZE,
+  PROVIDER_VISIT_TYPE_OPTIONS_QUERY,
+  providerPageQuery,
+  providerSpecialtiesQuery,
+} from './queryDocs'
 import type { Option, ProviderDetail, ProviderFilters, ProviderRow } from './types'
 
 const STATUSES = new Set(['all', 'active', 'unavailable', 'inactive'])
@@ -35,32 +44,18 @@ function baseWhere(filters: ProviderFilters) {
   return and
 }
 
-export async function getProviderWorkspace(filters: ProviderFilters) {
+export async function getProviderWorkspace(filters: ProviderFilters, page = 1) {
   const and = baseWhere(filters)
   const where = { AND: [...and, ...(filters.status !== 'all' ? [{ status: { equals: filters.status } }] : [])] }
   const statusWhere = (status: string) => ({ AND: [...and, { status: { equals: status } }] })
   const now = new Date().toISOString()
-  const query = `
-    query ProviderWorkspace(
-      $where: ProviderWhereInput!, $all: ProviderWhereInput!, $active: ProviderWhereInput!,
-      $unavailable: ProviderWhereInput!, $inactive: ProviderWhereInput!, $now: DateTime!
-    ) {
-      providers(where: $where, orderBy: [{ lastName: asc }, { firstName: asc }], take: 100) {
-        id firstName lastName displayName credentials specialty status locationName
-        appointmentTypesCount
-        upcomingBlocks: scheduleBlocksCount(where: { endsAt: { gte: $now } })
-        facilities(take: 5) { id name }
-      }
-      filtered: providersCount(where: $where)
-      all: providersCount(where: $all)
-      active: providersCount(where: $active)
-      unavailable: providersCount(where: $unavailable)
-      inactive: providersCount(where: $inactive)
-      specialties: providers(take: 200, orderBy: [{ specialty: asc }]) { specialty }
-      facilities(orderBy: [{ name: asc }], take: 100) { id name status }
-      appointmentTypes(orderBy: [{ name: asc }], take: 200) { id name status }
-    }
-  `
+  // Independent operations, all started together.
+  const specialtiesP = scanChunks(async skip => {
+    const r = await keystoneClient<{ providers: Array<{ specialty: string | null }> }>(providerSpecialtiesQuery(skip))
+    return r.success ? { success: true as const, data: r.data.providers } : r
+  })
+  const facilitiesP = keystoneClient<{ facilities: Array<{ id: string; name: string | null; status: string | null }> }>(PROVIDER_FACILITY_OPTIONS_QUERY)
+  const typesP = keystoneClient<{ appointmentTypes: Array<{ id: string; name: string | null; status: string | null }> }>(PROVIDER_VISIT_TYPE_OPTIONS_QUERY)
   const response = await keystoneClient<{
     providers: ProviderRow[]
     filtered: number
@@ -68,10 +63,7 @@ export async function getProviderWorkspace(filters: ProviderFilters) {
     active: number
     unavailable: number
     inactive: number
-    specialties: Array<{ specialty: string | null }>
-    facilities: Array<{ id: string; name: string | null; status: string | null }>
-    appointmentTypes: Array<{ id: string; name: string | null; status: string | null }>
-  }>(query, {
+  }>(providerPageQuery(worklistPageSkip(page)), {
     where,
     all: { AND: and },
     active: statusWhere('active'),
@@ -79,17 +71,21 @@ export async function getProviderWorkspace(filters: ProviderFilters) {
     inactive: statusWhere('inactive'),
     now,
   })
+  const [specialtyScan, facilityRes, typeRes] = await Promise.all([specialtiesP, facilitiesP, typesP])
   if (!response.success) return response
+  if (!specialtyScan.success) return specialtyScan
+  if (!facilityRes.success) return facilityRes
+  if (!typeRes.success) return typeRes
   const d = response.data
-  const specialties = Array.from(new Set(d.specialties.map((p) => p.specialty?.trim()).filter((s): s is string => Boolean(s)))).sort()
+  const specialties = Array.from(new Set(specialtyScan.data.map((p) => p.specialty?.trim()).filter((s): s is string => Boolean(s)))).sort()
   return {
     success: true as const,
     data: {
       providers: d.providers,
       counts: { filtered: d.filtered, all: d.all, active: d.active, unavailable: d.unavailable, inactive: d.inactive },
       specialties,
-      facilities: d.facilities.map((f): Option => ({ id: f.id, label: f.name || 'Unnamed facility', sub: f.status })),
-      appointmentTypes: d.appointmentTypes.map((t): Option => ({ id: t.id, label: t.name || 'Unnamed visit type', sub: t.status })),
+      facilities: facilityRes.data.facilities.map((f): Option => ({ id: f.id, label: f.name || 'Unnamed facility', sub: f.status })),
+      appointmentTypes: typeRes.data.appointmentTypes.map((t): Option => ({ id: t.id, label: t.name || 'Unnamed visit type', sub: t.status })),
     },
   }
 }
@@ -117,7 +113,7 @@ export async function getProviderDetail(id: string) {
         }
       }
       facilities(orderBy: [{ name: asc }], take: 100) { id name status }
-      appointmentTypes(orderBy: [{ name: asc }], take: 200) { id name status }
+      appointmentTypes(orderBy: [{ name: asc }], take: 100) { id name status }
       departments(orderBy: [{ name: asc }], take: 100) { id name status }
     }
   `

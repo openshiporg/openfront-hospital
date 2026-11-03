@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { Search } from 'lucide-react'
 
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
-import { BoundedDataNotice } from '@/features/platform/components/BoundedDataNotice'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
 import {
   Board,
@@ -26,6 +25,8 @@ import { getLabTestCatalog } from '../actions/labTestQueries'
 import { setLabTestActive } from '../actions/labTestMutations'
 import { LabTestSheet } from '../components/LabTestSheet'
 import { normalizeLabTestFilters, type LabTestFilters } from '../lib/labTests'
+import { WorklistPagination } from '@/features/platform/components/WorklistPagination'
+import { parseWorklistPage } from '@/features/platform/lib/worklistPagination'
 import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
@@ -48,8 +49,10 @@ function hrefFor(filters: LabTestFilters, patch: Partial<LabTestFilters>) {
 }
 
 export async function LabTestListPage({ searchParams }: { searchParams: SearchParams }) {
-  const filters = normalizeLabTestFilters(await searchParams)
-  const response = await getLabTestCatalog(filters)
+  const params = await searchParams
+  const filters = normalizeLabTestFilters(params)
+  const page = parseWorklistPage(params.page)
+  const response = await getLabTestCatalog(filters, page)
   if (!response.success) {
     return <WorkspaceLoadError title="Lab tests" description="The lab test catalog may be unavailable for this session." breadcrumbs={breadcrumbs} />
   }
@@ -105,8 +108,6 @@ export async function LabTestListPage({ searchParams }: { searchParams: SearchPa
           </Track>
         </FilterBar>
 
-        <BoundedDataNotice messages={data.labTestsCount > tests.length ? [`Showing ${tests.length} of ${data.labTestsCount}. Narrow the filters to see more.`] : undefined} />
-
         <WardSection title="Catalog" count={data.labTestsCount} id="lab-test-catalog">
           {!tests.length ? <EmptyBoard title="No matching lab tests" /> : (
             <Board>
@@ -138,6 +139,15 @@ export async function LabTestListPage({ searchParams }: { searchParams: SearchPa
               })}
             </Board>
           )}
+          <WorklistPagination
+            label="Lab tests"
+            href={hrefFor(filters, {}).split('?')[0]}
+            pageKey="page"
+            page={page}
+            pageParams={{}}
+            totalCount={data.labTestsCount}
+            preservedParams={Object.fromEntries(new URLSearchParams(hrefFor(filters, {}).split('?')[1] || ''))}
+          />
         </WardSection>
       </WardBody>
     </PageContainer>

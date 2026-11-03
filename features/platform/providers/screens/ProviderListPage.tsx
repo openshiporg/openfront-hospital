@@ -21,6 +21,8 @@ import {
 import { getProviderWorkspace, normalizeProviderFilters } from '../actions/queries'
 import { providerStatusLabel, providerTone, type ProviderFilters } from '../actions/types'
 import { ProviderSheet } from '../components/ProviderSheet'
+import { WorklistPagination } from '@/features/platform/components/WorklistPagination'
+import { parseWorklistPage } from '@/features/platform/lib/worklistPagination'
 import { OptionSelect } from '@/features/platform/components/OptionSelect'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
@@ -43,8 +45,10 @@ function hrefWith(filters: ProviderFilters, patch: Partial<ProviderFilters>) {
 }
 
 export async function ProviderListPage({ searchParams }: { searchParams: SearchParams }) {
-  const filters = normalizeProviderFilters(await searchParams)
-  const response = await getProviderWorkspace(filters)
+  const params = await searchParams
+  const filters = normalizeProviderFilters(params)
+  const page = parseWorklistPage(params.page)
+  const response = await getProviderWorkspace(filters, page)
   if (!response.success) {
     return <WorkspaceLoadError title="Providers" description="Providers, counts, or filters may be unavailable for this session." breadcrumbs={breadcrumbs} />
   }
@@ -137,7 +141,15 @@ export async function ProviderListPage({ searchParams }: { searchParams: SearchP
             ))}
           </Board>
         )}
-        {counts.filtered > providers.length && <p className="text-xs text-muted-foreground">Showing {providers.length} of {counts.filtered}</p>}
+        <WorklistPagination
+          label="Providers"
+          href="/dashboard/platform/providers"
+          pageKey="page"
+          page={page}
+          pageParams={{}}
+          totalCount={counts.filtered}
+          preservedParams={Object.fromEntries(new URLSearchParams(hrefWith(filters, {}).split('?')[1] || ''))}
+        />
       </WardBody>
     </PageContainer>
   )
