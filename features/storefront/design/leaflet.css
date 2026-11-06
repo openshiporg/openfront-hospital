@@ -227,7 +227,8 @@ a:hover > .sf-arrow, button:hover > .sf-arrow { transform: translateX(3px); }
 .sf-empty--lobby { border-color: rgba(255, 255, 255, .2); }
 
 /* ---------- Booking + intake workspace ---------- */
-.sf-work { display: grid; gap: var(--space-md); padding-top: var(--space-lg); }
+.sf-work { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-md); padding-top: var(--space-lg); }
+.sf-work > * { min-width: 0; }
 @media (min-width: 62rem) { .sf-work { grid-template-columns: 22rem minmax(0, 1fr); gap: var(--space-xl); align-items: start; } .sf-work__rail { position: sticky; top: 5.5rem; } }
 .sf-work__rail { display: grid; gap: var(--space-sm); }
 .sf-back { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--text-sm); font-weight: 700; color: var(--color-ink-2); }
