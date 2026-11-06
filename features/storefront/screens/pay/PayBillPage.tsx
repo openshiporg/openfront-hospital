@@ -27,7 +27,7 @@ export function PayBillPage() {
 
   if (returnStatus === 'success' && sessionId) {
     const paid = receipt?.status === 'succeeded'
-    return <main className="sf-container" style={{ paddingBlock: '4rem', maxWidth: '42rem' }}>
+    return <div className="sf-container" style={{ paddingBlock: '4rem', maxWidth: '42rem' }}>
       <h1 className="sf-display sf-display--page">{confirming ? 'Confirming your payment…' : paid ? 'Payment received' : 'Payment is processing'}</h1>
       {paid && receipt && <section style={{ marginTop: '1.5rem', display: 'grid', gap: '0.5rem' }}>
         <p>Thank you. {receipt.facilityName} has received your payment.</p>
@@ -35,7 +35,7 @@ export function PayBillPage() {
         {receipt.reference && <p>Reference: {receipt.reference}</p>}
       </section>}
       {!confirming && !paid && <p style={{ marginTop: '1.5rem' }}>Your card payment has not settled yet. You do not need to pay again; the facility will see it as soon as it clears.</p>}
-    </main>
+    </div>
   }
 
   async function lookup(event: React.FormEvent) {
@@ -50,16 +50,16 @@ export function PayBillPage() {
     finally { setBusy(false) }
   }
 
-  return <main className="sf-container" style={{ paddingBlock: '4rem', maxWidth: '42rem' }}>
+  return <div className="sf-container" style={{ paddingBlock: '4rem', maxWidth: '42rem' }}>
     <h1 className="sf-display sf-display--page">Pay a bill</h1>
-    <p>Enter the payment number on your statement and your date of birth to view the balance.</p>
-    {returnStatus === 'cancelled' && <p role="status">Payment was cancelled. Nothing was charged.</p>}
-    <form onSubmit={lookup} style={{ display: 'grid', gap: '1rem', marginTop: '2rem' }}>
-      <label>Payment number<input required autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} /></label>
-      <label>Date of birth<input required type="date" value={dob} onChange={event => setDob(event.target.value)} /></label>
-      <button disabled={busy} type="submit">{busy ? 'Checking…' : 'Find balance'}</button>
+    <p style={{ marginTop: '.75rem' }}>Enter the payment number on your statement and your date of birth to view the balance.</p>
+    {returnStatus === 'cancelled' && <p role="status" className="sf-notice sf-notice--warn" style={{ marginTop: '1rem' }}>Payment was cancelled. Nothing was charged.</p>}
+    <form onSubmit={lookup} className="sf-form" style={{ marginTop: '2rem' }}>
+      <label className="sf-field"><span className="sf-label">Payment number</span><input className="sf-input" required autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} /></label>
+      <label className="sf-field"><span className="sf-label">Date of birth</span><input className="sf-input" required type="date" value={dob} onChange={event => setDob(event.target.value)} /></label>
+      <div className="sf-form-actions"><button className="sf-pill sf-pill--primary" disabled={busy} type="submit">{busy ? 'Checking…' : 'Find balance'}</button></div>
     </form>
-    {bill && <section style={{ marginTop: '2rem' }}><h2>{bill.facilityName}</h2><p>Balance due: {(bill.amountCents / 100).toLocaleString(undefined, { style: 'currency', currency: bill.currency })}</p><button disabled={busy} onClick={pay}>Pay now</button></section>}
-    {message && <p role="status">{message}</p>}
-  </main>
+    {bill && <section style={{ marginTop: '2rem' }}><h2>{bill.facilityName}</h2><p>Balance due: {(bill.amountCents / 100).toLocaleString(undefined, { style: 'currency', currency: bill.currency })}</p><div className="sf-form-actions" style={{ marginTop: '1rem' }}><button className="sf-pill sf-pill--primary" disabled={busy} onClick={pay}>Pay now</button></div></section>}
+    {message && <p role="status" className="sf-notice sf-notice--warn" style={{ marginTop: '1rem' }}>{message}</p>}
+  </div>
 }
