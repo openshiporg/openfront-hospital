@@ -78,7 +78,7 @@ export async function sendPasswordResetEmail(resetToken: string, to: string, bas
 /** Receipt for an appointment request. Minimal by design: no clinical detail, no provider, no reason. */
 export async function sendAppointmentRequestEmail(
   to: string,
-  details: { facilityName: string; firstName: string; appointmentNumber: string; whenLabel: string; intakeUrl: string },
+  details: { facilityName: string; firstName: string; appointmentNumber: string; whenLabel: string; intakeUrl: string; manageUrl?: string },
 ): Promise<{ sent: boolean; error?: string; messageId?: string }> {
   if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) return { sent: false, error: 'not_configured' }
   const escape = (value: string) => value.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] as string)
@@ -87,10 +87,33 @@ export async function sendAppointmentRequestEmail(
       to,
       from: process.env.SMTP_FROM,
       subject: `${details.facilityName}: we received your appointment request`,
-      html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><p>Hi ${escape(details.firstName)}, ${escape(details.facilityName)} received your appointment request. We will contact you to confirm it.</p><p>Requested time: ${escape(details.whenLabel)}<br>Request number: ${escape(details.appointmentNumber)}</p>${details.intakeUrl ? `<p><a href="${escape(details.intakeUrl)}" style="background:#346df1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">Complete your intake form</a></p>` : ''}</body>`,
+      html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><p>Hi ${escape(details.firstName)}, ${escape(details.facilityName)} received your appointment request. We will contact you to confirm it.</p><p>Requested time: ${escape(details.whenLabel)}<br>Request number: ${escape(details.appointmentNumber)}</p>${details.intakeUrl ? `<p><a href="${escape(details.intakeUrl)}" style="background:#346df1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">Complete your intake form</a></p>` : ''}${details.manageUrl ? `<p><a href="${escape(details.manageUrl)}">View or cancel this visit</a></p>` : ''}</body>`,
     });
     return { sent: true, messageId: [String((info as any)?.messageId || ''), String((info as any)?.response || '').slice(0,120)].filter(Boolean).join(' | ') };
   } catch (error) {
     return { sent: false, error: error instanceof Error ? error.message : 'send_failed' };
+  }
+}
+
+/** A short service message about one visit (confirmed, cancelled), with the patient's manage link. No clinical detail. */
+export async function sendVisitNoticeEmail(
+  to: string,
+  details: { facilityName: string; heading: string; lines: string[]; manageToken?: string },
+): Promise<{ sent: boolean; error?: string }> {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) return { sent: false, error: 'not_configured' }
+  const escape = (value: string) => value.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] as string)
+  let base = ''
+  try { base = getBaseUrlForEmails() } catch { base = '' }
+  const manageUrl = base && details.manageToken ? `${base}/visit#access=${encodeURIComponent(details.manageToken)}` : ''
+  try {
+    await transport.sendMail({
+      to,
+      from: process.env.SMTP_FROM,
+      subject: `${details.facilityName}: ${details.heading.toLowerCase()}`,
+      html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><h2 style="color:#1d2b3a;">${escape(details.heading)}</h2>${details.lines.map(line => `<p>${escape(line)}</p>`).join('')}${manageUrl ? `<p><a href="${escape(manageUrl)}" style="background:#346df1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">View your visit</a></p>` : ''}</body>`,
+    })
+    return { sent: true }
+  } catch (error) {
+    return { sent: false, error: error instanceof Error ? error.message : 'send_failed' }
   }
 }

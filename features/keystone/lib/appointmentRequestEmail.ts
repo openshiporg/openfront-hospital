@@ -5,6 +5,8 @@
 // reads deliveryMode 'external', so this row is never picked up by it.
 // Content is deliberately minimal: patient first name, facility, appointment number, time and
 // the existing intake link. No provider, appointment type, reason or any clinical detail.
+import { createVisitAccessToken } from '../security/visitAccess'
+
 export type AppointmentReceipt = {
   appointmentId: string
   appointmentNumber: string
@@ -90,6 +92,7 @@ export async function deliverAppointmentRequestEmail(prisma: any, receipt: Appoi
       appointmentNumber: receipt.appointmentNumber,
       whenLabel: formatAppointmentTime(receipt.startsAt, receipt.timeZone),
       intakeUrl: base && receipt.intakeToken ? `${base}/intake#accessCode=${encodeURIComponent(receipt.intakeToken)}` : '',
+      manageUrl: base ? `${base}/visit#access=${encodeURIComponent(createVisitAccessToken(receipt.appointmentId))}` : '',
     })
     if (result.sent) await mark('sent', '', result.messageId || '')
     else await mark('failed', result.error || 'send_failed')

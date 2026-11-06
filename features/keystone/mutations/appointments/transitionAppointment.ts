@@ -66,7 +66,7 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
   }) as { id: string; provider?: { id: string } | null } | null
   if (!scopedAppointment) throw new Error('Appointment not found or not accessible')
 
-  return context.transaction(async (transactionContext: any) => {
+  const outcome = await context.transaction(async (transactionContext: any) => {
     // Keystone 6.5 declares `isolationLevel` as the enum object while Prisma expects the
     // string, so set it as the transaction's first statement (as in labResultRecovery.ts).
     await transactionContext.prisma.$executeRaw(Prisma.sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`)
@@ -210,4 +210,23 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
     })
     return result
   }, { timeout: 30_000 })
+  const settledStatus = String((outcome as { status?: unknown }).status ?? '')
+  if (!outcome.replayed && (settledStatus === 'confirmed' || settledStatus === 'cancelled')) {
+    await notifyPatient(context, args.appointmentId, settledStatus).catch(error => console.error('Visit notice not sent:', error instanceof Error ? error.message : 'Unknown error'))
+  }
+  return outcome
+}
+
+// The patient hears when the clinic confirms or cancels their visit, with a link to view it. No clinical detail.
+async function notifyPatient(context: Context, appointmentId: string, status: string) {
+  const prisma = context.sudo().prisma as any
+  const appointment = await prisma.appointment.findUnique({ where: { id: appointmentId }, select: { id: true, appointmentNumber: true, startsAt: true, cancellationReason: true, facility: { select: { name: true, timeZone: true, phone: true } }, patient: { select: { email: true, firstName: true } } } })
+  if (!appointment?.patient?.email) return
+  const [{ sendVisitNoticeEmail }, { formatAppointmentTime }, { createVisitAccessToken }] = await Promise.all([import('../../lib/mail'), import('../../lib/appointmentRequestEmail'), import('../../security/visitAccess')])
+  const when = formatAppointmentTime(appointment.startsAt.toISOString(), appointment.facility?.timeZone || 'UTC')
+  const facilityName = appointment.facility?.name || 'Our care team'
+  const lines = status === 'confirmed'
+    ? [`Hi ${appointment.patient.firstName}, your visit ${appointment.appointmentNumber} is confirmed for ${when}.`, 'Please arrive 15 minutes early and bring your insurance card and a photo ID.']
+    : [`Hi ${appointment.patient.firstName}, your visit ${appointment.appointmentNumber} on ${when} has been cancelled by the clinic.`, appointment.facility?.phone ? `Call ${appointment.facility.phone} or request a new time online.` : 'Request a new time online.']
+  await sendVisitNoticeEmail(appointment.patient.email, { facilityName, heading: status === 'confirmed' ? 'Your visit is confirmed' : 'Your visit is cancelled', lines, manageToken: createVisitAccessToken(appointment.id) })
 }

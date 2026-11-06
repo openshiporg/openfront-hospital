@@ -111,6 +111,8 @@ export function StorefrontFooter({ profile }: { profile: HospitalBranding }) {
           <Link href="/locations">Locations</Link>
           <Link href="/book">Request a visit</Link>
           <Link href="/intake">Pre-visit intake</Link>
+          <Link href="/visit">Your visit</Link>
+          <Link href="/pay">Pay a bill</Link>
         </nav>
         <div>
           {(profile.supportPhoneHref || profile.supportEmailHref) && (
