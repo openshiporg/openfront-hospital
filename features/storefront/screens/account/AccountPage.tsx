@@ -17,8 +17,11 @@ const STATUS: Record<string, string> = {
 }
 const TONE: Record<string, 'ok' | 'warn' | 'bad'> = { requested: 'warn', confirmed: 'ok', checked_in: 'ok', in_visit: 'ok', completed: 'ok', cancelled: 'bad', no_show: 'bad' }
 
+// Built from parts so the server (Node ICU) and browser render identical text: whole-string formats differ in the
+// spacing and joiner before AM/PM, which breaks hydration.
 function when(visit: PatientVisitView) {
-  return new Intl.DateTimeFormat('en-US', { timeZone: visit.facilityTimeZone || 'UTC', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(visit.startsAt))
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: visit.facilityTimeZone || 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).formatToParts(new Date(visit.startsAt)).map(p => [p.type, p.value]))
+  return `${parts.month} ${parts.day}, ${parts.year}, ${parts.hour}:${parts.minute} ${String(parts.dayPeriod).toUpperCase()}`
 }
 
 function VisitRow({ visit }: { visit: PatientVisitView }) {
