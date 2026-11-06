@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { handleDashboardRoutes, getAuthenticatedUser } from "@/features/dashboard/middleware";
+import { handleDashboardRoutes, getAuthenticatedUser, checkInitStatus } from "@/features/dashboard/middleware";
 import { handleStorefrontRoutes } from "@/features/storefront/middleware";
 import { NextResponse } from "next/server";
 import { isDashboardRoute } from "@/features/dashboard/lib/authFlow";
@@ -7,7 +7,21 @@ import { isDashboardRoute } from "@/features/dashboard/lib/authFlow";
 const dashboardPath = "/dashboard";
 
 // Main middleware function that handles all routes
+// Once the first admin exists, setup is never required again, so storefront requests stop asking.
+let setupComplete = false
+
 export async function proxy(request: NextRequest) {
+  // Storefront pages don't use the signed-in user. Skipping the per-request auth query keeps page views and
+  // <Link> prefetches from spending the visitor's anonymous GraphQL budget ("Page could not load" after ~12 pages).
+  if (!request.nextUrl.pathname.startsWith(dashboardPath)) {
+    if (!setupComplete) {
+      const needsInit = await checkInitStatus(request);
+      if (needsInit) return NextResponse.redirect(new URL(`${dashboardPath}/init`, request.url));
+      setupComplete = true;
+    }
+    return handleStorefrontRoutes(request, null);
+  }
+
   // Get authenticated user once
   const { user, redirectToInit } = await getAuthenticatedUser(request);
 
