@@ -59,10 +59,10 @@ export function AppointmentRequestForm({
         <h2 className="sf-step-title sf-titleline"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>Received · not yet confirmed</span></h2>
         <p className="sf-receipt__ref"><span className="sf-eyebrow">Ref</span>{result.reference}</p>
         <p>{result.message}</p>
-        <div><div className="sf-track">
+        <div className="sf-form-actions">
           {result.intakeHref && <a className="sf-pill sf-pill--primary" href={result.intakeHref}>Continue to private intake <ArrowRight aria-hidden="true" className="sf-arrow" /></a>}
           <a className="sf-pill" href="/visit">Check or cancel this visit</a>
-        </div></div>
+        </div>
       </div>
     )
   }
