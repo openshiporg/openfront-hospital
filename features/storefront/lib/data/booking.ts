@@ -1,4 +1,5 @@
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
+import { cachedPublicRead, publicReadOrThrow } from '@/features/storefront/lib/data/public-read-cache'
 import type { WorkflowConsentInput } from '@/features/storefront/lib/workflowConsent'
 
 export type BookableProvider = {
@@ -76,7 +77,7 @@ export async function getBookableAppointmentTypes() {
     }
   `
 
-  const response = await keystoneClient<{ bookableAppointmentTypes: BookableAppointmentType[] }>(query)
+  const response = await cachedPublicRead('bookableAppointmentTypes', () => keystoneClient<{ bookableAppointmentTypes: BookableAppointmentType[] }>(query).then(publicReadOrThrow))
   if (!response.success) throw new Error('Bookable appointment types are unavailable')
   return response.data.bookableAppointmentTypes
 }

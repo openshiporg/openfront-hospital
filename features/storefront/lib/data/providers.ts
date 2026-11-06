@@ -1,4 +1,5 @@
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
+import { cachedPublicRead, publicReadOrThrow } from '@/features/storefront/lib/data/public-read-cache'
 
 export type BookableProviderVisitType = {
   id: string
@@ -47,7 +48,7 @@ export async function getBookableProviders() {
     }
   `
 
-  const response = await keystoneClient<{ bookableProviders: BookableProviderEntry[] }>(query)
+  const response = await cachedPublicRead('bookableProviders', () => keystoneClient<{ bookableProviders: BookableProviderEntry[] }>(query).then(publicReadOrThrow))
   if (!response.success) throw new Error('Bookable providers are unavailable')
   return response.data.bookableProviders
 }
