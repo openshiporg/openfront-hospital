@@ -10,6 +10,7 @@ type User {
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
+  emailVerifiedAt: DateTime
   role: Role
   onboardingStatus: String
   facilities(where: FacilityWhereInput! = {}, orderBy: [FacilityOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: FacilityWhereUniqueInput): [Facility!]
@@ -46,6 +47,7 @@ input UserWhereInput {
   passwordResetToken: StringNullableFilter
   passwordResetIssuedAt: DateTimeNullableFilter
   passwordResetRedeemedAt: DateTimeNullableFilter
+  emailVerifiedAt: DateTimeNullableFilter
   role: RoleWhereInput
   onboardingStatus: StringFilter
   facilities: FacilityManyRelationFilter
@@ -169,6 +171,7 @@ input UserOrderByInput {
   passwordResetToken: OrderDirection
   passwordResetIssuedAt: OrderDirection
   passwordResetRedeemedAt: OrderDirection
+  emailVerifiedAt: OrderDirection
   onboardingStatus: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -187,6 +190,7 @@ input UserUpdateInput {
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
+  emailVerifiedAt: DateTime
   role: RoleRelateToOneForUpdateInput
   onboardingStatus: String
   facilities: FacilityRelateToManyForUpdateInput
@@ -246,6 +250,7 @@ input UserCreateInput {
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
+  emailVerifiedAt: DateTime
   role: RoleRelateToOneForCreateInput
   onboardingStatus: String
   facilities: FacilityRelateToManyForCreateInput
@@ -5228,8 +5233,11 @@ type Mutation {
   applyHospitalOnboarding(configuration: JSON!): HospitalOnboardingResult!
   initiatePatientBillPayment(paymentToken: String!): JSON!
   reconcilePatientBillPayment(paymentId: ID!): JSON!
+  confirmPatientBillPayment(sessionId: String!): JSON!
+  enableFacilityCardPayments(facilityId: ID!): JSON!
   createOnboardingAppointment(data: OnboardingAppointmentInput!): OnboardingAppointmentResult!
   issueIntakeForm(data: IntakeIssueInput!): OneTimeAccessResult!
+  cancelPatientVisit(accessToken: String!, reason: String): PatientVisit
   requestAppointment(appointmentTypeId: ID!, providerId: ID!, facilityId: ID!, startsAt: String!, patient: PatientAppointmentRequestInput!, reasonForVisit: String, preferredContactMethod: String, consent: WorkflowConsentInput!): AppointmentRequestResult
   submitIntakeForm(accessCode: String!, responses: JSON!, patientUpdates: PatientIntakeUpdateInput, consent: WorkflowConsentInput!): PatientIntakeForm
   transitionAppointment(operationKey: String!, appointmentId: ID!, toStatus: String!, expectedVersion: Int!, reason: String, operationalNotes: String): AppointmentTransitionResult!
@@ -5464,6 +5472,7 @@ type Query {
   workflowPatientCandidates(facilityId: ID!, search: String!, take: Int): [WorkflowPatientCandidate!]!
   workflowEncounterCandidates(facilityId: ID!, patientId: ID!, search: String!, take: Int, skip: Int): [WorkflowEncounterCandidate!]!
   lookupPatientBill(paymentNumber: String!, dateOfBirth: String!): BillLookupResult!
+  patientVisit(accessToken: String, appointmentNumber: String, dateOfBirth: String): PatientVisit
 }
 
 union AuthenticatedItem = User
@@ -5824,6 +5833,21 @@ type AppointmentRequestIntakeForm {
 type AppointmentRequestPatient {
   id: ID!
   displayName: String
+}
+
+type PatientVisit {
+  appointmentNumber: String!
+  status: String!
+  startsAt: DateTime!
+  endsAt: DateTime!
+  facilityName: String!
+  facilityTimeZone: String!
+  facilityPhone: String!
+  facilityAddress: String!
+  providerName: String!
+  visitTypeName: String!
+  canCancel: Boolean!
+  accessToken: String!
 }
 
 type AppointmentRequestResult {

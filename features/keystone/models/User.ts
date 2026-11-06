@@ -124,6 +124,9 @@ export const User = list({
     passwordResetToken: text({ db: { isNullable: true }, access: { read: denyAll, create: denyAll, update: denyAll } }),
     passwordResetIssuedAt: timestamp({ access: { read: denyAll, create: denyAll, update: denyAll } }),
     passwordResetRedeemedAt: timestamp({ access: { read: denyAll, create: denyAll, update: denyAll } }),
+    // Set only by the patient account's email confirmation (a sudo write). Visits are shown to an account only after
+    // it has proved it controls the mailbox the visits were requested with.
+    emailVerifiedAt: timestamp({ access: { read: isSignedIn, create: denyAll, update: denyAll }, ui: { itemView: { fieldMode: 'read' } } }),
     role: relationship({
       ref: 'Role.assignedTo',
       access: {

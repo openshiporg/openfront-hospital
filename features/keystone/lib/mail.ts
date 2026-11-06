@@ -117,3 +117,23 @@ export async function sendVisitNoticeEmail(
     return { sent: false, error: error instanceof Error ? error.message : 'send_failed' }
   }
 }
+
+/** Confirms a patient account's email address; visits requested with that email then appear in the account. */
+export async function sendAccountConfirmEmail(to: string, details: { name: string; facilityName: string; token: string }): Promise<{ sent: boolean; error?: string }> {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) return { sent: false, error: 'not_configured' }
+  const escape = (value: string) => value.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] as string)
+  let base = ''
+  try { base = getBaseUrlForEmails() } catch { return { sent: false, error: 'not_configured' } }
+  const url = `${base}/account/confirm#token=${encodeURIComponent(details.token)}`
+  try {
+    await transport.sendMail({
+      to,
+      from: process.env.SMTP_FROM,
+      subject: `${details.facilityName}: confirm your email`,
+      html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><h2 style="color:#1d2b3a;">Confirm your email</h2><p>Hi ${escape(details.name)}, confirm this address to see your visits in your ${escape(details.facilityName)} account.</p><p><a href="${escape(url)}">Confirm my email</a></p><p>This link works for 2 days. If you didn't create an account, ignore this email.</p></body>`,
+    })
+    return { sent: true }
+  } catch (error) {
+    return { sent: false, error: error instanceof Error ? error.message : 'send_failed' }
+  }
+}

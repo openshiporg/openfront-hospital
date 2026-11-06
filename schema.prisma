@@ -20,6 +20,7 @@ model User {
   passwordResetToken                 String?
   passwordResetIssuedAt              DateTime?
   passwordResetRedeemedAt            DateTime?
+  emailVerifiedAt                    DateTime?
   role                               Role?                  @relation("User_role", fields: [roleId], references: [id])
   roleId                             String?                @map("role")
   onboardingStatus                   String                 @default("not_started")

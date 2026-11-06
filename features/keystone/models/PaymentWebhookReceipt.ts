@@ -1,10 +1,10 @@
 import { list } from '@keystone-6/core'
 import { json, text, timestamp } from '@keystone-6/core/fields'
-import { denyAccess, isSignedIn } from '../access'
+import { denyAccess, permissions } from '../access'
 
 export const PaymentWebhookReceipt = list({
   db: { extendPrismaSchema(schema) { return schema.replace(/\n  createdAt\s+DateTime\s+@default\(now\)\n  updatedAt\s+DateTime\s+@default\(now\)\s+@updatedAt/, '') } },
-  access: { operation: { query: isSignedIn, create: denyAccess, update: denyAccess, delete: denyAccess } },
+  access: { operation: { query: permissions.canManageBilling, create: denyAccess, update: denyAccess, delete: denyAccess } },
   graphql: { omit: { create: true, update: true, delete: true } },
   ui: { hideCreate: true, hideDelete: true },
   fields: {

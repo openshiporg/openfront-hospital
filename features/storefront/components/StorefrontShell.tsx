@@ -48,7 +48,7 @@ function Wordmark({ profile }: { profile: HospitalBranding }) {
   )
 }
 
-export function StorefrontNav({ profile, current }: { profile: HospitalBranding; current?: 'care' | 'providers' | 'book' | 'locations' }) {
+export function StorefrontNav({ profile, current }: { profile: HospitalBranding; current?: 'care' | 'providers' | 'book' | 'locations' | 'account' }) {
   const place = [profile.addressLine1, profile.city, profile.region].filter(Boolean).join(', ') || profile.serviceArea
   return (
     <>
@@ -67,6 +67,7 @@ export function StorefrontNav({ profile, current }: { profile: HospitalBranding;
             <Link className="sf-pill" aria-current={current === 'locations' ? 'page' : undefined} href="/locations">Locations</Link>
           </nav>
           <div className="sf-nav__actions sf-track">
+            <Link className="sf-pill" aria-current={current === 'account' ? 'page' : undefined} href="/account">Your visits</Link>
             {profile.supportPhoneHref && <a className="sf-pill" href={profile.supportPhoneHref}>Call</a>}
             <Link className="sf-pill sf-pill--primary" href="/book">Request a visit <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
           </div>
@@ -77,6 +78,7 @@ export function StorefrontNav({ profile, current }: { profile: HospitalBranding;
               <Link href="/providers">Care team <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
               <Link href="/book">Request a visit <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
               <Link href="/locations">Locations <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
+              <Link href="/account">Your visits <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
               {profile.supportPhoneHref && <a href={profile.supportPhoneHref}>Call {profile.supportPhone} <ArrowRight aria-hidden="true" className="sf-arrow" /></a>}
             </nav>
           </details>
@@ -150,7 +152,7 @@ export function StorefrontShell({
 }: {
   children: ReactNode
   profile?: HospitalBranding
-  current?: 'care' | 'providers' | 'book' | 'locations'
+  current?: 'care' | 'providers' | 'book' | 'locations' | 'account'
   bookingBar?: boolean
 }) {
   return (

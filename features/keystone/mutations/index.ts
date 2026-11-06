@@ -7,6 +7,7 @@ import getBookableProviders from "./booking/getBookableProviders";
 import getAvailableAppointmentSlots from "./booking/getAvailableAppointmentSlots";
 import requestAppointment from "./booking/requestAppointment";
 import { cancelPatientVisit, patientVisit } from "./booking/patientVisit";
+import { confirmPatientAccountEmail, myPatientAppointments, registerPatientAccount, resendPatientAccountConfirmation } from "./booking/patientAccount";
 import updateActiveUser from "./updateActiveUser";
 import getIntakeFormByAccessCode from "./intake/getIntakeFormByAccessCode";
 import submitIntakeForm from "./intake/submitIntakeForm";
@@ -275,6 +276,18 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         accessToken: String!
       }
 
+      type PatientAccountResult {
+        ok: Boolean!
+      }
+
+      type PatientAppointments {
+        name: String!
+        email: String!
+        emailConfirmed: Boolean!
+        upcoming: [PatientVisit!]!
+        past: [PatientVisit!]!
+      }
+
       type AppointmentRequestResult {
         id: ID!
         appointmentNumber: String
@@ -479,6 +492,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         workflowEncounterCandidates(facilityId: ID!, patientId: ID!, search: String!, take: Int, skip: Int): [WorkflowEncounterCandidate!]!
         lookupPatientBill(paymentNumber: String!, dateOfBirth: String!): BillLookupResult!
         patientVisit(accessToken: String, appointmentNumber: String, dateOfBirth: String): PatientVisit
+        myPatientAppointments: PatientAppointments!
       }
 
       type Mutation {
@@ -554,6 +568,9 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         issueIntakeForm(data: IntakeIssueInput!): OneTimeAccessResult!
 
         cancelPatientVisit(accessToken: String!, reason: String): PatientVisit
+        registerPatientAccount(name: String!, email: String!, password: String!): PatientAccountResult!
+        confirmPatientAccountEmail(token: String!): PatientAccountResult!
+        resendPatientAccountConfirmation: PatientAccountResult!
         requestAppointment(
           appointmentTypeId: ID!
           providerId: ID!
@@ -642,9 +659,13 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         workflowEncounterCandidates,
         lookupPatientBill,
         patientVisit,
+        myPatientAppointments,
       },
       Mutation: {
         cancelPatientVisit,
+        registerPatientAccount,
+        confirmPatientAccountEmail,
+        resendPatientAccountConfirmation,
         reviewEpisodePolicy,
         bootstrapHospital,
         sendUserPasswordResetLink,
