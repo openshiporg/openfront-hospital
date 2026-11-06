@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import { getAppointmentQueue, getAppointmentStatusCounts, getAppointmentFacilityFilter } from '../actions/appointments'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
@@ -16,19 +15,14 @@ export async function AppointmentListPage({ searchParams }: PageProps) {
   const sort = resolvedSearchParams.sort === 'start_desc' ? 'start_desc' : 'start_asc'
 
   const cursor = typeof resolvedSearchParams.cursor === 'string' ? resolvedSearchParams.cursor : undefined
-  const facilityId = typeof resolvedSearchParams.facilityId === 'string' ? resolvedSearchParams.facilityId : undefined
+  let facilityId = typeof resolvedSearchParams.facilityId === 'string' ? resolvedSearchParams.facilityId : undefined
   const date = typeof resolvedSearchParams.date === 'string' ? resolvedSearchParams.date : undefined
-  // The desk opens on a day sheet: with no facility chosen, load the first accessible active facility (named in the
-  // header meta) instead of an empty prompt. The facility filter stays explicit in the URL and can be changed.
+  // The desk opens on a day sheet: with no facility chosen, use the first accessible active facility (named in the
+  // header meta) instead of an empty prompt. It is resolved in place: a server redirect() here crashed the client
+  // desk with React error #310 on every sidebar visit. Links without facilityId resolve to the same default.
   if (view === 'today' && !facilityId) {
     const first = await keystoneClient<{ facilities: Array<{ id: string }> | null }>(`query AppointmentDefaultFacility { facilities(where: { status: { equals: "active" } }, orderBy: [{ name: asc }], take: 1) { id } }`)
-    const id = first.success ? first.data.facilities?.[0]?.id : undefined
-    if (id) {
-      const params = new URLSearchParams()
-      for (const [key, value] of Object.entries(resolvedSearchParams)) if (typeof value === 'string') params.set(key, value)
-      params.set('facilityId', id)
-      redirect(`/dashboard/platform/appointments?${params.toString()}`)
-    }
+    facilityId = first.success ? first.data.facilities?.[0]?.id : undefined
   }
   const [queueResponse, countsResponse, facilityResponse] = await Promise.all([
     getAppointmentQueue(status, view, search, sort, cursor, facilityId, date),

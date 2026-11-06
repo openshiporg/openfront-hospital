@@ -38,7 +38,7 @@ export async function getVisitTypeWorkspace(filters: VisitTypeFilters) {
       bookable: appointmentTypesCount(where: $bookable)
       internal: appointmentTypesCount(where: $internal)
       paused: appointmentTypesCount(where: $paused)
-      providers(orderBy: [{ lastName: asc }, { firstName: asc }], take: 200) { id displayName status }
+      providers(orderBy: [{ lastName: asc }, { firstName: asc }], take: 100) { id displayName status }
     }
   `
   const response = await keystoneClient<{
@@ -86,7 +86,7 @@ export async function getVisitTypeDetail(id: string) {
           id appointmentNumber status startsAt provider { id displayName } facility { id name timeZone }
         }
       }
-      providers(orderBy: [{ lastName: asc }, { firstName: asc }], take: 200) { id displayName status }
+      providers(orderBy: [{ lastName: asc }, { firstName: asc }], take: 100) { id displayName status }
     }
   `
   const response = await keystoneClient<{

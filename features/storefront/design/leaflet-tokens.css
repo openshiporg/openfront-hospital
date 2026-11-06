@@ -24,7 +24,7 @@
 
   /* Wayfinding zones: fixed sign colours per service line. */
   --zone-a: var(--color-accent);
-  --zone-b: #4b3f8f;
+  --zone-b: #285d86;
   --zone-c: #9a5412;
 
   --color-warn: #fbf1d6;
