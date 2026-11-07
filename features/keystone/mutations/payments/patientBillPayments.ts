@@ -4,6 +4,7 @@ import type { Context } from '.keystone/types'
 import { createPayment, getPaymentStatus } from '../../utils/paymentProviderAdapter'
 import { consumeSharedRateLimit, requestIdentity } from '../../security/graphqlSecurity'
 import { appendAuditAndOutbox } from '../operational/evidence'
+import { resetExpiredPaymentSession } from '../operational/maintenance'
 
 function digest(value: string) { return createHash('sha256').update(value).digest() }
 function equal(a: string, b: string) { const left = digest(a); const right = digest(b); return timingSafeEqual(left, right) }
@@ -61,13 +62,18 @@ export async function confirmPatientBillPayment(_root: unknown, { sessionId }: {
   return { status: result.status, amountCents: payment?.amountCents ?? null, currency: payment?.currency ?? null, facilityName: payment?.facility?.name ?? null, reference: payment?.paymentNumber ? payment.paymentNumber.slice(0, 12).toUpperCase() : null }
 }
 
-async function settleFromProvider(context: Context, where: { id?: string; providerPaymentId?: string }, actorReference: string) {
+export async function settleFromProvider(context: Context, where: { id?: string; providerPaymentId?: string }, actorReference: string) {
   const prisma = context.sudo().prisma as any
   const payment = await prisma.patientPayment.findUnique({ where })
   const paymentProvider = payment?.paymentProviderId ? await prisma.paymentProvider.findFirst({ where: { id: payment.paymentProviderId, facilityId: payment.facilityId, isInstalled: true } }) : null
   if (!payment?.providerPaymentId || !paymentProvider) throw new Error('Provider payment is unavailable')
   const status = await getPaymentStatus({ provider: paymentProvider, paymentId: payment.providerPaymentId })
   if (status.amount !== payment.amountCents || status.currency !== payment.currency) throw new Error('Provider amount mismatch; reconciliation required')
+  if (status.status === 'canceled' && payment.status === 'pending') {
+    // The Checkout Session expired at the provider and nothing was charged: free the bill for a fresh session.
+    await resetExpiredPaymentSession(prisma, payment.id, payment.providerPaymentId)
+    return { status: 'pending' }
+  }
   if (status.status !== 'succeeded') return { status: payment.status }
   const operationKey = `provider:${payment.id}:${payment.providerPaymentId}:succeeded`
   const operationKeyHash = createHash('sha256').update(operationKey).digest('hex')

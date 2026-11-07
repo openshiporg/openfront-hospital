@@ -15,6 +15,24 @@ export async function register() {
   ])
   const prisma = new PrismaClient()
   let running = false
+  let maintaining = false
+  // Time-based states (expired bed holds, unconfirmed requests past their slot, stale card payments) settle here.
+  const maintain = async () => {
+    if (maintaining) return
+    maintaining = true
+    try {
+      const { runHospitalMaintenance } = await import('./features/keystone/mutations/operational/maintenance')
+      await runHospitalMaintenance(prisma, async paymentId => {
+        const [{ keystoneContext }, { settleFromProvider }] = await Promise.all([
+          import('./features/keystone/context'),
+          import('./features/keystone/mutations/payments/patientBillPayments'),
+        ])
+        return settleFromProvider(keystoneContext, { id: paymentId }, 'system_maintenance')
+      })
+    } catch (error) {
+      console.error(JSON.stringify({ component: 'hospital-maintenance', status: 'failed', error: error instanceof Error ? error.message : String(error) }))
+    } finally { maintaining = false }
+  }
   const pass = async () => {
     if (running) return
     running = true
@@ -22,6 +40,6 @@ export async function register() {
       console.error(JSON.stringify({ component: 'hospital-web-outbox', status: 'failed', error: error instanceof Error ? error.message : String(error) }))
     } finally { running = false }
   }
-  setInterval(() => { void pass() }, INTERVAL_MS).unref?.()
-  setTimeout(() => { void pass() }, 15_000).unref?.()
+  setInterval(() => { void pass(); void maintain() }, INTERVAL_MS).unref?.()
+  setTimeout(() => { void pass(); void maintain() }, 15_000).unref?.()
 }
