@@ -7,6 +7,7 @@ import { extendGraphqlSchema } from "./mutations";
 import { createSessionStrategy } from "./security/sessionPolicy";
 import { validateProductionEnvironment } from "./security/runtimeConfig";
 import { pooledDatabaseUrl } from './database-url';
+import { throwKeystonePrismaErrors } from './lib/keystonePrismaErrors';
 
 validateProductionEnvironment();
 const databaseURL = process.env.DATABASE_URL || "file:./keystone.db";
@@ -90,6 +91,8 @@ export default withAuth(
     db: {
       provider: "postgresql",
       url: pooledDatabaseUrl(databaseURL),
+      // Keystone returns failed queries as values; make them throw so transactions roll back (see the helper).
+      extendPrismaClient: throwKeystonePrismaErrors,
     },
     lists: models,
     storage: {
