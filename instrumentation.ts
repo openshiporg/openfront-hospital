@@ -9,11 +9,12 @@ export async function register() {
   const state = globalThis as unknown as { hospitalOutboxLoop?: boolean }
   if (state.hospitalOutboxLoop) return
   state.hospitalOutboxLoop = true
-  const [{ PrismaClient }, { dispatchExternalOutbox }] = await Promise.all([
+  const [{ PrismaClient }, { pooledPrismaOptions }, { dispatchExternalOutbox }] = await Promise.all([
     import('@prisma/client'),
+    import('./features/keystone/database-url'),
     import('./features/keystone/integrations/outboxWorker'),
   ])
-  const prisma = new PrismaClient()
+  const prisma = new PrismaClient(pooledPrismaOptions('worker'))
   let running = false
   let maintaining = false
   // Time-based states (expired bed holds, unconfirmed requests past their slot, stale card payments) settle here.

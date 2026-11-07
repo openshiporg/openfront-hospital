@@ -6,6 +6,7 @@ import { models } from "./models";
 import { extendGraphqlSchema } from "./mutations";
 import { createSessionStrategy } from "./security/sessionPolicy";
 import { validateProductionEnvironment } from "./security/runtimeConfig";
+import { pooledDatabaseUrl } from './database-url';
 
 validateProductionEnvironment();
 const databaseURL = process.env.DATABASE_URL || "file:./keystone.db";
@@ -88,7 +89,7 @@ export default withAuth(
   config({
     db: {
       provider: "postgresql",
-      url: databaseURL,
+      url: pooledDatabaseUrl(databaseURL),
     },
     lists: models,
     storage: {
