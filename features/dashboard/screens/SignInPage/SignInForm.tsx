@@ -8,7 +8,6 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { signIn } from "@/features/dashboard/actions";
 
@@ -42,7 +41,10 @@ function SubmitButton() {
       disabled={pending}
     >
       {pending ? (
-        <RiLoader2Fill className="size-4 shrink-0 animate-spin" />
+        <>
+          <RiLoader2Fill className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+          Signing in…
+        </>
       ) : (
         "Sign in"
       )}
@@ -97,6 +99,7 @@ export function SignInForm({ from }: SignInFormProps) {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
               className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
             >
               {showPassword ? (
@@ -111,12 +114,10 @@ export function SignInForm({ from }: SignInFormProps) {
       </form>
 
       {state.message && (
-        <Badge variant="destructive" className="hover:bg-destructive/10 bg-destructive/5 flex text-base items-start gap-2 border border-destructive/50 p-4 rounded-sm mt-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="uppercase tracking-wider font-semibold text-sm">Error</h2>
-            <span className="break-all text-sm opacity-75 font-normal">{state.message}</span>
-          </div>
-        </Badge>
+        <div role="alert" aria-live="assertive" className="mt-4 flex flex-col gap-1 rounded-sm border border-destructive/50 bg-destructive/5 p-4">
+          <h2 className="text-sm font-semibold text-foreground">Error</h2>
+          <span className="break-words text-sm text-muted-foreground">{state.message}</span>
+        </div>
       )}
     </>
   );

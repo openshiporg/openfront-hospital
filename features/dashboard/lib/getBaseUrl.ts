@@ -11,27 +11,41 @@ export async function getBaseUrl(): Promise<string> {
     return window.location.origin;
   }
 
-  // Server-side: try to get from headers
-  if (typeof process !== 'undefined') {
-    try {
-      // Import headers from next/headers (only works in app directory)
-      const headersList = await headers();
-      
-      // Try x-forwarded-host first (common in production deployments)
-      const host = headersList.get('x-forwarded-host') || headersList.get('host');
-      const protocol = headersList.get('x-forwarded-proto') || 'https';
-      
-      if (host) {
-        return `${protocol}://${host}`;
-      }
-    } catch (e) {
-      // headers() might not be available in all contexts (e.g., API routes)
-      // Fall through to default
-    }
+  // Server-side: the origin is owned by the process environment, never taken from request
+  // Host / X-Forwarded-* headers (a spoofed Host would otherwise steer server GraphQL calls).
+  try {
+    return resolveServerBaseUrl(process.env);
+  } catch {
+    // Misconfigured production: fall back to relative URLs rather than a request-chosen host.
+    return '';
   }
+}
 
-  // Production fallback - return empty string and let relative URLs work
-  return '';
+/**
+ * Server origin from the process environment only, in order: OPENFRONT_INTERNAL_URL, the loopback
+ * port (PORT), the Railway public domain, then http://127.0.0.1:3000 in development.
+ */
+export function resolveServerBaseUrl(env: Record<string, string | undefined>): string {
+  const internal = String(env.OPENFRONT_INTERNAL_URL || '').trim();
+  if (internal) {
+    let url: URL;
+    try { url = new URL(internal); } catch { throw new Error('OPENFRONT_INTERNAL_URL is invalid'); }
+    if (url.username || url.password) throw new Error('OPENFRONT_INTERNAL_URL must be credential-free');
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('OPENFRONT_INTERNAL_URL is invalid');
+    return url.origin;
+  }
+  const port = String(env.PORT || '').trim();
+  if (port) {
+    if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) throw new Error('PORT is invalid');
+    return `http://127.0.0.1:${port}`;
+  }
+  const domain = String(env.RAILWAY_PUBLIC_DOMAIN || '').trim();
+  if (domain) {
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d{1,5})?$/i.test(domain)) throw new Error('RAILWAY_PUBLIC_DOMAIN is invalid');
+    return `https://${domain}`;
+  }
+  if (env.NODE_ENV === 'production') throw new Error('Production requires OPENFRONT_INTERNAL_URL, PORT or RAILWAY_PUBLIC_DOMAIN');
+  return 'http://127.0.0.1:3000';
 }
 
 /**

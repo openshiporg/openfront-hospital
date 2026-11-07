@@ -7,10 +7,10 @@ import { removeAuthToken } from '@/features/dashboard/lib/cookies';
 import { revalidatePath } from 'next/cache';
 import { PUBLIC_REQUEST_ERROR, safeErrorSummary, sanitizeDashboardRedirect } from '../lib/security';
 import { passwordResetEmailAvailable, RESET_EMAIL_UNAVAILABLE } from '../lib/authFlow';
+import { authenticationFailureMessage, authenticationResponseKind } from './authFeedback';
 
 // Legacy storefront callers may pass a password in previous state; never return it.
 type AuthState = { message: string | null; formData: { email: string; password?: string } };
-const SIGN_IN_ERROR = 'Unable to sign in. Check your email and password and try again.';
 const INITIAL_USER_ERROR = 'Unable to create the initial user.';
 
 // keystoneClient errors are already reduced to Keystone's user-facing validation text
@@ -33,21 +33,24 @@ export async function signIn(prevState: AuthState, formData: FormData) {
       }
     `, { email, password });
 
-    if (!response.success || response.data?.authenticate?.message || !response.data?.authenticate?.sessionToken) {
-      return { message: SIGN_IN_ERROR, formData: { email } };
+    // Wrong credentials and an unreachable/broken auth service get different messages; Keystone's own
+    // error text is never shown, and nothing says whether the account exists.
+    const kind = authenticationResponseKind(response);
+    if (kind !== 'authenticated') {
+      return { message: authenticationFailureMessage(kind), formData: { email } };
     }
 
     const cookieStore = await cookies();
-    cookieStore.set('keystonejs-session', response.data.authenticate.sessionToken, {
+    cookieStore.set('keystonejs-session', String(response.data.authenticate.sessionToken), {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
       httpOnly: true,
       maxAge: 60 * 60 * 24 * 30,
     });
-  } catch (error) {
-    console.error('Sign-in failed:', safeErrorSummary(error));
-    return { message: SIGN_IN_ERROR, formData: { email } };
+  } catch {
+    console.error('Sign-in failed: authentication service unavailable');
+    return { message: authenticationFailureMessage('service'), formData: { email } };
   }
 
   // Next.js redirects throw; keep this outside the catch.
