@@ -29,6 +29,7 @@ export function IntakeLinkPage({ profile }: { profile: HospitalBranding }) {
       return
     }
 
+    // 'failed' is only reachable after this assignment, so the Retry button can rely on it without reading the ref in render.
     privateCode.current = link.accessCode
     let completed = false
     setState({ kind: 'loading', intakeForm: null })
@@ -94,7 +95,7 @@ export function IntakeLinkPage({ profile }: { profile: HospitalBranding }) {
           <p>{copy.body}</p>
           {state.kind !== 'loading' && (
             <div className="sf-track">
-              {state.kind === 'failed' && privateCode.current && <button className="sf-pill sf-pill--raised" type="button" onClick={() => setRetry(value => value + 1)}>Retry</button>}
+              {state.kind === 'failed' && <button className="sf-pill sf-pill--raised" type="button" onClick={() => setRetry(value => value + 1)}>Retry</button>}
               {profile.supportPhoneHref && <a className="sf-pill" href={profile.supportPhoneHref}>Call {profile.supportPhone}</a>}
               <Link className="sf-pill" href="/book">Appointments</Link>
             </div>

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash, createHmac } from 'node:crypto'
 import test from 'node:test'
 
 import { requestIdentity } from '../security/graphqlSecurity'
@@ -116,7 +117,6 @@ test('SECURITY (e) a secret shorter than 32 characters is ignored and cannot sig
   const { headers } = signedHeaders(now)
   assert.ok(!requestIdentity(headers, '127.0.0.1', short, now).startsWith('forwarded:'))
   // Headers forged with the short secret by hand are not trusted either.
-  const { createHash, createHmac } = require('node:crypto')
   const identity = createHash('sha256').update('203.0.113.7').digest('hex')
   const timestamp = String(Math.floor(now / 1000))
   const signature = createHmac('sha256', short).update(`${timestamp}:${identity}`).digest('hex')
