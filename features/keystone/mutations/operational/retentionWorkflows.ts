@@ -5,16 +5,17 @@ import type { Context } from '.keystone/types'
 
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
 import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence } from './evidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireRetention(context: Context) {
   const role = context.session?.data.role
-  if (!role?.canManageRetention) throw new Error('Not authorized to manage retention records')
+  if (!role?.canManageRetention) throw new HospitalRefusal('Not authorized to manage retention records')
 }
 
 async function scopedFacility(context: Context, facilityId: string) {
   requireRetention(context)
   const facility = await context.query.Facility.findOne({ where: { id: facilityId }, query: 'id status' }) as any
-  if (!facility || facility.status !== 'active') throw new Error('Facility not found or not accessible')
+  if (!facility || facility.status !== 'active') throw new HospitalRefusal('Facility not found or not accessible')
 }
 
 function result(row: any, replayed = false) {
@@ -32,12 +33,12 @@ const TARGETS: Record<string, { list: string; query: string }> = {
 
 async function scopedTarget(context: Context, facilityId: string, aggregateType: string, aggregateId: string) {
   const target = TARGETS[aggregateType]
-  if (!target) throw new Error('Retention aggregate type is not supported')
+  if (!target) throw new HospitalRefusal('Retention aggregate type is not supported')
   const row = await (context.query as any)[target.list].findOne({ where: { id: aggregateId }, query: target.query })
   const inFacility = aggregateType === 'patient'
     ? row?.facilities?.some((facility: { id: string }) => facility.id === facilityId)
     : row?.facility?.id === facilityId
-  if (!row || !inFacility) throw new Error('Retention target not found in the accessible facility')
+  if (!row || !inFacility) throw new HospitalRefusal('Retention target not found in the accessible facility')
   return { ...row, patientId: row.patient?.id || (aggregateType === 'patient' ? row.id : null) }
 }
 
@@ -45,7 +46,7 @@ export async function createRetentionPolicy(_root: unknown, { data }: any, conte
   await scopedFacility(context, data.facilityId)
   const recordType = bounded(data.recordType, 'Retention record type', 80, true)
   const retentionDays = Number(data.retentionDays)
-  if (!Number.isSafeInteger(retentionDays) || retentionDays < 1 || retentionDays > 36_500) throw new Error('Retention days must be between 1 and 36500')
+  if (!Number.isSafeInteger(retentionDays) || retentionDays < 1 || retentionDays > 36_500) throw new HospitalRefusal('Retention days must be between 1 and 36500')
   const evidence = operationEvidence({ ...data, recordType, retentionDays })
   return context.transaction(async (transactionContext: any) => {
     const currentContext = await currentHospitalActor(transactionContext, ['canManageRetention'])
@@ -54,10 +55,10 @@ export async function createRetentionPolicy(_root: unknown, { data }: any, conte
     await lockOperation(prisma, 'retention-policy-create', evidence.operationKeyHash)
     const existing = await prisma.retentionPolicy.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return result(existing, true)
     }
-    if (await prisma.retentionPolicy.findFirst({ where: { facilityId: data.facilityId, recordType } })) throw new Error('Retention policy already exists for this facility record type')
+    if (await prisma.retentionPolicy.findFirst({ where: { facilityId: data.facilityId, recordType } })) throw new HospitalRefusal('Retention policy already exists for this facility record type')
     const now = new Date()
     const policy = await prisma.retentionPolicy.create({ data: {
       recordType, retentionDays, status: 'active', transitionVersion: 1, ...evidence,
@@ -77,9 +78,9 @@ export async function createRetentionPolicy(_root: unknown, { data }: any, conte
 export async function transitionRetentionPolicy(_root: unknown, args: any, context: Context) {
   requireRetention(context)
   const scoped = await context.query.RetentionPolicy.findOne({ where: { id: args.policyId }, query: 'id facility { id }' })
-  if (!scoped?.facility?.id) throw new Error('Retention policy not found or not accessible')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected policy version is invalid')
-  if (!['active', 'inactive'].includes(args.toStatus)) throw new Error('Retention policy status is invalid')
+  if (!scoped?.facility?.id) throw new HospitalRefusal('Retention policy not found or not accessible')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected policy version is invalid')
+  if (!['active', 'inactive'].includes(args.toStatus)) throw new HospitalRefusal('Retention policy status is invalid')
   const evidence = transitionEvidence(args.operationKey, { policyId: args.policyId, expectedVersion: args.expectedVersion, toStatus: args.toStatus })
   return context.transaction(async (transactionContext: any) => {
     const currentContext = await currentHospitalActor(transactionContext, ['canManageRetention'])
@@ -90,7 +91,7 @@ export async function transitionRetentionPolicy(_root: unknown, args: any, conte
     const replay = await replayTransition(prisma, evidence, 'retention_policy', args.policyId)
     if (replay) return replay
     const current = await prisma.retentionPolicy.findUnique({ where: { id: args.policyId } })
-    if (!current || current.transitionVersion !== args.expectedVersion || current.status === args.toStatus) throw new Error('Retention policy changed; refresh before retrying')
+    if (!current || current.transitionVersion !== args.expectedVersion || current.status === args.toStatus) throw new HospitalRefusal('Retention policy changed; refresh before retrying')
     const now = new Date()
     const updated = await prisma.retentionPolicy.update({ where: { id: current.id }, data: { status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId } })
     const events = await appendAuditAndOutbox(prisma, {
@@ -123,12 +124,12 @@ export async function placeRecordHold(_root: unknown, { data }: any, context: Co
     await lockOperation(prisma, 'record-hold-create', evidence.operationKeyHash)
     const existing = await prisma.recordHold.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return result(existing, true)
     }
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`retention-target:${data.facilityId}:${aggregateType}:${aggregateId}`}, 0))::text AS "lock"`)
     const target = await scopedTarget(currentContext, data.facilityId, aggregateType, aggregateId)
-    if (await prisma.recordHold.findFirst({ where: { facilityId: data.facilityId, aggregateType, aggregateId, status: 'active' } })) throw new Error('An active hold already exists for this record')
+    if (await prisma.recordHold.findFirst({ where: { facilityId: data.facilityId, aggregateType, aggregateId, status: 'active' } })) throw new HospitalRefusal('An active hold already exists for this record')
     const now = new Date()
     const hold = await prisma.recordHold.create({ data: {
       holdNumber: `HOLD-${randomUUID()}`, aggregateType, aggregateId, status: 'active', transitionVersion: 1,
@@ -148,8 +149,8 @@ export async function placeRecordHold(_root: unknown, { data }: any, context: Co
 export async function releaseRecordHold(_root: unknown, args: any, context: Context) {
   requireRetention(context)
   const scoped = await context.query.RecordHold.findOne({ where: { id: args.holdId }, query: 'id facility { id }' })
-  if (!scoped?.facility?.id) throw new Error('Record hold not found or not accessible')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected hold version is invalid')
+  if (!scoped?.facility?.id) throw new HospitalRefusal('Record hold not found or not accessible')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected hold version is invalid')
   const reasonCode = bounded(args.reasonCode, 'Hold release reason', 80, true)
   const evidence = transitionEvidence(args.operationKey, { holdId: args.holdId, expectedVersion: args.expectedVersion, reasonCode })
   return context.transaction(async (transactionContext: any) => {
@@ -161,10 +162,10 @@ export async function releaseRecordHold(_root: unknown, args: any, context: Cont
     const replay = await replayTransition(prisma, evidence, 'record_hold', args.holdId)
     if (replay) return replay
     const current = await prisma.recordHold.findUnique({ where: { id: args.holdId } })
-    if (!current || current.status !== 'active' || current.transitionVersion !== args.expectedVersion) throw new Error('Record hold changed or is no longer active')
+    if (!current || current.status !== 'active' || current.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Record hold changed or is no longer active')
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`retention-target:${current.facilityId}:${current.aggregateType}:${current.aggregateId}`}, 0))::text AS "lock"`)
     const refreshed = await prisma.recordHold.findUnique({ where: { id: current.id } })
-    if (!refreshed || refreshed.status !== 'active' || refreshed.transitionVersion !== args.expectedVersion) throw new Error('Record hold changed or is no longer active')
+    if (!refreshed || refreshed.status !== 'active' || refreshed.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Record hold changed or is no longer active')
     const now = new Date()
     const updated = await prisma.recordHold.update({ where: { id: current.id }, data: { status: 'released', transitionVersion: { increment: 1 }, reasonCode, actorReference: context.session!.itemId, releasedAt: now } })
     const events = await appendAuditAndOutbox(prisma, {
@@ -189,7 +190,7 @@ export async function recordRetentionDisposition(_root: unknown, { data }: any, 
   const aggregateId = bounded(data.aggregateId, 'Disposition aggregate ID', 200, true)
   const reasonCode = bounded(data.reasonCode, 'Disposition reason', 80, true)
   const requestedDecision = bounded(data.decision, 'Disposition decision', 40, true)
-  if (!['retain', 'review'].includes(requestedDecision)) throw new Error('Physical record disposal is not supported by this workflow')
+  if (!['retain', 'review'].includes(requestedDecision)) throw new HospitalRefusal('Physical record disposal is not supported by this workflow')
   const evidence = operationEvidence({ ...data, aggregateType, aggregateId, reasonCode, requestedDecision })
   return context.transaction(async (transactionContext: any) => {
     const currentContext = await currentHospitalActor(transactionContext, ['canManageRetention'])
@@ -198,17 +199,17 @@ export async function recordRetentionDisposition(_root: unknown, { data }: any, 
     await lockOperation(prisma, 'retention-disposition-create', evidence.operationKeyHash)
     const existing = await prisma.retentionDisposition.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
-      if (existing.actorReference !== currentContext.session!.itemId || existing.facilityId !== data.facilityId) throw new Error('Original disposition owner could not be verified')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
+      if (existing.actorReference !== currentContext.session!.itemId || existing.facilityId !== data.facilityId) throw new HospitalRefusal('Original disposition owner could not be verified')
       await scopedTarget(currentContext, data.facilityId, aggregateType, aggregateId)
       return { id: existing.id, decision: existing.decision, replayed: true }
     }
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`retention-target:${data.facilityId}:${aggregateType}:${aggregateId}`}, 0))::text AS "lock"`)
     await prisma.$queryRaw(Prisma.sql`SELECT "id" FROM "RetentionPolicy" WHERE "id" = ${data.policyId} FOR SHARE`)
     const policy = await currentContext.query.RetentionPolicy.findOne({ where: { id: data.policyId }, query: 'id status recordType retentionDays transitionVersion facility { id }' }) as any
-    if (!policy || policy.status !== 'active' || policy.facility?.id !== data.facilityId || policy.recordType !== aggregateType) throw new Error('Active retention policy does not match the record')
+    if (!policy || policy.status !== 'active' || policy.facility?.id !== data.facilityId || policy.recordType !== aggregateType) throw new HospitalRefusal('Active retention policy does not match the record')
     const table = TARGETS[aggregateType]?.list
-    if (!table) throw new Error('Retention aggregate type is not supported')
+    if (!table) throw new HospitalRefusal('Retention aggregate type is not supported')
     await prisma.$queryRaw(Prisma.sql`SELECT "id" FROM ${Prisma.raw(`"${table}"`)} WHERE "id" = ${aggregateId} FOR SHARE`)
     const target = await scopedTarget(currentContext, data.facilityId, aggregateType, aggregateId)
     const calculatedAt = new Date()

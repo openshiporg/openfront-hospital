@@ -8,6 +8,7 @@ import {
   parsePublicDateWindow,
   rangesOverlap,
 } from '../scheduling/schedulePolicy'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 type Args = {
   appointmentTypeId: string
@@ -50,7 +51,7 @@ async function loadAvailableAppointmentSlots(
       bufferAfterMinutes: true,
     },
   })
-  if (!appointmentTypeRecord) throw new Error('Appointment type not found or not currently bookable')
+  if (!appointmentTypeRecord) throw new HospitalRefusal('Appointment type not found or not currently bookable')
   const appointmentType = normalizeAppointmentTypePolicy(appointmentTypeRecord)
 
   const providers = await prisma.provider.findMany({
@@ -70,7 +71,7 @@ async function loadAvailableAppointmentSlots(
     },
   })
   if (providers.length === 0) return []
-  if (providers.length > 100) throw new Error('Too many providers match this public availability request')
+  if (providers.length > 100) throw new HospitalRefusal('Too many providers match this public availability request')
   const providerIds = providers.map((provider: any) => provider.id)
 
   const [scheduleBlocks, appointmentCandidates, communicationInstallations] = await Promise.all([
@@ -119,7 +120,7 @@ async function loadAvailableAppointmentSlots(
   ])
 
   if (scheduleBlocks.length > 2_000 || appointmentCandidates.length > 2_000 || communicationInstallations.length > 1_000) {
-    throw new Error('Public availability window is too broad')
+    throw new HospitalRefusal('Public availability window is too broad')
   }
   const eligibleFollowUpInstallations = communicationInstallations.filter((item: any) =>
     Array.isArray(item.allowedEventTypes) && item.allowedEventTypes.includes('message.queued'),

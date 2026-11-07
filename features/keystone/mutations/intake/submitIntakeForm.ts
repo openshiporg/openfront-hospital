@@ -4,6 +4,7 @@ import { hashIntakeAccessToken, isActiveIntakeAccess } from '../../security/inta
 import { enforcePublicIntakeRateLimit } from '../../security/publicIntakeRateLimit'
 import { INTAKE_CONSENT, requireConsent } from '../workflowEvidence'
 import { serializePatientIntakeForm } from './getIntakeFormByAccessCode'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 type Args = {
   accessCode: string
@@ -23,15 +24,15 @@ type Args = {
 
 function validateResponses(responses: JSONValue) {
   if (!responses || typeof responses !== 'object' || Array.isArray(responses)) {
-    throw new Error('Intake responses must be an object')
+    throw new HospitalRefusal('Intake responses must be an object')
   }
-  if (JSON.stringify(responses).length > 50_000) throw new Error('Intake responses exceed the size limit')
+  if (JSON.stringify(responses).length > 50_000) throw new HospitalRefusal('Intake responses exceed the size limit')
 }
 
 function cleanOptional(value?: string | null, maxLength = 500) {
   const cleaned = value?.trim()
   if (!cleaned) return null
-  if (cleaned.length > maxLength) throw new Error(`Input exceeds the ${maxLength} character limit`)
+  if (cleaned.length > maxLength) throw new HospitalRefusal(`Input exceeds the ${maxLength} character limit`)
   return cleaned
 }
 
@@ -40,24 +41,24 @@ export default async function submitIntakeForm(
   { accessCode, responses, patientUpdates, consent: consentInput }: Args,
   context: Context
 ) {
-  if (!accessCode || accessCode.length < 16 || accessCode.length > 128) throw new Error('Invalid intake access code')
+  if (!accessCode || accessCode.length < 16 || accessCode.length > 128) throw new HospitalRefusal('Invalid intake access code')
   await enforcePublicIntakeRateLimit(context, accessCode, 'submit')
   requireConsent(consentInput, INTAKE_CONSENT)
   validateResponses(responses)
 
   const email = cleanOptional(patientUpdates?.email, 254)?.toLowerCase() || null
-  if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new Error('Email must be valid')
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new HospitalRefusal('Email must be valid')
   const phone = cleanOptional(patientUpdates?.phone, 40)
   const preferredContactMethod = patientUpdates?.preferredContactMethod
   if (preferredContactMethod && !['sms', 'email', 'phone'].includes(preferredContactMethod)) {
-    throw new Error('Preferred contact method is invalid')
+    throw new HospitalRefusal('Preferred contact method is invalid')
   }
   const insuranceSummary = patientUpdates?.insuranceSummary
   if (
     insuranceSummary != null &&
     (typeof insuranceSummary !== 'object' || Array.isArray(insuranceSummary) || JSON.stringify(insuranceSummary).length > 20_000)
   ) {
-    throw new Error('Insurance summary must be a bounded object')
+    throw new HospitalRefusal('Insurance summary must be a bounded object')
   }
 
   const sudo = context.sudo()
@@ -67,17 +68,17 @@ export default async function submitIntakeForm(
     include: { patient: true, appointment: true },
   })
   const accessIsActive = isActiveIntakeAccess(accessCode, existing)
-  if (!existing || !accessIsActive) throw new Error('Intake access is invalid or no longer active')
+  if (!existing || !accessIsActive) throw new HospitalRefusal('Intake access is invalid or no longer active')
   if (existing.status === 'reviewed' || existing.status === 'submitted') {
-    throw new Error('Intake access is invalid or no longer active')
+    throw new HospitalRefusal('Intake access is invalid or no longer active')
   }
-  if (!existing.patient?.id || !existing.appointment?.id) throw new Error('Intake form is missing its patient or appointment')
+  if (!existing.patient?.id || !existing.appointment?.id) throw new HospitalRefusal('Intake form is missing its patient or appointment')
 
   const patientId = existing.patient.id
   const appointmentId = existing.appointment.id
   const intakeFormId = existing.id
   const facilityId = existing.appointment.facilityId
-  if (!facilityId || existing.facilityId !== facilityId) throw new Error('Intake form facility scope is invalid')
+  if (!facilityId || existing.facilityId !== facilityId) throw new HospitalRefusal('Intake form facility scope is invalid')
   const submittedAt = new Date()
   await sudo.prisma.$transaction(async (tx) => {
     const claimedAccess = await tx.intakeForm.updateMany({
@@ -96,7 +97,7 @@ export default async function submitIntakeForm(
         accessUsedAt: submittedAt,
       },
     })
-    if (claimedAccess.count !== 1) throw new Error('Intake access is invalid or no longer active')
+    if (claimedAccess.count !== 1) throw new HospitalRefusal('Intake access is invalid or no longer active')
 
     const patientData: Record<string, unknown> = {}
     if (email) patientData.email = email

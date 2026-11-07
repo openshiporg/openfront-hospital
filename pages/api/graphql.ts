@@ -14,6 +14,7 @@ import {
   requestIdentity,
 } from '../../features/keystone/security/graphqlSecurity'
 import { phiReadAuditDescriptor, recordPhiReadAudit } from '../../features/keystone/security/phiReadAudit'
+import { maskGraphqlError } from '../../features/keystone/lib/graphql-error-mask'
 
 export const config = {
   api: {
@@ -50,7 +51,7 @@ const yoga = createYoga({
   },
   multipart: false,
   graphiql: process.env.NODE_ENV !== 'production',
-  maskedErrors: process.env.NODE_ENV === 'production',
+  maskedErrors: process.env.NODE_ENV === 'production' ? { maskError: maskGraphqlError } : false,
   plugins: [{
     onValidate({ addValidationRule }: { addValidationRule: (rule: typeof boundedGraphqlDocumentRule) => void }) {
       addValidationRule(boundedGraphqlDocumentRule)

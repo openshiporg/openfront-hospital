@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { addCalendarDays, assertIanaTimeZone, calendarDateInTimeZone, facilityCalendarWindow } from './facilityTime'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 // A public request is an inbox item, not an inventory reservation. Only staff-
 // accepted/current visits block provider availability.
@@ -35,11 +36,11 @@ export function parseScheduleWindow(startsAt: string | Date, endsAt: string | Da
   const start = new Date(startsAt)
   const end = new Date(endsAt)
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    throw new Error('Schedule window must use valid ISO dates')
+    throw new HospitalRefusal('Schedule window must use valid ISO dates')
   }
-  if (end <= start) throw new Error('Schedule window must end after it starts')
+  if (end <= start) throw new HospitalRefusal('Schedule window must end after it starts')
   if (end.getTime() - start.getTime() > 24 * 60 * 60_000) {
-    throw new Error('Schedule window cannot exceed 24 hours')
+    throw new HospitalRefusal('Schedule window cannot exceed 24 hours')
   }
   return { start, end }
 }
@@ -56,8 +57,8 @@ export function parsePublicDateWindow(
   const window = facilityCalendarWindow(date, timeZone)
   const today = calendarDateInTimeZone(now, timeZone)
   const latest = addCalendarDays(today, MAX_PUBLIC_BOOKING_DAYS)
-  if (date < today) throw new Error('date cannot be in the past')
-  if (date > latest) throw new Error(`date cannot be more than ${MAX_PUBLIC_BOOKING_DAYS} days ahead`)
+  if (date < today) throw new HospitalRefusal('date cannot be in the past')
+  if (date > latest) throw new HospitalRefusal(`date cannot be more than ${MAX_PUBLIC_BOOKING_DAYS} days ahead`)
   return window
 }
 
@@ -77,7 +78,7 @@ export function normalizeAppointmentTypePolicy(appointmentType: {
   const bufferAfterMinutes = Number(appointmentType.bufferAfterMinutes || 0)
 
   if (durationMinutes < 5 || durationMinutes > MAX_APPOINTMENT_DURATION_MINUTES) {
-    throw new Error('Appointment duration is outside the supported range')
+    throw new HospitalRefusal('Appointment duration is outside the supported range')
   }
   if (
     bufferBeforeMinutes < 0 ||
@@ -85,7 +86,7 @@ export function normalizeAppointmentTypePolicy(appointmentType: {
     bufferAfterMinutes < 0 ||
     bufferAfterMinutes > MAX_APPOINTMENT_BUFFER_MINUTES
   ) {
-    throw new Error('Appointment buffer is outside the supported range')
+    throw new HospitalRefusal('Appointment buffer is outside the supported range')
   }
 
   return {
@@ -111,7 +112,7 @@ export function occupiedWindow(
 }
 
 export async function lockProviderSchedule(db: any, providerId: string) {
-  if (!providerId) throw new Error('Provider is required')
+  if (!providerId) throw new HospitalRefusal('Provider is required')
   await db.$queryRaw(
     Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`hospital-provider-schedule:${providerId}`}, 0))::text AS "lock"`,
   )
@@ -229,7 +230,7 @@ export async function inspectProviderWindow(
     }),
   ])
 
-  if (!provider || provider.status !== 'active') throw new Error('Provider is not active')
+  if (!provider || provider.status !== 'active') throw new HospitalRefusal('Provider is not active')
   if (blockingScheduleBlocks.length > 1_000 || appointmentCandidates.length > 500) {
     throw new Error('Provider schedule window exceeds its configured capacity')
   }
@@ -257,14 +258,14 @@ export async function inspectBookableSlot(
   args: { appointmentTypeId: string; providerId: string; facilityId: string; startsAt: string | Date; excludeAppointmentId?: string | null },
 ) {
   const start = new Date(args.startsAt)
-  if (Number.isNaN(start.getTime())) throw new Error('startsAt must be a valid ISO date')
+  if (Number.isNaN(start.getTime())) throw new HospitalRefusal('startsAt must be a valid ISO date')
   const coveringBlock = await db.providerScheduleBlock.findFirst({
     where: { providerId: args.providerId, facilityId: args.facilityId, blockType: 'available', startsAt: { lte: start }, endsAt: { gt: start } },
     orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
     select: { facilityId: true },
   })
   const policy = await getBookableProviderPolicy(db, args.appointmentTypeId, args.providerId, args.facilityId)
-  if (!coveringBlock || !policy) throw new Error('Appointment type, provider, and facility are not bookable together')
+  if (!coveringBlock || !policy) throw new HospitalRefusal('Appointment type, provider, and facility are not bookable together')
   const end = new Date(start.getTime() + policy.appointmentType.durationMinutes * 60_000)
   const availability = await inspectProviderWindow(db, {
     providerId: args.providerId,

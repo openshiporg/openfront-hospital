@@ -52,7 +52,8 @@ export function publicGraphQLErrorMessage(error: unknown): string {
       if (names?.length) messages.push(`A record with this ${names.join(' and ')} already exists.`);
       continue;
     }
-    if (typeof code !== 'string' || !USER_FACING_CODES.has(code)) continue;
+    // HOSPITAL_* codes are refusals written for the operator (named database rules, workflow refusals).
+    if (typeof code !== 'string' || !(USER_FACING_CODES.has(code) || /^HOSPITAL_[A-Z_]+$/.test(code))) continue;
     const cleaned = cleanMessage(message);
     if (cleaned) messages.push(cleaned);
   }

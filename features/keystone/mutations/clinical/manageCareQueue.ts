@@ -10,17 +10,18 @@ import {
 import { calendarDateInTimeZone } from '../scheduling/facilityTime'
 import { lockProviderSchedule } from '../scheduling/schedulePolicy'
 import { currentEpisodeActor, guardEpisodeChild, lockEpisodeFacility, lockEpisodePatientProvider } from './episodeFence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireOperator(context: Context) {
   const role = context.session?.data.role
   if (!role?.canManageAppointments && !role?.canManagePatients && !role?.canAccessAllClinicalData) {
-    throw new Error('Not authorized to manage the care queue')
+    throw new HospitalRefusal('Not authorized to manage the care queue')
   }
 }
 
 function cleanKey(value: string) {
   const key = String(value ?? '').trim()
-  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{15,199}$/.test(key)) throw new Error('Queue idempotency key is invalid')
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{15,199}$/.test(key)) throw new HospitalRefusal('Queue idempotency key is invalid')
   return key
 }
 
@@ -67,7 +68,7 @@ export async function arriveAppointment(
     query: 'id status patient { id } facility { id timeZone } provider { id }',
   }) as any
   if (!scoped?.patient?.id || !scoped?.facility?.id || !scoped.facility.timeZone) {
-    throw new Error('Appointment not found, unscoped, or facility time zone is unavailable')
+    throw new HospitalRefusal('Appointment not found, unscoped, or facility time zone is unavailable')
   }
 
   return context.transaction(async (transactionContext: any) => {
@@ -79,7 +80,7 @@ export async function arriveAppointment(
     await lockEpisodePatientProvider(currentContext, scoped.facility.id, scoped.patient.id, scoped.provider?.id)
     await currentContext.prisma.$queryRaw(Prisma.sql`SELECT "id" FROM "Appointment" WHERE "id" = ${args.appointmentId} FOR UPDATE`)
     const currentAppointment = await currentContext.query.Appointment.findOne({ where: { id: args.appointmentId }, query: 'id patient { id } provider { id } facility { id timeZone }' })
-    if (currentAppointment?.patient?.id !== scoped.patient.id || currentAppointment?.provider?.id !== scoped.provider?.id || currentAppointment?.facility?.id !== scoped.facility.id || currentAppointment.facility.timeZone !== scoped.facility.timeZone) throw new Error('Arrival scope changed; refresh before retrying')
+    if (currentAppointment?.patient?.id !== scoped.patient.id || currentAppointment?.provider?.id !== scoped.provider?.id || currentAppointment?.facility?.id !== scoped.facility.id || currentAppointment.facility.timeZone !== scoped.facility.timeZone) throw new HospitalRefusal('Arrival scope changed; refresh before retrying')
     const sudo = currentContext.sudo()
     await lockTransitionOperation(sudo.prisma, keyHash)
     await lockProviderSchedule(sudo.prisma, scoped.provider?.id || `appointment:${args.appointmentId}`)
@@ -90,7 +91,7 @@ export async function arriveAppointment(
     const existing = await sudo.prisma.careQueueTicket.findFirst({ where: { appointmentId: args.appointmentId } })
     if (existing) {
       if (existing.idempotencyKeyHash !== keyHash || existing.requestHash !== requestHash || existing.actorReference !== currentContext.session.itemId) {
-        throw new Error('Appointment already has a queue ticket from a different arrival operation')
+        throw new HospitalRefusal('Appointment already has a queue ticket from a different arrival operation')
       }
       return queueResult(existing, true)
     }
@@ -98,7 +99,7 @@ export async function arriveAppointment(
     const priorTransition = await replayTransition(sudo.prisma, evidence, 'appointment', args.appointmentId)
     const appointment = await sudo.prisma.appointment.findUnique({ where: { id: args.appointmentId } })
     if (!appointment || !['confirmed', 'checked_in'].includes(appointment.status)) {
-      throw new Error('Only confirmed or already checked-in appointments can enter the care queue')
+      throw new HospitalRefusal('Only confirmed or already checked-in appointments can enter the care queue')
     }
     const now = new Date()
     const facilityTimeZone = scoped.facility.timeZone
@@ -203,7 +204,7 @@ export async function transitionCareQueue(
 ) {
   requireOperator(context)
   if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) {
-    throw new Error('Expected queue version is invalid')
+    throw new HospitalRefusal('Expected queue version is invalid')
   }
   const evidence = transitionEvidence(args.operationKey, {
     ticketId: args.ticketId,
@@ -215,7 +216,7 @@ export async function transitionCareQueue(
     where: { id: args.ticketId },
     query: 'id status transitionVersion patient { id } facility { id } encounter { id }',
   }) as any
-  if (!scoped?.patient?.id || !scoped?.facility?.id) throw new Error('Queue ticket not found or not accessible')
+  if (!scoped?.patient?.id || !scoped?.facility?.id) throw new HospitalRefusal('Queue ticket not found or not accessible')
 
   const encounterId = args.encounterId
   if (encounterId) {
@@ -229,7 +230,7 @@ export async function transitionCareQueue(
       encounter.patient?.id !== scoped.patient.id ||
       encounter.facility?.id !== scoped.facility.id
     ) {
-      throw new Error('Encounter must be in progress for the queue patient and facility')
+      throw new HospitalRefusal('Encounter must be in progress for the queue patient and facility')
     }
   }
 
@@ -239,19 +240,19 @@ export async function transitionCareQueue(
     await transactionContext.prisma.$executeRaw(Prisma.sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`)
     const currentContext = await currentEpisodeActor(transactionContext, 'queue')
     const visible = await currentContext.query.CareQueueTicket.findOne({ where: { id: args.ticketId }, query: 'id patient { id } facility { id } encounter { id } appointment { id provider { id } }' })
-    if (visible?.patient?.id !== scoped.patient.id || visible?.facility?.id !== scoped.facility.id) throw new Error('Current queue scope is unavailable')
+    if (visible?.patient?.id !== scoped.patient.id || visible?.facility?.id !== scoped.facility.id) throw new HospitalRefusal('Current queue scope is unavailable')
     await lockEpisodeFacility(currentContext, visible.facility.id, visible.appointment?.provider?.id)
     await lockEpisodePatientProvider(currentContext, visible.facility.id, visible.patient.id, visible.appointment?.provider?.id)
     const sudo = currentContext.sudo()
     await sudo.prisma.$queryRaw(Prisma.sql`SELECT "id" FROM "CareQueueTicket" WHERE "id" = ${args.ticketId} FOR UPDATE`)
     const prior = await sudo.prisma.workflowTransition.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
-    if (prior && prior.actorReference !== currentContext.session.itemId) throw new Error('Original queue operation is not owned')
+    if (prior && prior.actorReference !== currentContext.session.itemId) throw new HospitalRefusal('Original queue operation is not owned')
     const linkedEncounterId = encounterId || visible.encounter?.id
     if (args.toStatus === 'in_care' && linkedEncounterId) {
       await guardEpisodeChild(currentContext, { facilityId: visible.facility.id, patientId: visible.patient.id, encounterId: linkedEncounterId }, 'new_care', false, Boolean(prior), 'queue')
       if (!prior) {
         const parent = await currentContext.query.Encounter.findOne({ where: { id: linkedEncounterId }, query: 'id status' })
-        if (parent?.status !== 'in_progress') throw new Error('Current encounter must be in progress for handoff')
+        if (parent?.status !== 'in_progress') throw new HospitalRefusal('Current encounter must be in progress for handoff')
       }
     }
     await lockTransitionOperation(sudo.prisma, evidence.operationKeyHash)
@@ -262,10 +263,10 @@ export async function transitionCareQueue(
     if (replay) return replay
     const current = await sudo.prisma.careQueueTicket.findUnique({ where: { id: args.ticketId } })
     if (!current || current.transitionVersion !== args.expectedVersion) {
-      throw new Error('Queue ticket changed; refresh before retrying')
+      throw new HospitalRefusal('Queue ticket changed; refresh before retrying')
     }
     if (args.toStatus === 'in_care' && !encounterId && !current.encounterId) {
-      throw new Error('Encounter is required before handing off into care')
+      throw new HospitalRefusal('Encounter is required before handing off into care')
     }
 
     const updated = await sudo.query.CareQueueTicket.updateOne({

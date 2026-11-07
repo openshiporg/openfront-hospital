@@ -4,6 +4,7 @@ import {
   MAX_APPOINTMENT_BUFFER_MINUTES,
   parseScheduleWindow,
 } from './schedulePolicy'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 const conflictCache = new WeakMap<object, Map<string, Promise<unknown>>>()
 
@@ -21,7 +22,7 @@ export function canInspectSchedule(context: Context) {
 }
 
 export function requireSchedulePermission(context: Context) {
-  if (!canInspectSchedule(context)) throw new Error('Not authorized to inspect schedule conflicts')
+  if (!canInspectSchedule(context)) throw new HospitalRefusal('Not authorized to inspect schedule conflicts')
 }
 
 export async function findScheduleConflicts(args: ScheduleConflictArgs, context: Context) {
@@ -31,7 +32,7 @@ export async function findScheduleConflicts(args: ScheduleConflictArgs, context:
     query: 'id facilities { id }',
   }) as { id: string; facilities?: Array<{ id: string }> } | null
   if (!scopedProvider?.facilities?.some(facility => facility.id === args.facilityId)) {
-    throw new Error('Provider and facility not found or not accessible')
+    throw new HospitalRefusal('Provider and facility not found or not accessible')
   }
 
   const [availability, accessibleAppointments] = await Promise.all([

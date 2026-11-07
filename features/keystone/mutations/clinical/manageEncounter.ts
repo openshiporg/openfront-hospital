@@ -11,6 +11,7 @@ import {
   replayTransition,
   transitionEvidence,
 } from '../transitionEvidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 const OPERATION_KEY = /^[A-Za-z0-9][A-Za-z0-9._:-]{15,199}$/
 
@@ -39,14 +40,14 @@ type TransitionArgs = {
 function requirePermission(context: Context) {
   const role = context.session?.data.role
   if (!role?.canManagePatients && !role?.canAccessAllClinicalData) {
-    throw new Error('Not authorized to manage encounters')
+    throw new HospitalRefusal('Not authorized to manage encounters')
   }
 }
 
 function bounded(value: unknown, label: string, maxLength: number, required = false) {
   const normalized = String(value ?? '').trim()
   if ((required && !normalized) || normalized.length > maxLength || /[\u0000-\u001f\u007f]/.test(normalized)) {
-    throw new Error(`${label} is invalid`)
+    throw new HospitalRefusal(`${label} is invalid`)
   }
   return normalized
 }
@@ -100,7 +101,7 @@ async function resolveOpenScope(context: Context, input: OpenEncounterInput) {
     provider?.status !== 'active' ||
     !provider?.facilities?.some((item: any) => item.id === input.facilityId)
   ) {
-    throw new Error('Facility, patient, or provider not found or not accessible')
+    throw new HospitalRefusal('Facility, patient, or provider not found or not accessible')
   }
   if (
     input.appointmentId &&
@@ -112,16 +113,16 @@ async function resolveOpenScope(context: Context, input: OpenEncounterInput) {
       appointment.facility?.id !== input.facilityId
     )
   ) {
-    throw new Error('Appointment does not match the checked-in patient, provider, and facility')
+    throw new HospitalRefusal('Appointment does not match the checked-in patient, provider, and facility')
   }
   if (input.departmentId && (!department || !department.facilities?.some((item: any) => item.id === input.facilityId))) {
-    throw new Error('Department does not match the accessible facility')
+    throw new HospitalRefusal('Department does not match the accessible facility')
   }
 }
 
 export async function openEncounter(_root: unknown, { data }: OpenArgs, context: Context) {
   const operationKey = bounded(data.operationKey, 'Operation key', 200, true)
-  if (!OPERATION_KEY.test(operationKey)) throw new Error('Operation key is invalid')
+  if (!OPERATION_KEY.test(operationKey)) throw new HospitalRefusal('Operation key is invalid')
   const input: OpenEncounterInput = {
     operationKey,
     facilityId: bounded(data.facilityId, 'Facility', 128, true),
@@ -156,11 +157,11 @@ export async function openEncounter(_root: unknown, { data }: OpenArgs, context:
       }
       const replay = await tx.encounter.findUnique({ where: { operationKeyHash } })
       if (replay) {
-        if (replay.requestHash !== requestHash || replay.actorReference !== current.session.itemId || replay.facilityId !== input.facilityId || replay.patientId !== input.patientId || replay.providerId !== input.providerId || (replay.appointmentId || null) !== input.appointmentId) throw new Error('Operation key was reused with a different payload or authority')
+        if (replay.requestHash !== requestHash || replay.actorReference !== current.session.itemId || replay.facilityId !== input.facilityId || replay.patientId !== input.patientId || replay.providerId !== input.providerId || (replay.appointmentId || null) !== input.appointmentId) throw new HospitalRefusal('Operation key was reused with a different payload or authority')
         return projection(replay, true)
       }
       if (input.appointmentId && await tx.encounter.findFirst({ where: { appointmentId: input.appointmentId } })) {
-        throw new Error('Appointment already has an encounter')
+        throw new HospitalRefusal('Appointment already has an encounter')
       }
 
       const now = new Date()
@@ -222,7 +223,7 @@ export async function openEncounter(_root: unknown, { data }: OpenArgs, context:
     }, { timeout: 30_000 })
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code)) {
-      throw new Error('Encounter opening conflicted with another request; retry with the same operation key')
+      throw new HospitalRefusal('Encounter opening conflicted with another request; retry with the same operation key')
     }
     throw error
   }
@@ -233,14 +234,14 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
   const diagnosisSummary = bounded(args.diagnosisSummary, 'Diagnosis summary', 4000)
   const reason = bounded(args.reason, 'Transition reason', 1000)
   validateBoundedEncounterTransitionEvidence({ toStatus: args.toStatus, diagnosisSummary, reason })
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected encounter version is invalid')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected encounter version is invalid')
   return context.transaction(async (transactionContext: any) => {
     // Keystone 6.5 declares `isolationLevel` as the enum object while Prisma expects the
     // string, so set it as the transaction's first statement (as in labResultRecovery.ts).
     await transactionContext.prisma.$executeRaw(Prisma.sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`)
     const current = await currentEpisodeActor(transactionContext)
     const scope = await lockCurrentEncounter(current, args.encounterId)
-    if (!args.reviewedTuple) throw new Error('Original reviewed episode tuple is required; legacy command remains unverified')
+    if (!args.reviewedTuple) throw new HospitalRefusal('Original reviewed episode tuple is required; legacy command remains unverified')
     assertEpisodeTuple(args.reviewedTuple, scope.tuple)
     const policy = await effectiveEpisodePolicy(current.prisma, scope.tuple.facilityId)
     const tx = current.prisma
@@ -250,7 +251,7 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
     const existing = await tx.workflowTransition.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
       if (existing.actorReference !== current.session.itemId || !existing.result?.episodeReceipt) {
-        throw new Error('Original operation is not owned or is legacy-unverified; use read-only recovery')
+        throw new HospitalRefusal('Original operation is not owned or is legacy-unverified; use read-only recovery')
       }
       assertEpisodeTuple(existing.result.episodeReceipt.tuple, scope.tuple)
       const replay = await replayTransition(tx, evidence, existing.aggregateType === 'encounter_command' ? 'encounter_command' : 'encounter', args.encounterId)
@@ -282,13 +283,13 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
     if (encounter.appointmentId) {
       const appointment = scope.appointment
       if (args.toStatus === 'in_progress' && (!appointment || !['checked_in', 'in_visit'].includes(appointment.status))) {
-        throw new Error('Linked appointment must be checked in before the encounter starts')
+        throw new HospitalRefusal('Linked appointment must be checked in before the encounter starts')
       }
       if (appointment) {
         const linkedTransition = linkedAppointmentTransition(args.toStatus, appointment.status)
         if (linkedTransition?.toStatus === 'in_visit') {
           const changed = await tx.appointment.updateMany({ where: { id: appointment.id, transitionVersion: appointment.transitionVersion, status: appointment.status }, data: { status: 'in_visit', transitionVersion: { increment: 1 } } })
-          if (changed.count !== 1) throw new Error('Linked appointment changed; review before retrying')
+          if (changed.count !== 1) throw new HospitalRefusal('Linked appointment changed; review before retrying')
           appointmentTransition = { id: appointment.id, ...linkedTransition }
         }
         if (linkedTransition?.toStatus === 'completed') {
@@ -301,7 +302,7 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
               bookingLockKey: `released:${appointment.id}:${now.getTime()}`,
             },
           })
-          if (changed.count !== 1) throw new Error('Linked appointment changed; review before retrying')
+          if (changed.count !== 1) throw new HospitalRefusal('Linked appointment changed; review before retrying')
           appointmentTransition = { id: appointment.id, ...linkedTransition }
         }
       }
@@ -318,7 +319,7 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
         ...(['closed', 'cancelled'].includes(args.toStatus) ? { endedAt: now } : {}),
       },
     })
-    if (changed.count !== 1) throw new Error('Encounter changed; review before retrying')
+    if (changed.count !== 1) throw new HospitalRefusal('Encounter changed; review before retrying')
     const updated = await tx.encounter.findUnique({ where: { id: encounter.id } })
     const metadata = {
       source: 'encounter_workflow',

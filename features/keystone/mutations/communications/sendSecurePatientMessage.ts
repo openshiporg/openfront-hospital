@@ -1,6 +1,7 @@
 import { narrativeText } from '../../../lib/narrativeText'
 import type { Context } from '.keystone/types'
 import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from '../operational/evidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 type Args = {
   operationKey: string
@@ -18,17 +19,17 @@ type Args = {
 function requirePermission(context: Context) {
   const role = context.session?.data.role
   if (!role?.canManageCommunications) {
-    throw new Error('Not authorized to send patient messages')
+    throw new HospitalRefusal('Not authorized to send patient messages')
   }
 }
 
 export default async function sendSecurePatientMessage(_root: unknown, args: Args, context: Context) {
   requirePermission(context)
   if (!['sms', 'email', 'phone'].includes(args.channel)) {
-    throw new Error('Patient follow-up channel must be sms, email, or phone')
+    throw new HospitalRefusal('Patient follow-up channel must be sms, email, or phone')
   }
   if (!['care_operations', 'billing', 'general'].includes(args.purpose)) {
-    throw new Error('Secure message purpose is invalid')
+    throw new HospitalRefusal('Secure message purpose is invalid')
   }
   const subject = bounded(args.subject, 'Message subject', 200)
   const body = narrativeText(args.body, 'Message body', 4000, true)
@@ -69,27 +70,27 @@ export default async function sendSecurePatientMessage(_root: unknown, args: Arg
     args.appointmentId &&
     (!scopedAppointment || scopedAppointment.patient?.id !== args.patientId || scopedAppointment.facility?.id !== args.facilityId)
   ) {
-    throw new Error('Appointment does not belong to the selected patient and facility')
+    throw new HospitalRefusal('Appointment does not belong to the selected patient and facility')
   }
-  if (preference?.[0]?.status === 'opted_out') throw new Error('Patient has opted out of this message channel and purpose')
+  if (preference?.[0]?.status === 'opted_out') throw new HospitalRefusal('Patient has opted out of this message channel and purpose')
   if (args.purpose === 'general' && preference?.[0]?.status !== 'allowed') {
-    throw new Error('General messages require an explicit allowed communication preference')
+    throw new HospitalRefusal('General messages require an explicit allowed communication preference')
   }
   const manualFollowUp = args.channel === 'phone'
   if (manualFollowUp && installation) {
-    throw new Error('Manual phone follow-up cannot use an external communications integration')
+    throw new HospitalRefusal('Manual phone follow-up cannot use an external communications integration')
   }
   if (!manualFollowUp && (
     !installation || installation.status !== 'active' || installation.kind !== 'communications' ||
     installation.facility?.id !== args.facilityId
   )) {
-    throw new Error('SMS and email messages require an active facility communications integration')
+    throw new HospitalRefusal('SMS and email messages require an active facility communications integration')
   }
   if (
     template &&
     (template.status !== 'active' || template.channel !== args.channel || template.facility?.id !== args.facilityId)
   ) {
-    throw new Error('Communication template does not match the active facility channel')
+    throw new HospitalRefusal('Communication template does not match the active facility channel')
   }
 
   const input = {
@@ -112,7 +113,7 @@ export default async function sendSecurePatientMessage(_root: unknown, args: Arg
     const existing = await prisma.patientMessage.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
       if (existing.requestHash !== evidence.requestHash) {
-        throw new Error('Operation key was reused with a different payload')
+        throw new HospitalRefusal('Operation key was reused with a different payload')
       }
       return {
         id: existing.id,
@@ -130,7 +131,7 @@ export default async function sendSecurePatientMessage(_root: unknown, args: Arg
       where: { id: args.patientId },
       select: { id: true, status: true },
     })
-    if (!patient || patient.status !== 'active') throw new Error('Active patient not found')
+    if (!patient || patient.status !== 'active') throw new HospitalRefusal('Active patient not found')
     const now = new Date()
     const message = await prisma.patientMessage.create({
       data: {

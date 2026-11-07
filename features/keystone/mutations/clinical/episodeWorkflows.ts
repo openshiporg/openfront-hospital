@@ -3,6 +3,7 @@ import { appendAuditAndOutbox } from '../operational/evidence'
 import { lockTransitionOperation, recordTransition, transitionEvidence } from '../transitionEvidence'
 import { assertEpisodeTuple, episodeDigest, episodeEligibility, requireHumanEpisodeReview, validateEpisodePolicy } from './episodePolicy'
 import { currentEpisodeActor, effectiveEpisodePolicy, lockCurrentEncounter, lockEpisodeFacility } from './episodeFence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 export function policyProjection(row: any) {
   return row ? { id: row.id, revision: row.revision, effectiveAt: row.effectiveAt, definition: row.definition,
@@ -39,7 +40,7 @@ export function reviewFingerprint(context: any, scope: any, policy: any) {
 export async function reviewEpisodePolicy(_root: unknown, { data }: any, context: any) {
   const definition = validateEpisodePolicy(data.definition)
   const reviewReference = requireHumanEpisodeReview(data.attested, data.reviewReference)
-  if (!Number.isInteger(data.expectedRevision) || data.expectedRevision < 0) throw new Error('Expected policy revision is invalid')
+  if (!Number.isInteger(data.expectedRevision) || data.expectedRevision < 0) throw new HospitalRefusal('Expected policy revision is invalid')
   const originalCommand = { facilityId: data.facilityId, expectedRevision: data.expectedRevision, definition, reviewReference, attested: true }
   return context.transaction(async (transactionContext: any) => {
     const current = await currentEpisodeActor(transactionContext, 'configure')
@@ -49,10 +50,10 @@ export async function reviewEpisodePolicy(_root: unknown, { data }: any, context
     await lockTransitionOperation(current.prisma, evidence.operationKeyHash)
     const existing = await current.prisma.episodeClosurePolicy.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash || existing.reviewedByReference !== current.session.itemId) throw new Error('Policy operation identity does not match the original command')
+      if (existing.requestHash !== evidence.requestHash || existing.reviewedByReference !== current.session.itemId) throw new HospitalRefusal('Policy operation identity does not match the original command')
       return { original: policyProjection(existing), current: policyProjection(policy), replayed: true }
     }
-    if ((policy?.revision || 0) !== data.expectedRevision) throw new Error('Policy changed; review the current revision before submitting')
+    if ((policy?.revision || 0) !== data.expectedRevision) throw new HospitalRefusal('Policy changed; review the current revision before submitting')
     const now = new Date()
     const row = await current.prisma.episodeClosurePolicy.create({ data: {
       id: randomUUID(), facilityId: data.facilityId, revision: data.expectedRevision + 1,
@@ -69,7 +70,7 @@ export async function reviewEpisodePolicy(_root: unknown, { data }: any, context
 
 export async function episodePolicyWorkspace(_root: unknown, args: any, context: any) {
   const take = args.take ?? 25
-  if (!Number.isInteger(take) || take < 1 || take > 25 || (args.beforeRevision != null && (!Number.isInteger(args.beforeRevision) || args.beforeRevision < 1))) throw new Error('Policy history page is invalid')
+  if (!Number.isInteger(take) || take < 1 || take > 25 || (args.beforeRevision != null && (!Number.isInteger(args.beforeRevision) || args.beforeRevision < 1))) throw new HospitalRefusal('Policy history page is invalid')
   return context.transaction(async (tx: any) => {
     const current = await currentEpisodeActor(tx)
     await lockEpisodeFacility(current, args.facilityId)
@@ -85,7 +86,7 @@ export async function episodePolicyWorkspace(_root: unknown, args: any, context:
 
 export async function episodeClosureWorkspace(_root: unknown, args: any, context: any) {
   const take = args.take ?? 25
-  if (!Number.isInteger(take) || take < 1 || take > 25 || (args.beforeVersion != null && (!Number.isInteger(args.beforeVersion) || args.beforeVersion < 1))) throw new Error('Episode history page is invalid')
+  if (!Number.isInteger(take) || take < 1 || take > 25 || (args.beforeVersion != null && (!Number.isInteger(args.beforeVersion) || args.beforeVersion < 1))) throw new HospitalRefusal('Episode history page is invalid')
   return context.transaction(async (tx: any) => {
     const current = await currentEpisodeActor(tx)
     const scope = await lockCurrentEncounter(current, args.encounterId)
@@ -99,7 +100,7 @@ export async function episodeClosureWorkspace(_root: unknown, args: any, context
     let rejectedPageWhere: any = rejectedWhere
     if (args.beforeRejectedId) {
       const cursor = await current.prisma.workflowTransition.findFirst({ where: { ...rejectedWhere, id: args.beforeRejectedId }, select: { id: true, occurredAt: true } })
-      if (!cursor) throw new Error('Owned rejected-receipt cursor is stale or unavailable')
+      if (!cursor) throw new HospitalRefusal('Owned rejected-receipt cursor is stale or unavailable')
       rejectedPageWhere = { ...rejectedWhere, OR: [{ occurredAt: { lt: cursor.occurredAt } }, { occurredAt: cursor.occurredAt, id: { lt: cursor.id } }] }
     }
     const rejectedEntries = await current.prisma.workflowTransition.findMany({ where: rejectedPageWhere, orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }], take: take + 1,
@@ -140,7 +141,7 @@ export async function recoverEpisodeClosure(_root: unknown, args: any, context: 
     await lockTransitionOperation(current.prisma, evidence.operationKeyHash)
     const entry = await current.prisma.workflowTransition.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (!entry) return { outcome: 'unknown', original: null, current: { status: scope.encounter.status, transitionVersion: scope.encounter.transitionVersion }, policy: policyProjection(policy) }
-    if (!['encounter', 'encounter_command'].includes(entry.aggregateType) || entry.aggregateId !== args.encounterId || entry.actorReference !== current.session.itemId || entry.facilityId !== scope.tuple.facilityId || entry.patientId !== scope.tuple.patientId) throw new Error('Original episode operation is not owned or accessible')
+    if (!['encounter', 'encounter_command'].includes(entry.aggregateType) || entry.aggregateId !== args.encounterId || entry.actorReference !== current.session.itemId || entry.facilityId !== scope.tuple.facilityId || entry.patientId !== scope.tuple.patientId) throw new HospitalRefusal('Original episode operation is not owned or accessible')
     if (!entry.result?.episodeReceipt) return { outcome: 'legacy_unknown', original: null, current: { status: scope.encounter.status, transitionVersion: scope.encounter.transitionVersion }, policy: policyProjection(policy) }
     assertEpisodeTuple(entry.result.episodeReceipt.tuple, scope.tuple)
     return { outcome: entry.result.episodeReceipt.accepted === false ? 'rejected' : 'accepted', original: entry.result, current: { status: scope.encounter.status, transitionVersion: scope.encounter.transitionVersion,

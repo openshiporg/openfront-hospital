@@ -5,6 +5,7 @@ import { enforcePublicIntakeRateLimit } from '../../security/publicIntakeRateLim
 import { createVisitAccessToken, verifyVisitAccessToken } from '../../security/visitAccess'
 import { lockProviderSchedule } from '../scheduling/schedulePolicy'
 import { providerDisplayName } from '../intake/getIntakeFormByAccessCode'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 // Patient self-service for one visit, as patient portals do (MyChart "Appointments", Zocdoc "Manage appointment"):
 // look the visit up from the receipt link, or with the request number and date of birth, see its status, and cancel
@@ -61,16 +62,16 @@ export async function patientVisit(_root: unknown, args: LookupArgs, context: Co
 
 export async function cancelPatientVisit(_root: unknown, args: { accessToken: string; reason?: string | null }, context: Context) {
   const id = verifyVisitAccessToken(args.accessToken)
-  if (!id) throw new Error('This visit link is not valid. Look the visit up again.')
+  if (!id) throw new HospitalRefusal('This visit link is not valid. Look the visit up again.')
   await enforcePublicIntakeRateLimit(context, `visit:${args.accessToken}`, 'submit')
   const reason = String(args.reason ?? '').trim().slice(0, 300) || 'Cancelled by the patient online.'
   const prisma = context.sudo().prisma as any
   const outcome = await prisma.$transaction(async (tx: any) => {
     await tx.$executeRaw(Prisma.sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`)
     const current = await tx.appointment.findUnique({ where: { id }, select: { id: true, status: true, providerId: true, startsAt: true, transitionVersion: true, facilityId: true, patientId: true } })
-    if (!current) throw new Error('This visit link is not valid. Look the visit up again.')
+    if (!current) throw new HospitalRefusal('This visit link is not valid. Look the visit up again.')
     if (current.status === 'cancelled') return { changed: false }
-    if (!ACTIVE.has(current.status) || current.startsAt.getTime() <= Date.now()) throw new Error('This visit can no longer be cancelled online. Call the clinic.')
+    if (!ACTIVE.has(current.status) || current.startsAt.getTime() <= Date.now()) throw new HospitalRefusal('This visit can no longer be cancelled online. Call the clinic.')
     await lockProviderSchedule(tx, current.providerId)
     await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Appointment" WHERE "id" = ${id} FOR UPDATE`)
     const now = new Date()
@@ -80,7 +81,7 @@ export async function cancelPatientVisit(_root: unknown, args: { accessToken: st
       where: { id, transitionVersion: current.transitionVersion, status: current.status },
       data: { status: 'cancelled', transitionVersion: nextVersion, cancellationReason: reason, bookingLockKey: `released:${id}:${now.getTime()}` },
     })
-    if (updated.count !== 1) throw new Error('This visit just changed. Look it up again.')
+    if (updated.count !== 1) throw new HospitalRefusal('This visit just changed. Look it up again.')
     const metadata = { source: 'patient_self_service', aggregateType: 'appointment', aggregateId: id, fromStatus: current.status, status: 'cancelled', transitionVersion: nextVersion, reasonProvided: true }
     await tx.clinicalAuditLog.create({ data: { eventType: 'appointment.cancelled', occurredAt: now, actorType: 'patient_self_service', actorReference: '', facilityId: current.facilityId, patientId: current.patientId, appointmentId: id, metadata } })
     await tx.clinicalOutboxEvent.create({ data: { eventKey: `appointment:${id}:v${nextVersion}:cancelled`, eventType: 'appointment.cancelled', aggregateType: 'appointment', aggregateId: id, status: 'recorded', attempts: 0, nextAttemptAt: null, facilityId: current.facilityId, patientId: current.patientId, appointmentId: id, payload: metadata, createdAt: now } })

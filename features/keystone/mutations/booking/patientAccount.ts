@@ -4,6 +4,7 @@ import type { Context } from '.keystone/types'
 import { consumeSharedRateLimit, requestIdentity } from '../../security/graphqlSecurity'
 import { createAccountConfirmToken, createVisitAccessToken, verifyAccountConfirmToken } from '../../security/visitAccess'
 import { providerDisplayName } from '../intake/getIntakeFormByAccessCode'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 // Patient accounts, the way patient portals do it (MyChart, Zocdoc, One Medical): sign up with email and password,
 // confirm the email, then see your visits in one place. An account carries no staff role, so the dashboard stays
@@ -26,16 +27,16 @@ export async function registerPatientAccount(_root: unknown, args: RegisterArgs,
   const name = String(args.name ?? '').trim().replace(/\s+/g, ' ').slice(0, 120)
   const email = String(args.email ?? '').trim().toLowerCase()
   const password = String(args.password ?? '')
-  if (!name) throw new Error('Enter your name')
-  if (!EMAIL.test(email) || email.length > 254) throw new Error('Enter a valid email address')
-  if (password.length < 10 || password.length > 200) throw new Error('Use a password of at least 10 characters')
+  if (!name) throw new HospitalRefusal('Enter your name')
+  if (!EMAIL.test(email) || email.length > 254) throw new HospitalRefusal('Enter a valid email address')
+  if (password.length < 10 || password.length > 200) throw new HospitalRefusal('Use a password of at least 10 characters')
 
   const prisma = context.sudo().prisma as any
   const production = process.env.NODE_ENV === 'production'
   const request = (context as any).req
   const now = new Date()
   const network = requestIdentity(request?.headers || {}, request?.socket?.remoteAddress)
-  const limited = () => { throw new Error('Too many sign-up attempts. Try again later.') }
+  const limited = () => { throw new HospitalRefusal('Too many sign-up attempts. Try again later.') }
   if (!await consumeSharedRateLimit(prisma, 'patient-signup-network', network, production ? 5 : 100, now, 60 * 60)) limited()
   if (!await consumeSharedRateLimit(prisma, 'patient-signup-email', peppered('patient-signup-email', email), production ? 3 : 100, now, 60 * 60)) limited()
 
@@ -75,16 +76,16 @@ export async function resendPatientAccountConfirmation(_root: unknown, _args: un
   const user = await signedInPatient(context)
   if (user.emailVerifiedAt) return { ok: true }
   const prisma = context.sudo().prisma as any
-  if (!await consumeSharedRateLimit(prisma, 'patient-confirm-resend', user.id, process.env.NODE_ENV === 'production' ? 3 : 100, new Date(), 60 * 60)) throw new Error('Too many emails sent. Try again later.')
+  if (!await consumeSharedRateLimit(prisma, 'patient-confirm-resend', user.id, process.env.NODE_ENV === 'production' ? 3 : 100, new Date(), 60 * 60)) throw new HospitalRefusal('Too many emails sent. Try again later.')
   await sendConfirmation(prisma, user)
   return { ok: true }
 }
 
 async function signedInPatient(context: Context) {
   const session = (context as any).session
-  if (!session?.itemId) throw new Error('Sign in to see your visits')
+  if (!session?.itemId) throw new HospitalRefusal('Sign in to see your visits')
   const user = await (context.sudo().prisma as any).user.findUnique({ where: { id: session.itemId }, select: { id: true, email: true, name: true, emailVerifiedAt: true } })
-  if (!user?.email) throw new Error('Sign in to see your visits')
+  if (!user?.email) throw new HospitalRefusal('Sign in to see your visits')
   return user as { id: string; email: string; name: string; emailVerifiedAt: Date | null }
 }
 

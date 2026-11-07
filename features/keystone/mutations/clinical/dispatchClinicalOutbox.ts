@@ -1,4 +1,5 @@
 import type { Context } from '.keystone/types'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 /**
  * Internal outbox rows are an atomic event ledger, not transport work. They are
@@ -15,7 +16,7 @@ export default async function dispatchClinicalOutbox(
   context: Context,
 ) {
   if (!context.session?.data.role?.canAccessAllClinicalData) {
-    throw new Error('Only the global maintenance administrator can inspect internal event processing')
+    throw new HospitalRefusal('Only the global maintenance administrator can inspect internal event processing')
   }
   return dispatchInternalOutbox(context.sudo().prisma, args.limit)
 }

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { Prisma } from '@prisma/client'
+import { HospitalRefusal } from '../lib/constraint-errors'
 
 const OPERATION_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{15,199}$/
 
@@ -20,7 +21,7 @@ function digest(value: string) {
 
 export function transitionEvidence(operationKey: unknown, payload: unknown) {
   const key = String(operationKey ?? '').trim()
-  if (!OPERATION_KEY_PATTERN.test(key)) throw new Error('Transition operation key is invalid')
+  if (!OPERATION_KEY_PATTERN.test(key)) throw new HospitalRefusal('Transition operation key is invalid')
   return {
     operationKeyHash: digest(key),
     requestHash: digest(canonical(payload)),
@@ -48,10 +49,10 @@ export async function replayTransition(
     existing.aggregateType !== aggregateType ||
     existing.aggregateId !== aggregateId
   ) {
-    throw new Error('Transition operation key was reused with a different request')
+    throw new HospitalRefusal('Transition operation key was reused with a different request')
   }
   const result = existing.result as Record<string, unknown> | null
-  if (!result || typeof result !== 'object') throw new Error('Transition replay evidence is incomplete')
+  if (!result || typeof result !== 'object') throw new HospitalRefusal('Transition replay evidence is incomplete')
   return { ...result, replayed: true }
 }
 
@@ -77,7 +78,7 @@ export async function recordTransition(tx: any, input: RecordTransitionInput) {
   // Creation retains the exact bounded clinical command (including JSON escape
   // expansion), not just a digest. Other transition projections retain 8k limit.
   const limit = input.aggregateType === 'lab_result_creation' ? 32_000 : 8_000
-  if (serialized.length > limit) throw new Error('Transition result projection is too large')
+  if (serialized.length > limit) throw new HospitalRefusal('Transition result projection is too large')
   await tx.workflowTransition.create({
     data: {
       operationKeyHash: input.evidence.operationKeyHash,

@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 import { transitionEvidence, recordTransition } from '../transitionEvidence'
 import { currentEpisodeActor, lockEpisodeFacility, lockEpisodePatientProvider, EPISODE_DENIED } from './episodeFence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 // Domain DTOs, not replacements for generated Keystone/Prisma declarations.
 export type LabTuple = { facilityId: string; patientId: string; encounterId: string; medicalOrderId: string; labTestId: string }
@@ -99,7 +100,7 @@ export function projectOriginalLabReceipt(value: unknown, header: LabHeader, raw
   if (header.supersedesResultId ? command.resultId !== header.supersedesResultId : Object.hasOwn(command, 'resultId')) throw denied()
   if (typeof command.operationKey !== 'string' || transitionEvidence(command.operationKey, {}).operationKeyHash !== header.operationKeyHash || typeof receipt.rawRequestHash !== 'string') throw denied()
   const { operationKey, ...body } = command
-  if (typeof command.resultValue !== 'string' || (command.referenceRange != null && typeof command.referenceRange !== 'string') || transitionEvidence(operationKey, command).requestHash !== receipt.rawRequestHash || (rawHash && rawHash !== receipt.rawRequestHash)) throw new Error('Original lab command body does not match')
+  if (typeof command.resultValue !== 'string' || (command.referenceRange != null && typeof command.referenceRange !== 'string') || transitionEvidence(operationKey, command).requestHash !== receipt.rawRequestHash || (rawHash && rawHash !== receipt.rawRequestHash)) throw new HospitalRefusal('Original lab command body does not match')
   const normalized = { ...body, resultValue: command.resultValue.trim(), referenceRange: String(command.referenceRange ?? '').trim() }
   if (transitionEvidence(operationKey, normalized).requestHash !== header.requestHash) throw denied()
   return result
@@ -188,7 +189,7 @@ export async function persistOriginalLabReceipt(prisma: Context['prisma'], row: 
     actorReference, facilityId: tuple.facilityId, patientId: tuple.patientId, encounterId: tuple.encounterId,
     AND: [{ metadata: { path: ['aggregateId'], equals: row.id } }, { metadata: { path: ['transitionVersion'], equals: row.transitionVersion } }],
   }, select: { id: true } })
-  if (!audit || !outbox || outbox.aggregateType !== 'lab_result' || outbox.aggregateId !== row.id || outbox.facilityId !== tuple.facilityId || outbox.patientId !== tuple.patientId || outbox.encounterId !== tuple.encounterId) throw new Error('Original lab acknowledgement lacks correlated native audit/outbox evidence')
+  if (!audit || !outbox || outbox.aggregateType !== 'lab_result' || outbox.aggregateId !== row.id || outbox.facilityId !== tuple.facilityId || outbox.patientId !== tuple.patientId || outbox.encounterId !== tuple.encounterId) throw new HospitalRefusal('Original lab acknowledgement lacks correlated native audit/outbox evidence')
   await recordTransition(prisma, { evidence: { operationKeyHash: originalLabReceiptKey(evidence.operationKeyHash), requestHash: evidence.requestHash },
     aggregateType: 'lab_result_creation', aggregateId: row.id, fromStatus: 'not_recorded', toStatus: row.status,
     fromVersion: 0, toVersion: row.transitionVersion, actorReference, facilityId: tuple.facilityId, patientId: tuple.patientId,
@@ -205,7 +206,7 @@ export async function replayAcceptedLabCorrection(context: Context, evidence: Ev
  * Values are selected only through normal List field access after header scope. */
 export async function labResultReadback(_root: unknown, args: { resultId?: string; command?: LabCommand; correctionCommand?: LabCorrectionCommand; beforeVersion?: number }, context: Context) {
   const command = args.command || args.correctionCommand
-  if ([args.resultId, args.command, args.correctionCommand].filter(Boolean).length !== 1 || (args.beforeVersion != null && (!Number.isInteger(args.beforeVersion) || args.beforeVersion < 1))) throw new Error('Lab readback request is invalid')
+  if ([args.resultId, args.command, args.correctionCommand].filter(Boolean).length !== 1 || (args.beforeVersion != null && (!Number.isInteger(args.beforeVersion) || args.beforeVersion < 1))) throw new HospitalRefusal('Lab readback request is invalid')
   return context.transaction(async tx => {
     // Installed Keystone declares isolationLevel as the enum OBJECT although
     // Prisma runtime expects a string. Do not shim/cast that SDK declaration:

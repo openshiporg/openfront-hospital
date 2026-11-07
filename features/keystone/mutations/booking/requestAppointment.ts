@@ -13,6 +13,7 @@ import getAvailableAppointmentSlots from './getAvailableAppointmentSlots'
 import { hash } from '../operational/evidence'
 import { consumeSharedRateLimit, requestIdentity } from '../../security/graphqlSecurity'
 import { calendarDateInTimeZone } from '../scheduling/facilityTime'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 type Args = {
   appointmentTypeId: string
@@ -44,30 +45,30 @@ function makeAppointmentNumber() {
 function dateOnlyFromIso(value?: string | null) {
   if (!value) return null
   const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) throw new Error('dateOfBirth must be a valid date')
-  if (parsed.getTime() > Date.now()) throw new Error('dateOfBirth cannot be in the future')
+  if (Number.isNaN(parsed.getTime())) throw new HospitalRefusal('dateOfBirth must be a valid date')
+  if (parsed.getTime() > Date.now()) throw new HospitalRefusal('dateOfBirth cannot be in the future')
   return parsed.toISOString()
 }
 
 function cleanOptional(value?: string | null, maxLength = 500) {
   const cleaned = value?.trim()
   if (!cleaned) return null
-  if (cleaned.length > maxLength) throw new Error(`Input exceeds the ${maxLength} character limit`)
+  if (cleaned.length > maxLength) throw new HospitalRefusal(`Input exceeds the ${maxLength} character limit`)
   return cleaned
 }
 
 function validatePatientInput(patient: Args['patient']) {
   const firstName = cleanOptional(patient.firstName, 100)
   const lastName = cleanOptional(patient.lastName, 100)
-  if (!firstName || !lastName) throw new Error('Patient first and last name are required')
+  if (!firstName || !lastName) throw new HospitalRefusal('Patient first and last name are required')
 
   const email = cleanOptional(patient.email, 254)?.toLowerCase() || null
   const phone = cleanOptional(patient.phone, 40)
-  if (!email && !phone) throw new Error('Email or phone is required for appointment follow-up')
-  if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new Error('Email must be valid')
+  if (!email && !phone) throw new HospitalRefusal('Email or phone is required for appointment follow-up')
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new HospitalRefusal('Email must be valid')
   if (phone) {
     const digits = phone.replace(/\D/g, '')
-    if (digits.length < 7 || digits.length > 15) throw new Error('Phone must contain 7 to 15 digits')
+    if (digits.length < 7 || digits.length > 15) throw new HospitalRefusal('Phone must contain 7 to 15 digits')
   }
 
   return { firstName, lastName, email, phone }
@@ -130,29 +131,29 @@ export default async function requestAppointment(_root: unknown, args: Args, con
   const patientInput = validatePatientInput(args.patient)
   const reasonForVisit = cleanOptional(args.reasonForVisit, 2000)
   const preferredContactMethod = args.preferredContactMethod === 'email' ? 'email' : args.preferredContactMethod === 'phone' ? 'phone' : 'sms'
-  if (preferredContactMethod === 'email' && !patientInput.email) throw new Error('Email is required for email follow-up')
-  if (preferredContactMethod !== 'email' && !patientInput.phone) throw new Error('Phone is required for phone or SMS follow-up')
+  if (preferredContactMethod === 'email' && !patientInput.email) throw new HospitalRefusal('Email is required for email follow-up')
+  if (preferredContactMethod !== 'email' && !patientInput.phone) throw new HospitalRefusal('Phone is required for phone or SMS follow-up')
   const slotDate = new Date(args.startsAt)
-  if (Number.isNaN(slotDate.getTime())) throw new Error('startsAt must be a valid ISO date')
-  if (slotDate.getTime() <= Date.now()) throw new Error('Appointment requests must use a future slot')
+  if (Number.isNaN(slotDate.getTime())) throw new HospitalRefusal('startsAt must be a valid ISO date')
+  if (slotDate.getTime() <= Date.now()) throw new HospitalRefusal('Appointment requests must use a future slot')
 
   const prisma = context.sudo().prisma as any
   const facilityConfiguration = await prisma.facility.findFirst({
     where: { id: args.facilityId, status: 'active' },
     select: { id: true, timeZone: true },
   })
-  if (!facilityConfiguration) throw new Error('The selected facility is not available')
+  if (!facilityConfiguration) throw new HospitalRefusal('The selected facility is not available')
   const facilityDate = calendarDateInTimeZone(slotDate, facilityConfiguration.timeZone)
   parsePublicDateWindow(facilityDate, facilityConfiguration.timeZone)
   if (slotDate.getUTCMinutes() % 15 !== 0 || slotDate.getUTCSeconds() !== 0 || slotDate.getUTCMilliseconds() !== 0) {
-    throw new Error('That appointment slot is no longer available')
+    throw new HospitalRefusal('That appointment slot is no longer available')
   }
 
   const production = process.env.NODE_ENV === 'production'
   const now = new Date()
   const contactIdentities = bookingContactIdentities(patientInput)
   const slotIdentity = `${args.facilityId}:${args.providerId}:${args.appointmentTypeId}:${slotDate.toISOString()}`
-  const rejectRate = () => { throw new Error('Too many appointment requests; please try again later') }
+  const rejectRate = () => { throw new HospitalRefusal('Too many appointment requests; please try again later') }
   if (!await consumeSharedRateLimit(prisma, 'public-booking-global', 'all-requests', production ? 100 : 2_000, now, 60)) rejectRate()
   if (!await consumeSharedRateLimit(prisma, 'public-booking-network', identity, production ? 5 : 100, now, 60)) rejectRate()
   if (!await consumeSharedRateLimit(prisma, 'public-booking-facility', args.facilityId, production ? 30 : 500, now, 60)) rejectRate()
@@ -174,7 +175,7 @@ export default async function requestAppointment(_root: unknown, args: Args, con
   if (!listedSlots.some((slot) =>
     slot.providerId === args.providerId && slot.facilityId === args.facilityId && slot.startsAt === slotDate.toISOString(),
   )) {
-    throw new Error('That appointment slot is no longer available')
+    throw new HospitalRefusal('That appointment slot is no longer available')
   }
 
   const sudo = context.sudo()
@@ -194,7 +195,7 @@ export default async function requestAppointment(_root: unknown, args: Args, con
         startsAt: slotDate,
       })
       if (requestedSlot.availability.hasConflict) {
-        throw new Error('That appointment slot was just taken. Please choose another time.')
+        throw new HospitalRefusal('That appointment slot was just taken. Please choose another time.')
       }
       const facility = requestedSlot.facility
       const communicationInstallations = await tx.integrationInstallation.findMany({
@@ -217,7 +218,7 @@ export default async function requestAppointment(_root: unknown, args: Args, con
       const outstandingRequests = await tx.appointment.count({
         where: { facilityId: facility.id, source: 'patient_portal', status: 'requested' },
       })
-      if (outstandingRequests >= 500) throw new Error('Online appointment requests are temporarily unavailable')
+      if (outstandingRequests >= 500) throw new HospitalRefusal('Online appointment requests are temporarily unavailable')
 
       // Public contact details are not identity proof. Always create a new front-door
       // patient record rather than attaching this request to an existing patient.
@@ -401,7 +402,7 @@ export default async function requestAppointment(_root: unknown, args: Args, con
       : null
     return serializeAppointmentRequestResult(appointmentWithAccess)
   } catch (error: any) {
-    if (isScheduleRaceError(error)) throw new Error('That appointment slot was just taken. Please choose another time.')
+    if (isScheduleRaceError(error)) throw new HospitalRefusal('That appointment slot was just taken. Please choose another time.')
     throw error
   }
 }

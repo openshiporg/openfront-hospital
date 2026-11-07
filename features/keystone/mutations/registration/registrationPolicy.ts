@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 export type RegistrationConsentInput = {
   accepted: boolean
@@ -59,7 +60,7 @@ const LEGACY_REGISTRATION_STATEMENT_KEYS = new Set(['northstar-registration-ackn
 function requiredBoundedText(value: unknown, label: string, maxLength: number) {
   const normalized = String(value ?? '').trim().replace(/\s+/g, ' ')
   if (!normalized || normalized.length > maxLength || CONTROL_CHARACTERS.test(normalized)) {
-    throw new Error(`${label} is invalid for patient registration`)
+    throw new HospitalRefusal(`${label} is invalid for patient registration`)
   }
   return normalized
 }
@@ -76,7 +77,7 @@ function normalizeEmail(value: unknown): string | null {
     CONTROL_CHARACTERS.test(normalized) ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
   ) {
-    throw new Error('Email is invalid for patient registration')
+    throw new HospitalRefusal('Email is invalid for patient registration')
   }
   return normalized
 }
@@ -84,10 +85,10 @@ function normalizeEmail(value: unknown): string | null {
 function normalizePhone(value: unknown): string | null {
   const input = String(value ?? '').trim()
   if (!input) return null
-  if (CONTROL_CHARACTERS.test(input)) throw new Error('Phone is invalid for patient registration')
+  if (CONTROL_CHARACTERS.test(input)) throw new HospitalRefusal('Phone is invalid for patient registration')
   const digits = input.replace(/\D/g, '')
   if (digits.length < 7 || digits.length > 15) {
-    throw new Error('Phone is invalid for patient registration')
+    throw new HospitalRefusal('Phone is invalid for patient registration')
   }
   return input.startsWith('+') ? `+${digits}` : digits
 }
@@ -95,15 +96,15 @@ function normalizePhone(value: unknown): string | null {
 function normalizeDateOfBirth(value: unknown, now: Date) {
   const input = String(value ?? '').trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-    throw new Error('Date of birth must use YYYY-MM-DD for patient registration')
+    throw new HospitalRefusal('Date of birth must use YYYY-MM-DD for patient registration')
   }
   const parsed = new Date(`${input}T00:00:00.000Z`)
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== input) {
-    throw new Error('Date of birth is not a real calendar date')
+    throw new HospitalRefusal('Date of birth is not a real calendar date')
   }
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
   if (parsed > today || parsed.getUTCFullYear() < 1850) {
-    throw new Error('Date of birth is outside the supported registration range')
+    throw new HospitalRefusal('Date of birth is outside the supported registration range')
   }
   return parsed.toISOString()
 }
@@ -115,21 +116,21 @@ export function normalizeRegistrationInput(
   const facilityId = requiredBoundedText(input.facilityId, 'Facility', 128)
   const idempotencyKey = String(input.idempotencyKey ?? '').trim()
   if (!IDEMPOTENCY_KEY.test(idempotencyKey)) {
-    throw new Error('Registration idempotency key must be 16-200 safe characters')
+    throw new HospitalRefusal('Registration idempotency key must be 16-200 safe characters')
   }
 
   const medicalRecordNumber = String(input.medicalRecordNumber ?? '').trim().toUpperCase()
   if (!MEDICAL_RECORD_NUMBER.test(medicalRecordNumber)) {
-    throw new Error('Medical record number must be 3-40 letters, numbers, or hyphens')
+    throw new HospitalRefusal('Medical record number must be 3-40 letters, numbers, or hyphens')
   }
 
   const preferredContactMethod = String(input.preferredContactMethod ?? 'phone').trim().toLowerCase()
   if (!CONTACT_METHODS.has(preferredContactMethod)) {
-    throw new Error('Preferred contact method is invalid for patient registration')
+    throw new HospitalRefusal('Preferred contact method is invalid for patient registration')
   }
 
   if (input.consent?.accepted !== true) {
-    throw new Error('Registration consent acknowledgement is required')
+    throw new HospitalRefusal('Registration consent acknowledgement is required')
   }
   const consent = {
     accepted: true,
@@ -140,22 +141,22 @@ export function normalizeRegistrationInput(
     consent.policyVersion !== REGISTRATION_CONSENT.policyVersion ||
     (consent.statementKey !== REGISTRATION_CONSENT.statementKey && !LEGACY_REGISTRATION_STATEMENT_KEYS.has(consent.statementKey))
   ) {
-    throw new Error('Registration consent acknowledgement does not match the current policy')
+    throw new HospitalRefusal('Registration consent acknowledgement does not match the current policy')
   }
 
   const resolutionInput = String(input.duplicateResolution ?? '').trim().toLowerCase()
   const duplicateResolution = resolutionInput || null
   if (duplicateResolution !== null && duplicateResolution !== 'create_new' && duplicateResolution !== 'link_existing') {
-    throw new Error('Duplicate resolution is invalid for patient registration')
+    throw new HospitalRefusal('Duplicate resolution is invalid for patient registration')
   }
   const duplicatePatientId = input.duplicatePatientId
     ? requiredBoundedText(input.duplicatePatientId, 'Duplicate patient', 128)
     : null
   if (duplicateResolution === 'link_existing' && !duplicatePatientId) {
-    throw new Error('Duplicate patient is required when linking an existing registration')
+    throw new HospitalRefusal('Duplicate patient is required when linking an existing registration')
   }
   if (duplicateResolution !== 'link_existing' && duplicatePatientId) {
-    throw new Error('Duplicate patient is only valid when linking an existing registration')
+    throw new HospitalRefusal('Duplicate patient is only valid when linking an existing registration')
   }
 
   return {

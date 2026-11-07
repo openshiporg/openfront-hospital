@@ -1,3 +1,4 @@
+import { HospitalRefusal } from '../lib/constraint-errors'
 export const BOOKING_CONSENT = {
   consentType: 'appointment_request',
   policyVersion: '2026-07-10',
@@ -14,9 +15,9 @@ export function requireConsent(
   consent: { accepted?: boolean | null; policyVersion?: string | null; statementKey?: string | null } | null | undefined,
   expected: { policyVersion: string; statementKey: string }
 ) {
-  if (!consent?.accepted) throw new Error('Consent acknowledgement is required')
+  if (!consent?.accepted) throw new HospitalRefusal('Consent acknowledgement is required')
   if (consent.policyVersion !== expected.policyVersion || consent.statementKey !== expected.statementKey) {
-    throw new Error('Consent acknowledgement does not match the current policy')
+    throw new HospitalRefusal('Consent acknowledgement does not match the current policy')
   }
 }
 

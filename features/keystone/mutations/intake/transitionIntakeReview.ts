@@ -6,6 +6,7 @@ import {
   replayTransition,
   transitionEvidence,
 } from '../transitionEvidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 const TRANSITIONS: Record<string, string[]> = {
   submitted: ['needs_review', 'reviewed'],
@@ -30,17 +31,17 @@ type Args = {
 function cleanOptional(value?: string | null, maxLength = 4000) {
   const cleaned = value?.trim()
   if (!cleaned) return null
-  if (cleaned.length > maxLength) throw new Error(`Input exceeds the ${maxLength} character limit`)
+  if (cleaned.length > maxLength) throw new HospitalRefusal(`Input exceeds the ${maxLength} character limit`)
   return cleaned
 }
 
 export default async function transitionIntakeReview(_root: unknown, args: Args, context: Context) {
   const role = context.session?.data.role
   if (!role?.canManageIntake && !role?.canAccessAllClinicalData) {
-    throw new Error('Not authorized to transition intake review')
+    throw new HospitalRefusal('Not authorized to transition intake review')
   }
   if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) {
-    throw new Error('Expected intake version is invalid')
+    throw new HospitalRefusal('Expected intake version is invalid')
   }
   const reviewNotes = cleanOptional(args.reviewNotes)
   const evidence = transitionEvidence(args.operationKey, {
@@ -53,7 +54,7 @@ export default async function transitionIntakeReview(_root: unknown, args: Args,
     where: { id: args.intakeFormId },
     query: 'id',
   })
-  if (!scopedForm) throw new Error('Intake form not found or not accessible')
+  if (!scopedForm) throw new HospitalRefusal('Intake form not found or not accessible')
 
   const sudo = context.sudo()
   return sudo.prisma.$transaction(async tx => {
@@ -69,13 +70,13 @@ export default async function transitionIntakeReview(_root: unknown, args: Args,
 
     const form = await tx.intakeForm.findUnique({ where: { id: args.intakeFormId } })
     if (!form || form.transitionVersion !== args.expectedVersion) {
-      throw new Error('Intake form changed; refresh before retrying')
+      throw new HospitalRefusal('Intake form changed; refresh before retrying')
     }
     if (!TRANSITIONS[form.status]?.includes(args.toStatus)) {
-      throw new Error(`Invalid intake transition from ${form.status} to ${args.toStatus}`)
+      throw new HospitalRefusal(`Invalid intake transition from ${form.status} to ${args.toStatus}`)
     }
     if (args.toStatus === 'reviewed' && !reviewNotes && !form.reviewNotes) {
-      throw new Error('Review notes are required to mark intake reviewed')
+      throw new HospitalRefusal('Review notes are required to mark intake reviewed')
     }
 
     const now = new Date()

@@ -8,6 +8,7 @@ import {
   replayTransition,
   transitionEvidence,
 } from '../transitionEvidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 const TRANSITIONS: Record<string, string[]> = {
   requested: ['confirmed', 'cancelled'],
@@ -33,23 +34,23 @@ type Args = {
 function cleanOptional(value?: string | null, maxLength = 2000) {
   const cleaned = value?.trim()
   if (!cleaned) return null
-  if (cleaned.length > maxLength) throw new Error(`Input exceeds the ${maxLength} character limit`)
+  if (cleaned.length > maxLength) throw new HospitalRefusal(`Input exceeds the ${maxLength} character limit`)
   return cleaned
 }
 
 function requirePermission(context: Context) {
   if (!context.session?.data.role?.canManageAppointments && !context.session?.data.role?.canAccessAllClinicalData) {
-    throw new Error('Not authorized to transition appointments')
+    throw new HospitalRefusal('Not authorized to transition appointments')
   }
 }
 
 export default async function transitionAppointment(_root: unknown, args: Args, context: Context) {
   requirePermission(context)
   if (args.toStatus === 'checked_in') {
-    throw new Error('Appointment check-in must use the atomic care-queue arrival workflow')
+    throw new HospitalRefusal('Appointment check-in must use the atomic care-queue arrival workflow')
   }
   if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) {
-    throw new Error('Expected appointment version is invalid')
+    throw new HospitalRefusal('Expected appointment version is invalid')
   }
   const reason = cleanOptional(args.reason, 1000)
   const operationalNotes = cleanOptional(args.operationalNotes, 2000)
@@ -64,7 +65,7 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
     where: { id: args.appointmentId },
     query: 'id provider { id }',
   }) as { id: string; provider?: { id: string } | null } | null
-  if (!scopedAppointment) throw new Error('Appointment not found or not accessible')
+  if (!scopedAppointment) throw new HospitalRefusal('Appointment not found or not accessible')
 
   const outcome = await context.transaction(async (transactionContext: any) => {
     // Keystone 6.5 declares `isolationLevel` as the enum object while Prisma expects the
@@ -72,15 +73,15 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
     await transactionContext.prisma.$executeRaw(Prisma.sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`)
     const current = await currentEpisodeActor(transactionContext, 'appointments')
     const scoped = await current.query.Appointment.findOne({ where: { id: args.appointmentId }, query: 'id patient { id } provider { id } facility { id }' })
-    if (!scoped?.facility?.id || !scoped.patient?.id || !scoped.provider?.id) throw new Error('Current appointment scope is unavailable')
+    if (!scoped?.facility?.id || !scoped.patient?.id || !scoped.provider?.id) throw new HospitalRefusal('Current appointment scope is unavailable')
     await lockEpisodeFacility(current, scoped.facility.id, scoped.provider.id)
     await lockEpisodePatientProvider(current, scoped.facility.id, scoped.patient.id, scoped.provider.id)
     const tx = current.prisma
     await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Appointment" WHERE "id" = ${args.appointmentId} FOR UPDATE`)
     const visible = await current.query.Appointment.findOne({ where: { id: args.appointmentId }, query: 'id patient { id } provider { id } facility { id }' })
-    if (visible?.facility?.id !== scoped.facility.id || visible?.patient?.id !== scoped.patient.id || visible?.provider?.id !== scoped.provider.id) throw new Error('Appointment scope changed')
+    if (visible?.facility?.id !== scoped.facility.id || visible?.patient?.id !== scoped.patient.id || visible?.provider?.id !== scoped.provider.id) throw new HospitalRefusal('Appointment scope changed')
     const prior = await tx.workflowTransition.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
-    if (prior && prior.actorReference !== current.session.itemId) throw new Error('Original appointment operation is not owned')
+    if (prior && prior.actorReference !== current.session.itemId) throw new HospitalRefusal('Original appointment operation is not owned')
     await lockTransitionOperation(tx, evidence.operationKeyHash)
     await lockProviderSchedule(tx, scoped.provider.id)
     const replay = await replayTransition(tx, evidence, 'appointment', args.appointmentId)
@@ -97,19 +98,19 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
       include: { appointmentType: true },
     })
     if (!appointment || appointment.transitionVersion !== args.expectedVersion) {
-      throw new Error('Appointment changed; refresh before retrying')
+      throw new HospitalRefusal('Appointment changed; refresh before retrying')
     }
     if (!TRANSITIONS[appointment.status]?.includes(args.toStatus)) {
-      throw new Error(`Invalid appointment transition from ${appointment.status} to ${args.toStatus}`)
+      throw new HospitalRefusal(`Invalid appointment transition from ${appointment.status} to ${args.toStatus}`)
     }
-    if (args.toStatus === 'cancelled' && !reason) throw new Error('Cancellation reason is required')
+    if (args.toStatus === 'cancelled' && !reason) throw new HospitalRefusal('Cancellation reason is required')
 
     if (args.toStatus === 'confirmed') {
-      if (!appointment.providerId) throw new Error('Appointment is missing a provider')
-      if (!appointment.facilityId) throw new Error('Appointment is missing a facility')
+      if (!appointment.providerId) throw new HospitalRefusal('Appointment is missing a provider')
+      if (!appointment.facilityId) throw new HospitalRefusal('Appointment is missing a facility')
       const durationMinutes = Number(appointment.appointmentType?.durationMinutes)
       if (!Number.isInteger(durationMinutes) || appointment.endsAt.getTime() !== appointment.startsAt.getTime() + durationMinutes * 60_000) {
-        throw new Error('Appointment window must match the appointment type duration')
+        throw new HospitalRefusal('Appointment window must match the appointment type duration')
       }
       const schedule = await inspectProviderWindow(tx, {
         providerId: appointment.providerId,
@@ -121,7 +122,7 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
         excludeAppointmentId: appointment.id,
       })
       if (schedule.hasConflict) {
-        throw new Error('Appointment cannot be confirmed because the provider schedule conflicts')
+        throw new HospitalRefusal('Appointment cannot be confirmed because the provider schedule conflicts')
       }
     }
 

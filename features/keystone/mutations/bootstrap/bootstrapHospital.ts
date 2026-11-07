@@ -2,10 +2,11 @@ import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 
 import { safeEqualText } from '../../integrations/crypto'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function bounded(value: unknown, label: string, maximum: number) {
   const text = String(value || '').trim()
-  if (!text || text.length > maximum || /[\u0000-\u001f\u007f]/.test(text)) throw new Error(`${label} is invalid`)
+  if (!text || text.length > maximum || /[\u0000-\u001f\u007f]/.test(text)) throw new HospitalRefusal(`${label} is invalid`)
   return text
 }
 
@@ -21,7 +22,7 @@ export default async function bootstrapHospital(
   const name = bounded(data?.name, 'Administrator name', 150)
   const email = bounded(data?.email, 'Administrator email', 254).toLowerCase()
   const password = bounded(data?.password, 'Administrator password', 200)
-  if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 16) throw new Error('Administrator details are invalid')
+  if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 16) throw new HospitalRefusal('Administrator details are invalid')
 
   return context.transaction(async (transactionContext: any) => {
     const sudo = transactionContext.sudo()

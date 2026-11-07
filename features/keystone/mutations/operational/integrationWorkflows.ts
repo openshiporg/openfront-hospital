@@ -7,6 +7,7 @@ import { dispatchExternalOutbox } from '../../integrations/outboxWorker'
 import { validateIntegrationEndpoint } from '../../integrations/endpointPolicy'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
 import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence } from './evidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 const EVENT_TYPES = new Set([
   'message.queued',
@@ -21,13 +22,13 @@ const KINDS = new Set(['communications', 'payment', 'laboratory', 'pharmacy', 'w
 
 function requireIntegrations(context: Context) {
   const role = context.session?.data.role
-  if (!role?.canManageIntegrations) throw new Error('Not authorized to manage integrations')
+  if (!role?.canManageIntegrations) throw new HospitalRefusal('Not authorized to manage integrations')
 }
 
 async function scopedFacility(context: Context, facilityId: string) {
   requireIntegrations(context)
   const facility = await context.query.Facility.findOne({ where: { id: facilityId }, query: 'id status' }) as any
-  if (!facility || facility.status !== 'active') throw new Error('Facility not found or not accessible')
+  if (!facility || facility.status !== 'active') throw new HospitalRefusal('Facility not found or not accessible')
   return facility
 }
 
@@ -39,12 +40,12 @@ export async function createIntegrationInstallation(_root: unknown, { data }: an
   await scopedFacility(context, data.facilityId)
   const name = bounded(data.name, 'Integration name', 200, true)
   const kind = bounded(data.kind, 'Integration kind', 40, true)
-  if (!KINDS.has(kind)) throw new Error('Integration kind is invalid')
+  if (!KINDS.has(kind)) throw new HospitalRefusal('Integration kind is invalid')
   const endpointUrl = await validateIntegrationEndpoint(data.endpointUrl)
   const allowedEventTypes: string[] = Array.from(new Set<string>((Array.isArray(data.allowedEventTypes) ? data.allowedEventTypes : [])
     .map((value: unknown) => bounded(value, 'Allowed event type', 100, true))))
   if (!allowedEventTypes.length || allowedEventTypes.length > 25 || allowedEventTypes.some(value => !EVENT_TYPES.has(value))) {
-    throw new Error('Integration event allowlist is invalid')
+    throw new HospitalRefusal('Integration event allowlist is invalid')
   }
   const input = { ...data, name, kind, endpointUrl, allowedEventTypes }
   const evidence = operationEvidence(input)
@@ -53,7 +54,7 @@ export async function createIntegrationInstallation(_root: unknown, { data }: an
     await lockOperation(prisma, 'integration-installation-create', evidence.operationKeyHash)
     const existing = await prisma.integrationInstallation.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return { ...result(existing, true), installationKey: existing.installationKey, signingSecret: null }
     }
     const signingSecret = randomBytes(32).toString('base64url')
@@ -89,9 +90,9 @@ export async function createIntegrationInstallation(_root: unknown, { data }: an
 export async function transitionIntegrationInstallation(_root: unknown, args: any, context: Context) {
   requireIntegrations(context)
   const scoped = await context.query.IntegrationInstallation.findOne({ where: { id: args.installationId }, query: 'id' })
-  if (!scoped) throw new Error('Integration installation not found or not accessible')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected integration version is invalid')
-  if (!['active', 'paused', 'revoked'].includes(args.toStatus)) throw new Error('Integration status is invalid')
+  if (!scoped) throw new HospitalRefusal('Integration installation not found or not accessible')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected integration version is invalid')
+  if (!['active', 'paused', 'revoked'].includes(args.toStatus)) throw new HospitalRefusal('Integration status is invalid')
   const evidence = transitionEvidence(args.operationKey, { installationId: args.installationId, expectedVersion: args.expectedVersion, toStatus: args.toStatus })
   const allowed: Record<string, string[]> = { active: ['paused', 'revoked'], paused: ['active', 'revoked'], revoked: [] }
   return context.transaction(async (transactionContext: any) => {
@@ -101,8 +102,8 @@ export async function transitionIntegrationInstallation(_root: unknown, args: an
     const replay = await replayTransition(prisma, evidence, 'integration', args.installationId)
     if (replay) return replay
     const current = await prisma.integrationInstallation.findUnique({ where: { id: args.installationId } })
-    if (!current || current.transitionVersion !== args.expectedVersion) throw new Error('Integration changed; refresh before retrying')
-    if (!allowed[current.status]?.includes(args.toStatus)) throw new Error(`Invalid integration transition from ${current.status} to ${args.toStatus}`)
+    if (!current || current.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Integration changed; refresh before retrying')
+    if (!allowed[current.status]?.includes(args.toStatus)) throw new HospitalRefusal(`Invalid integration transition from ${current.status} to ${args.toStatus}`)
     const now = new Date()
     const updated = await prisma.integrationInstallation.update({ where: { id: current.id }, data: {
       status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId,
@@ -138,28 +139,28 @@ export async function issueMachineCredential(_root: unknown, { data }: any, cont
   const installation = await context.query.IntegrationInstallation.findOne({
     where: { id: data.installationId }, query: 'id status transitionVersion facility { id }',
   }) as any
-  if (!installation || installation.status !== 'active') throw new Error('Active integration installation not found or not accessible')
+  if (!installation || installation.status !== 'active') throw new HospitalRefusal('Active integration installation not found or not accessible')
   const name = bounded(data.name, 'Credential name', 200, true)
   const expiresAt = new Date(data.expiresAt)
   const now = new Date()
   if (Number.isNaN(expiresAt.getTime()) || expiresAt <= now || expiresAt.getTime() > now.getTime() + 366 * 24 * 60 * 60_000) {
-    throw new Error('Credential expiry must be within the next year')
+    throw new HospitalRefusal('Credential expiry must be within the next year')
   }
   const scopes = Array.from(new Set((Array.isArray(data.scopes) ? data.scopes : []).map((scope: unknown) => bounded(scope, 'Credential scope', 80, true))))
-  if (!scopes.length || scopes.length > 10 || scopes.some(scope => scope !== 'webhook:write')) throw new Error('Machine credential scopes are invalid')
+  if (!scopes.length || scopes.length > 10 || scopes.some(scope => scope !== 'webhook:write')) throw new HospitalRefusal('Machine credential scopes are invalid')
   const evidence = operationEvidence({ ...data, name, expiresAt: expiresAt.toISOString(), scopes })
   return context.transaction(async (transactionContext: any) => {
     const prisma = transactionContext.sudo().prisma
     await lockOperation(prisma, 'machine-credential-create', evidence.operationKeyHash)
     const existing = await prisma.machineCredential.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return { ...result(existing, true), credential: null, keyPrefix: existing.keyPrefix }
     }
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`integration:${installation.id}`}, 0))::text AS "lock"`)
     const currentInstallation = await prisma.integrationInstallation.findUnique({ where: { id: installation.id } })
     if (!currentInstallation || currentInstallation.status !== 'active' || currentInstallation.transitionVersion !== installation.transitionVersion) {
-      throw new Error('Integration changed or is no longer active')
+      throw new HospitalRefusal('Integration changed or is no longer active')
     }
     const prefix = randomBytes(6).toString('hex')
     const credential = `ofh_${prefix}_${randomBytes(32).toString('base64url')}`
@@ -183,20 +184,20 @@ export async function issueMachineCredential(_root: unknown, { data }: any, cont
 export async function revokeMachineCredential(_root: unknown, args: any, context: Context) {
   requireIntegrations(context)
   const scoped = await context.query.MachineCredential.findOne({ where: { id: args.credentialId }, query: 'id' })
-  if (!scoped) throw new Error('Machine credential not found or not accessible')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected credential version is invalid')
+  if (!scoped) throw new HospitalRefusal('Machine credential not found or not accessible')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected credential version is invalid')
   const evidence = transitionEvidence(args.operationKey, { credentialId: args.credentialId, expectedVersion: args.expectedVersion, toStatus: 'revoked' })
   return context.transaction(async (transactionContext: any) => {
     const prisma = transactionContext.sudo().prisma
     await lockTransitionOperation(prisma, evidence.operationKeyHash)
     const preliminary = await prisma.machineCredential.findUnique({ where: { id: args.credentialId } })
-    if (!preliminary) throw new Error('Machine credential changed or is not active')
+    if (!preliminary) throw new HospitalRefusal('Machine credential changed or is not active')
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`integration:${preliminary.installationId}`}, 0))::text AS "lock"`)
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`machine-credential:${args.credentialId}`}, 0))::text AS "lock"`)
     const replay = await replayTransition(prisma, evidence, 'machine_credential', args.credentialId)
     if (replay) return replay
     const current = await prisma.machineCredential.findUnique({ where: { id: args.credentialId } })
-    if (!current || current.status !== 'active' || current.transitionVersion !== args.expectedVersion) throw new Error('Machine credential changed or is not active')
+    if (!current || current.status !== 'active' || current.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Machine credential changed or is not active')
     const now = new Date()
     const updated = await prisma.machineCredential.update({ where: { id: current.id }, data: { status: 'revoked', transitionVersion: { increment: 1 }, revokedAt: now } })
     const events = await appendAuditAndOutbox(prisma, {
@@ -226,7 +227,7 @@ const LOCAL_TYPES: Record<string, { list: string; query: string }> = {
 
 export async function dispatchIntegrationOutbox(_root: unknown, args: { limit?: number }, context: Context) {
   if (!context.session?.data.role?.canAccessAllClinicalData || !context.session?.data.role?.canManageIntegrations) {
-    throw new Error('Only the global maintenance administrator can dispatch integration events')
+    throw new HospitalRefusal('Only the global maintenance administrator can dispatch integration events')
   }
   return dispatchExternalOutbox(context.sudo().prisma, args.limit)
 }
@@ -238,12 +239,12 @@ export async function linkExternalIdentity(_root: unknown, { data }: any, contex
   const externalId = bounded(data.externalId, 'External identifier', 300, true)
   const localType = bounded(data.localType, 'Local resource type', 80, true)
   const local = LOCAL_TYPES[localType]
-  if (!local) throw new Error('Local resource type is not supported')
+  if (!local) throw new HospitalRefusal('Local resource type is not supported')
   const row = await (context.query as any)[local.list].findOne({ where: { id: data.localId }, query: local.query })
   const inFacility = localType === 'patient'
     ? row?.facilities?.some((facility: { id: string }) => facility.id === data.facilityId)
     : row?.facility?.id === data.facilityId
-  if (!row || !inFacility) throw new Error('Local resource not found in the accessible facility')
+  if (!row || !inFacility) throw new HospitalRefusal('Local resource not found in the accessible facility')
   const input = { ...data, system, resourceType, externalId, localType }
   const evidence = operationEvidence(input)
   return context.transaction(async (transactionContext: any) => {
@@ -251,11 +252,11 @@ export async function linkExternalIdentity(_root: unknown, { data }: any, contex
     await lockOperation(prisma, 'external-identity-link', evidence.operationKeyHash)
     const existing = await prisma.externalIdentityLink.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return { id: existing.id, status: existing.status, replayed: true }
     }
     const duplicate = await prisma.externalIdentityLink.findFirst({ where: { facilityId: data.facilityId, system, resourceType, externalId } })
-    if (duplicate) throw new Error('External identity is already linked in the facility')
+    if (duplicate) throw new HospitalRefusal('External identity is already linked in the facility')
     const now = new Date()
     const link = await prisma.externalIdentityLink.create({ data: {
       linkNumber: `XLINK-${randomUUID()}`, facilityId: data.facilityId, system, resourceType,

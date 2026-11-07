@@ -6,10 +6,11 @@ import { lockTransitionOperation, recordTransition, replayTransition, transition
 import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
 import { currentEpisodeActor, currentEpisodeChild, guardEpisodeChild } from '../clinical/episodeFence'
 import { recheckEpisodeRelated } from '../clinical/episodeRelatedScope'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireClinical(context: Context) {
   const role = context.session?.data.role
-  if (!role?.canManagePatients && !role?.canAccessAllClinicalData) throw new Error('Not authorized to manage clinical evidence')
+  if (!role?.canManagePatients && !role?.canAccessAllClinicalData) throw new HospitalRefusal('Not authorized to manage clinical evidence')
 }
 
 function result(row: any, replayed = false) {
@@ -23,10 +24,10 @@ async function validateEncounterProvider(context: Context, data: any) {
     data.providerId ? context.query.Provider.findOne({ where: { id: data.providerId }, query: 'id status facilities { id }' }) : null,
   ]) as any[]
   if (!encounter || encounter.facility?.id !== data.facilityId || encounter.patient?.id !== data.patientId) {
-    throw new Error('Active encounter does not match the patient and facility')
+    throw new HospitalRefusal('Active encounter does not match the patient and facility')
   }
   if (data.providerId && (provider?.status !== 'active' || !provider.facilities?.some((item: any) => item.id === data.facilityId))) {
-    throw new Error('Provider does not match the active facility')
+    throw new HospitalRefusal('Provider does not match the active facility')
   }
 }
 
@@ -40,14 +41,14 @@ export async function createClinicalDocument(_root: unknown, { data }: any, cont
   return context.transaction(async (transactionContext: any) => {
     const fresh = await currentEpisodeActor(transactionContext)
     const prior = await fresh.prisma.clinicalDocument.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
-    if (prior && prior.actorReference !== fresh.session.itemId) throw new Error('Original evidence operation is not owned')
+    if (prior && prior.actorReference !== fresh.session.itemId) throw new HospitalRefusal('Original evidence operation is not owned')
     const guarded = await guardEpisodeChild(fresh, data, 'new_care', false, Boolean(prior))
     await recheckEpisodeRelated(guarded.context, 'ClinicalDocument', data, Boolean(prior))
     const prisma = guarded.context.prisma
     await lockOperation(prisma, 'clinical-document-create', evidence.operationKeyHash)
     const existing = await prisma.clinicalDocument.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return result(existing, true)
     }
     const now = new Date()
@@ -73,11 +74,11 @@ export async function createClinicalDocument(_root: unknown, { data }: any, cont
 export async function transitionClinicalDocument(_root: unknown, args: any, context: Context) {
   requireClinical(context)
   if (args.toStatus === 'signed') {
-    throw new Error('Clinical document signing is not available in this bounded patient-operations release')
+    throw new HospitalRefusal('Clinical document signing is not available in this bounded patient-operations release')
   }
   const scoped = await context.query.ClinicalDocument.findOne({ where: { id: args.documentId }, query: 'id' })
-  if (!scoped) throw new Error('Clinical document not found or not accessible')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected document version is invalid')
+  if (!scoped) throw new HospitalRefusal('Clinical document not found or not accessible')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected document version is invalid')
   const reason = bounded(args.reason, 'Document transition reason', 1000, args.toStatus === 'entered_in_error')
   const evidence = transitionEvidence(args.operationKey, { documentId: args.documentId, toStatus: args.toStatus, expectedVersion: args.expectedVersion, reason })
   const allowed: Record<string, string[]> = { draft: ['signed', 'entered_in_error'], signed: ['entered_in_error'], amended: [], entered_in_error: [] }
@@ -85,7 +86,7 @@ export async function transitionClinicalDocument(_root: unknown, args: any, cont
     const fresh = await currentEpisodeActor(transactionContext)
     const child = await currentEpisodeChild(fresh, 'ClinicalDocument', args.documentId)
     const prior = await fresh.prisma.workflowTransition.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
-    if (prior && prior.actorReference !== fresh.session.itemId) throw new Error('Original evidence operation is not owned')
+    if (prior && prior.actorReference !== fresh.session.itemId) throw new HospitalRefusal('Original evidence operation is not owned')
     const guarded = await guardEpisodeChild(fresh, child.input, args.toStatus === 'entered_in_error' ? 'cancel_evidence' : 'new_care', false, Boolean(prior))
     const prisma = guarded.context.prisma
     await lockTransitionOperation(prisma, evidence.operationKeyHash)
@@ -93,8 +94,8 @@ export async function transitionClinicalDocument(_root: unknown, args: any, cont
     const replay = await replayTransition(prisma, evidence, 'clinical_document', args.documentId)
     if (replay) return replay
     const current = await prisma.clinicalDocument.findUnique({ where: { id: args.documentId } })
-    if (!current || current.transitionVersion !== args.expectedVersion) throw new Error('Clinical document changed; refresh before retrying')
-    if (!allowed[current.status]?.includes(args.toStatus)) throw new Error(`Invalid clinical document transition from ${current.status} to ${args.toStatus}`)
+    if (!current || current.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Clinical document changed; refresh before retrying')
+    if (!allowed[current.status]?.includes(args.toStatus)) throw new HospitalRefusal(`Invalid clinical document transition from ${current.status} to ${args.toStatus}`)
     const now = new Date()
     const updated = await prisma.clinicalDocument.update({ where: { id: current.id }, data: {
       status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId,
@@ -118,7 +119,7 @@ export async function transitionClinicalDocument(_root: unknown, args: any, cont
 
 export async function amendClinicalDocument(_root: unknown, _args: unknown, context: Context) {
   requireClinical(context)
-  throw new Error('Clinical document amendment is unavailable until qualified signing authority is configured')
+  throw new HospitalRefusal('Clinical document amendment is unavailable until qualified signing authority is configured')
 }
 
 export async function collectSpecimen(_root: unknown, { data }: any, context: Context) {
@@ -126,20 +127,20 @@ export async function collectSpecimen(_root: unknown, { data }: any, context: Co
   await validateEncounterProvider(context, { ...data, providerId: undefined })
   const order = await context.query.MedicalOrder.findOne({ where: { id: data.medicalOrderId }, query: 'id orderType status facility { id } patient { id } encounter { id }' }) as any
   if (!order || order.orderType !== 'lab' || !['ordered', 'in_progress'].includes(order.status) || order.facility?.id !== data.facilityId || order.patient?.id !== data.patientId || order.encounter?.id !== data.encounterId) {
-    throw new Error('Active laboratory order does not match the specimen scope')
+    throw new HospitalRefusal('Active laboratory order does not match the specimen scope')
   }
   const specimenType = bounded(data.specimenType, 'Specimen type', 120, true)
   const evidence = operationEvidence({ ...data, specimenType })
   return context.transaction(async (transactionContext: any) => {
     const fresh = await currentEpisodeActor(transactionContext)
     const prior = await fresh.prisma.specimen.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
-    if (prior && prior.actorReference !== fresh.session.itemId) throw new Error('Original evidence operation is not owned')
+    if (prior && prior.actorReference !== fresh.session.itemId) throw new HospitalRefusal('Original evidence operation is not owned')
     const guarded = await guardEpisodeChild(fresh, data, 'new_care', false, Boolean(prior))
     await recheckEpisodeRelated(guarded.context, 'Specimen', data, Boolean(prior))
     const prisma = guarded.context.prisma
     await lockOperation(prisma, 'specimen-collect', evidence.operationKeyHash)
     const existing = await prisma.specimen.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
-    if (existing) { if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload'); return result(existing, true) }
+    if (existing) { if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload'); return result(existing, true) }
     const now = new Date()
     const specimen = await prisma.specimen.create({ data: {
       specimenNumber: `SPC-${randomUUID()}`, status: 'collected', transitionVersion: 1, ...evidence,
@@ -167,14 +168,14 @@ export async function recordVitalSign(_root: unknown, { data }: any, context: Co
       ...(clinician.provider?.facilities || []),
     ].some((facility: { id: string }) => facility.id === data.facilityId)
   ) {
-    throw new Error('Clinician does not match the active facility')
+    throw new HospitalRefusal('Clinician does not match the active facility')
   }
   const integerFields = ['systolicBp', 'diastolicBp', 'heartRate', 'respiratoryRate', 'oxygenSaturation'] as const
   const values: Record<string, number | null> = {}
   for (const field of integerFields) {
     const raw = data[field]
     if (raw === undefined || raw === null || raw === '') values[field] = null
-    else if (!Number.isSafeInteger(raw)) throw new Error('Blood pressure, pulse, respiration, and oxygen values must be whole numbers')
+    else if (!Number.isSafeInteger(raw)) throw new HospitalRefusal('Blood pressure, pulse, respiration, and oxygen values must be whole numbers')
     else values[field] = Number(raw)
   }
   let temperatureTenthsC: number | null = null
@@ -182,31 +183,31 @@ export async function recordVitalSign(_root: unknown, { data }: any, context: Co
     const temperature = Number(data.temperatureC)
     const tenths = Math.round(temperature * 10)
     if (!Number.isFinite(temperature) || Math.abs(temperature * 10 - tenths) > 1e-8) {
-      throw new Error('Temperature must use at most one decimal place')
+      throw new HospitalRefusal('Temperature must use at most one decimal place')
     }
     temperatureTenthsC = tenths
   }
   if (temperatureTenthsC === null && !integerFields.some(field => values[field] !== null)) {
-    throw new Error('At least one vital sign value is required')
+    throw new HospitalRefusal('At least one vital sign value is required')
   }
   if (temperatureTenthsC !== null && (temperatureTenthsC < 250 || temperatureTenthsC > 450)) {
-    throw new Error('Temperature is outside the supported recording range')
+    throw new HospitalRefusal('Temperature is outside the supported recording range')
   }
   for (const field of ['systolicBp', 'diastolicBp', 'heartRate', 'respiratoryRate'] as const) {
-    if (values[field] !== null && (values[field]! < 1 || values[field]! > 300)) throw new Error('Vital sign value is outside the supported recording range')
+    if (values[field] !== null && (values[field]! < 1 || values[field]! > 300)) throw new HospitalRefusal('Vital sign value is outside the supported recording range')
   }
-  if (values.oxygenSaturation !== null && (values.oxygenSaturation < 1 || values.oxygenSaturation > 100)) throw new Error('Oxygen saturation is outside the supported recording range')
+  if (values.oxygenSaturation !== null && (values.oxygenSaturation < 1 || values.oxygenSaturation > 100)) throw new HospitalRefusal('Oxygen saturation is outside the supported recording range')
   const notes = narrativeText(data.notes, 'Vital sign notes', 2000)
   const evidence = operationEvidence({ ...data, temperatureC: temperatureTenthsC === null ? null : temperatureTenthsC / 10, ...values, notes })
   return context.transaction(async (transactionContext: any) => {
     const fresh = await currentEpisodeActor(transactionContext)
     const prior = await fresh.prisma.vitalSign.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
-    if (prior && prior.actorReference !== fresh.session.itemId) throw new Error('Original evidence operation is not owned')
+    if (prior && prior.actorReference !== fresh.session.itemId) throw new HospitalRefusal('Original evidence operation is not owned')
     const guarded = await guardEpisodeChild(fresh, data, 'new_care', false, Boolean(prior))
     await recheckEpisodeRelated(guarded.context, 'VitalSign', data, Boolean(prior))
     await guarded.context.prisma.$queryRaw(Prisma.sql`SELECT "id" FROM "Clinician" WHERE "id" = ${data.clinicianId} FOR SHARE`)
     const liveClinician = await guarded.context.query.Clinician.findOne({ where: { id: data.clinicianId }, query: 'id active department { id } provider { id }' })
-    if (!liveClinician?.active) throw new Error('Current clinician authority could not be verified')
+    if (!liveClinician?.active) throw new HospitalRefusal('Current clinician authority could not be verified')
     if (liveClinician.department?.id) {
       await guarded.context.prisma.$queryRaw(Prisma.sql`SELECT "id" FROM "Department" WHERE "id" = ${liveClinician.department.id} FOR SHARE`)
       await guarded.context.prisma.$queryRaw(Prisma.sql`SELECT "A" FROM "_Department_facilities" WHERE "A" = ${liveClinician.department.id} AND "B" = ${data.facilityId} FOR SHARE`)
@@ -216,12 +217,12 @@ export async function recordVitalSign(_root: unknown, { data }: any, context: Co
       await guarded.context.prisma.$queryRaw(Prisma.sql`SELECT "A" FROM "_Facility_providers" WHERE "A" = ${data.facilityId} AND "B" = ${liveClinician.provider.id} FOR SHARE`)
     }
     const currentClinician = await guarded.context.query.Clinician.findOne({ where: { id: data.clinicianId }, query: 'id active department { facilities { id } } provider { status facilities { id } }' })
-    if (!currentClinician?.active || ![...(currentClinician.department?.facilities || []), ...(currentClinician.provider?.status === 'active' ? currentClinician.provider.facilities || [] : [])].some((facility: any) => facility.id === data.facilityId)) throw new Error('Current clinician scope could not be verified')
+    if (!currentClinician?.active || ![...(currentClinician.department?.facilities || []), ...(currentClinician.provider?.status === 'active' ? currentClinician.provider.facilities || [] : [])].some((facility: any) => facility.id === data.facilityId)) throw new HospitalRefusal('Current clinician scope could not be verified')
     const prisma = guarded.context.prisma
     await lockOperation(prisma, 'vital-sign-record', evidence.operationKeyHash)
     const existing = await prisma.vitalSign.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return { id: existing.id, recordedAt: existing.recordedAt, replayed: true }
     }
     const now = new Date()
@@ -252,8 +253,8 @@ export async function recordVitalSign(_root: unknown, { data }: any, context: Co
 export async function transitionSpecimen(_root: unknown, args: any, context: Context) {
   requireClinical(context)
   const scoped = await context.query.Specimen.findOne({ where: { id: args.specimenId }, query: 'id' })
-  if (!scoped) throw new Error('Specimen not found or not accessible')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected specimen version is invalid')
+  if (!scoped) throw new HospitalRefusal('Specimen not found or not accessible')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected specimen version is invalid')
   const reason = bounded(args.reason, 'Specimen transition reason', 1000, args.toStatus === 'rejected')
   const evidence = transitionEvidence(args.operationKey, { specimenId: args.specimenId, toStatus: args.toStatus, expectedVersion: args.expectedVersion, reason })
   const allowed: Record<string, string[]> = { collected: ['received', 'rejected'], received: ['processing', 'rejected'], processing: ['disposed'], disposed: [], rejected: [] }
@@ -261,7 +262,7 @@ export async function transitionSpecimen(_root: unknown, args: any, context: Con
     const fresh = await currentEpisodeActor(transactionContext)
     const child = await currentEpisodeChild(fresh, 'Specimen', args.specimenId)
     const prior = await fresh.prisma.workflowTransition.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
-    if (prior && prior.actorReference !== fresh.session.itemId) throw new Error('Original evidence operation is not owned')
+    if (prior && prior.actorReference !== fresh.session.itemId) throw new HospitalRefusal('Original evidence operation is not owned')
     const guarded = await guardEpisodeChild(fresh, child.input, args.toStatus === 'rejected' ? 'cancel_evidence' : args.toStatus === 'disposed' ? 'retention_evidence' : 'late_result', false, Boolean(prior))
     await recheckEpisodeRelated(guarded.context, 'Specimen', child.input, true)
     const prisma = guarded.context.prisma
@@ -270,8 +271,8 @@ export async function transitionSpecimen(_root: unknown, args: any, context: Con
     const replay = await replayTransition(prisma, evidence, 'specimen', args.specimenId)
     if (replay) return replay
     const current = await prisma.specimen.findUnique({ where: { id: args.specimenId } })
-    if (!current || current.transitionVersion !== args.expectedVersion) throw new Error('Specimen changed; refresh before retrying')
-    if (!allowed[current.status]?.includes(args.toStatus)) throw new Error(`Invalid specimen transition from ${current.status} to ${args.toStatus}`)
+    if (!current || current.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Specimen changed; refresh before retrying')
+    if (!allowed[current.status]?.includes(args.toStatus)) throw new HospitalRefusal(`Invalid specimen transition from ${current.status} to ${args.toStatus}`)
     const now = new Date()
     const updated = await prisma.specimen.update({ where: { id: current.id }, data: {
       status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId,

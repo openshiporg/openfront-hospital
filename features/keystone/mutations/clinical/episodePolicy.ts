@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 // Operational options, not clinical readiness, legal retention, or payer decisions.
 export const episodePolicyOptions = {
@@ -15,11 +16,11 @@ export type EpisodePolicyDefinition = { [K in keyof typeof episodePolicyOptions]
 export type EpisodeAction = 'new_care' | 'late_result' | 'correction' | 'claim' | 'cancel_evidence' | 'retention_evidence'
 
 export function validateEpisodePolicy(value: unknown): EpisodePolicyDefinition {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Explicit episode policy options are required')
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HospitalRefusal('Explicit episode policy options are required')
   const definition = value as Record<string, unknown>
-  if (Object.keys(definition).length !== Object.keys(episodePolicyOptions).length) throw new Error('Episode policy must contain exactly the reviewed options')
+  if (Object.keys(definition).length !== Object.keys(episodePolicyOptions).length) throw new HospitalRefusal('Episode policy must contain exactly the reviewed options')
   for (const [key, options] of Object.entries(episodePolicyOptions)) {
-    if (!(options as readonly unknown[]).includes(definition[key])) throw new Error(`Explicit ${key} policy is required`)
+    if (!(options as readonly unknown[]).includes(definition[key])) throw new HospitalRefusal(`Explicit ${key} policy is required`)
   }
   return { ...definition } as EpisodePolicyDefinition
 }
@@ -55,11 +56,11 @@ export function episodeTuple(row: any) {
     providerId: row.provider?.id, appointmentId: row.appointment?.id || null }
 }
 export function assertEpisodeTuple(expected: any, current: any) {
-  if (episodeDigest(expected) !== episodeDigest(current)) throw new Error('Episode scope changed; original command cannot be applied or recovered')
+  if (episodeDigest(expected) !== episodeDigest(current)) throw new HospitalRefusal('Episode scope changed; original command cannot be applied or recovered')
 }
 export function requireHumanEpisodeReview(attested: unknown, reference: unknown) {
   if (attested !== true || typeof reference !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:/-]{2,199}$/.test(reference)) {
-    throw new Error('Explicit human review and a non-PHI approval reference are required')
+    throw new HospitalRefusal('Explicit human review and a non-PHI approval reference are required')
   }
   return reference
 }

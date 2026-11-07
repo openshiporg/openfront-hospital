@@ -15,63 +15,64 @@ import {
   onboardingRegistrationReplayFields,
   selectDeterministicOnboardingDuplicate,
 } from './onboardingRegistrationPolicy'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 const MAX_ITEMS = 100
 
 function requireOnboarding(context: Context) {
   const role = context.session?.data.role
   if (!role?.canAccessAllClinicalData || !role?.canManageOnboarding) {
-    throw new Error('Global onboarding authority is required to apply hospital setup')
+    throw new HospitalRefusal('Global onboarding authority is required to apply hospital setup')
   }
 }
 
 function bounded(value: unknown, label: string, maximum: number, required = false) {
   const text = String(value ?? '').trim()
-  if ((required && !text) || text.length > maximum || /[\u0000-\u001f\u007f]/.test(text)) throw new Error(`${label} is invalid`)
+  if ((required && !text) || text.length > maximum || /[\u0000-\u001f\u007f]/.test(text)) throw new HospitalRefusal(`${label} is invalid`)
   return text
 }
 
 function rows(configuration: any, key: string) {
   const value = configuration?.[key]
-  if (!Array.isArray(value) || value.length > MAX_ITEMS) throw new Error(`${key} must be a bounded array`)
+  if (!Array.isArray(value) || value.length > MAX_ITEMS) throw new HospitalRefusal(`${key} must be a bounded array`)
   return value
 }
 
 function references(value: unknown, label: string) {
-  if (!Array.isArray(value) || value.length > MAX_ITEMS) throw new Error(`${label} must be a bounded array`)
+  if (!Array.isArray(value) || value.length > MAX_ITEMS) throw new HospitalRefusal(`${label} must be a bounded array`)
   return value
 }
 
 function boundedJson(value: unknown, label: string, maximum = 50_000) {
   const serialized = JSON.stringify(value ?? {})
-  if (!serialized || serialized.length > maximum) throw new Error(`${label} is too large`)
+  if (!serialized || serialized.length > maximum) throw new HospitalRefusal(`${label} is too large`)
   return value ?? {}
 }
 
 function uniqueValues(values: unknown[], label: string, normalize = (value: unknown) => String(value || '').trim().toLowerCase()) {
   const normalized = values.map(normalize)
   if (normalized.some(value => !value) || new Set(normalized).size !== normalized.length) {
-    throw new Error(`${label} values must be present and unique`)
+    throw new HospitalRefusal(`${label} values must be present and unique`)
   }
 }
 
 function canonicalImagePath(value: unknown, label: string) {
   const path = bounded(value, `${label} image`, 500)
   if (!path) return ''
-  if (!path.startsWith('/images/') || path.includes('..')) throw new Error(`${label} image must be a canonical /images/ path`)
+  if (!path.startsWith('/images/') || path.includes('..')) throw new HospitalRefusal(`${label} image must be a canonical /images/ path`)
   return path
 }
 
 function key(value: unknown, label: string) {
   const result = bounded(value, label, 120, true).toLowerCase()
-  if (!/^[a-z0-9][a-z0-9._-]*$/.test(result)) throw new Error(`${label} is invalid`)
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(result)) throw new HospitalRefusal(`${label} is invalid`)
   return result
 }
 
 function profileMediaKey(value: unknown) {
   const result = bounded(value, 'Media key', 40, true)
   if (!['hero', 'primaryCare', 'behavioralHealth', 'telehealth', 'clinic'].includes(result)) {
-    throw new Error('Profile media key is invalid')
+    throw new HospitalRefusal('Profile media key is invalid')
   }
   return result
 }
@@ -114,13 +115,13 @@ export default async function applyHospitalOnboarding(
   }
   if (JSON.stringify(configuration).length > 500_000) throw new Error('Hospital onboarding configuration is too large')
   const profileInput = configuration.practiceInfo
-  if (profileInput.supportPhone && !publicPhoneHref(profileInput.supportPhone)) throw new Error('Scheduling phone must be a dialable number with an optional extension')
-  if (profileInput?.logoIcon != null && typeof profileInput.logoIcon !== 'string') throw new Error('Logo must be a valid, safe SVG document')
+  if (profileInput.supportPhone && !publicPhoneHref(profileInput.supportPhone)) throw new HospitalRefusal('Scheduling phone must be a dialable number with an optional extension')
+  if (profileInput?.logoIcon != null && typeof profileInput.logoIcon !== 'string') throw new HospitalRefusal('Logo must be a valid, safe SVG document')
   const logoIcon = sanitizeStoreLogoSvg(profileInput?.logoIcon ?? DEFAULT_STORE_LOGO_ICON)
-  if (!logoIcon) throw new Error('Logo must be a valid, safe SVG document')
+  if (!logoIcon) throw new HospitalRefusal('Logo must be a valid, safe SVG document')
   const logoColor = normalizeStoreLogoColor(profileInput?.logoColor ?? DEFAULT_STORE_LOGO_COLOR)
   if (!profileInput || typeof profileInput !== 'object' || Array.isArray(profileInput)) {
-    throw new Error('practiceInfo is required')
+    throw new HospitalRefusal('practiceInfo is required')
   }
   const departmentsInput = rows(configuration, 'departments')
   const facilitiesInput = rows(configuration, 'facilities')
@@ -133,10 +134,10 @@ export default async function applyHospitalOnboarding(
   const intakeFormsInput = rows(configuration, 'intakeForms')
   const messagesInput = rows(configuration, 'messages')
   if ('portalAccess' in configuration) {
-    throw new Error('Patient portal records are not available in this bounded release')
+    throw new HospitalRefusal('Patient portal records are not available in this bounded release')
   }
   if (!departmentsInput.length || !facilitiesInput.length || !providersInput.length || !appointmentTypesInput.length) {
-    throw new Error('Onboarding requires at least one department, facility, provider, and appointment type')
+    throw new HospitalRefusal('Onboarding requires at least one department, facility, provider, and appointment type')
   }
   uniqueValues(departmentsInput.map((item: any) => item.code), 'Department code')
   uniqueValues(facilitiesInput.map((item: any) => item.slug), 'Facility slug')
@@ -173,13 +174,13 @@ export default async function applyHospitalOnboarding(
       supportPhone: bounded(profileInput.supportPhone, 'Support phone', 40),
       supportEmail: (() => {
         const email = bounded(profileInput.supportEmail, 'Support email', 254)
-        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Support email is invalid')
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HospitalRefusal('Support email is invalid')
         return email.toLowerCase()
       })(),
       media: (() => {
         const media = profileInput.media || {}
         if (!media || typeof media !== 'object' || Array.isArray(media) || Object.keys(media).length > 20) {
-          throw new Error('Profile media must be a bounded object')
+          throw new HospitalRefusal('Profile media must be a bounded object')
         }
         return Object.fromEntries(Object.entries(media).map(([mediaKey, value]) => [
           profileMediaKey(mediaKey),
@@ -216,7 +217,7 @@ export default async function applyHospitalOnboarding(
       const slug = key(input.slug, 'Facility slug')
       const timeZone = assertIanaTimeZone(input.timeZone)
       const departmentIds = references(input.departmentCodes, `Facility ${slug} departmentCodes`).map((code: unknown) => departments[String(code).toUpperCase()]?.id)
-      if (departmentIds.some((id: string | undefined) => !id)) throw new Error(`Facility ${slug} references an unknown department`)
+      if (departmentIds.some((id: string | undefined) => !id)) throw new HospitalRefusal(`Facility ${slug} references an unknown department`)
       const data = {
         name: bounded(input.name, 'Facility name', 200, true),
         slug,
@@ -258,7 +259,7 @@ export default async function applyHospitalOnboarding(
       const onboardingKey = key(input.onboardingKey, 'Provider onboarding key')
       const facilitySlug = key(input.facilitySlug, `Provider ${onboardingKey} facility slug`)
       const facility = facilities[facilitySlug]
-      if (!facility) throw new Error(`Provider ${onboardingKey} references an unknown facility`)
+      if (!facility) throw new HospitalRefusal(`Provider ${onboardingKey} references an unknown facility`)
       const data = {
         onboardingKey,
         firstName: bounded(input.firstName, 'Provider first name', 100, true),
@@ -281,7 +282,7 @@ export default async function applyHospitalOnboarding(
       const onboardingKey = key(input.onboardingKey, 'Clinician onboarding key')
       const provider = providers[key(input.providerKey, `Clinician ${onboardingKey} provider key`)]
       const department = departments[String(input.departmentCode || '').toUpperCase()]
-      if (!provider || !department) throw new Error(`Clinician ${onboardingKey} references an unknown provider or department`)
+      if (!provider || !department) throw new HospitalRefusal(`Clinician ${onboardingKey} references an unknown provider or department`)
       const data = {
         onboardingKey,
         displayName: bounded(input.displayName, 'Clinician display name', 200, true),
@@ -307,17 +308,17 @@ export default async function applyHospitalOnboarding(
     for (const input of appointmentTypesInput) {
       const slug = key(input.slug, 'Appointment type slug')
       const providerIds = references(input.providerKeys, `Appointment type ${slug} providerKeys`).map((providerKey: unknown) => providers[key(providerKey, `Appointment type ${slug} provider key`)]?.id)
-      if (!providerIds.length || providerIds.some((id: string | undefined) => !id)) throw new Error(`Appointment type ${slug} references an unknown provider`)
+      if (!providerIds.length || providerIds.some((id: string | undefined) => !id)) throw new HospitalRefusal(`Appointment type ${slug} references an unknown provider`)
       const durationMinutes = Number(input.durationMinutes)
       const bufferBeforeMinutes = Number(input.bufferBeforeMinutes || 0)
       const bufferAfterMinutes = Number(input.bufferAfterMinutes || 0)
       const priceCents = Number(input.priceCents || 0)
-      if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 480) throw new Error(`Appointment type ${slug} duration is invalid`)
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 480) throw new HospitalRefusal(`Appointment type ${slug} duration is invalid`)
       if (!Number.isInteger(bufferBeforeMinutes) || bufferBeforeMinutes < 0 || bufferBeforeMinutes > 240 ||
           !Number.isInteger(bufferAfterMinutes) || bufferAfterMinutes < 0 || bufferAfterMinutes > 240) {
-        throw new Error(`Appointment type ${slug} buffers are invalid`)
+        throw new HospitalRefusal(`Appointment type ${slug} buffers are invalid`)
       }
-      if (!Number.isSafeInteger(priceCents) || priceCents < 0) throw new Error(`Appointment type ${slug} price is invalid`)
+      if (!Number.isSafeInteger(priceCents) || priceCents < 0) throw new HospitalRefusal(`Appointment type ${slug} price is invalid`)
       const data = {
         name: bounded(input.name, 'Appointment type name', 200, true),
         slug,
@@ -342,15 +343,15 @@ export default async function applyHospitalOnboarding(
       const onboardingKey = key(input.onboardingKey, 'Schedule onboarding key')
       const provider = providers[key(input.providerKey, `Schedule block ${onboardingKey} provider key`)]
       const facility = facilities[key(input.facilitySlug, `Schedule block ${onboardingKey} facility slug`)]
-      if (!provider || !facility) throw new Error(`Schedule block ${onboardingKey} has missing scope`)
+      if (!provider || !facility) throw new HospitalRefusal(`Schedule block ${onboardingKey} has missing scope`)
       const referenceDate = calendarDateInTimeZone(now, facility.timeZone)
       referenceDates.add(referenceDate)
       const dayOffset = Number(input.dayOffset)
-      if (!Number.isInteger(dayOffset) || dayOffset < 1 || dayOffset > 180) throw new Error(`Schedule block ${onboardingKey} day offset is invalid`)
+      if (!Number.isInteger(dayOffset) || dayOffset < 1 || dayOffset > 180) throw new HospitalRefusal(`Schedule block ${onboardingKey} day offset is invalid`)
       const date = addCalendarDays(referenceDate, dayOffset)
       const startsAt = localDateTimeToUtc(date, Number(input.startHour), Number(input.startMinute || 0), facility.timeZone)
       const endsAt = localDateTimeToUtc(date, Number(input.endHour), Number(input.endMinute || 0), facility.timeZone)
-      if (endsAt <= startsAt) throw new Error(`Schedule block ${onboardingKey} window is invalid`)
+      if (endsAt <= startsAt) throw new HospitalRefusal(`Schedule block ${onboardingKey} window is invalid`)
       const data = {
         onboardingKey,
         providerId: provider.id,
@@ -372,7 +373,7 @@ export default async function applyHospitalOnboarding(
   const patients: Record<string, any> = {}
   for (const input of patientsInput) {
     const facility = foundation.facilities[key(input.facilitySlug, 'Patient facility slug')]
-    if (!facility) throw new Error('Onboarding patient references an unknown facility')
+    if (!facility) throw new HospitalRefusal('Onboarding patient references an unknown facility')
     const medicalRecordNumber = bounded(input.medicalRecordNumber, 'MRN', 100, true)
     const idempotencyKey = `onboarding-registration-${medicalRecordNumber}`
     const existingRegistration = await context.sudo().prisma.patientRegistration.findFirst({
@@ -404,14 +405,14 @@ export default async function applyHospitalOnboarding(
     let result = await registerPatient(null, { data: registrationData }, context) as any
     if (result.status === 'duplicate_review') {
       const duplicatePatientId = selectDeterministicOnboardingDuplicate(result.candidates || [])
-      if (!duplicatePatientId) throw new Error('Onboarding patient requires staff duplicate review')
+      if (!duplicatePatientId) throw new HospitalRefusal('Onboarding patient requires staff duplicate review')
       result = await registerPatient(null, { data: {
         ...registrationData,
         duplicateResolution: 'link_existing',
         duplicatePatientId,
       } }, context) as any
     }
-    if (result.status !== 'completed' || !result.patientId) throw new Error('Onboarding patient registration did not complete')
+    if (result.status !== 'completed' || !result.patientId) throw new HospitalRefusal('Onboarding patient registration did not complete')
     patients[key(input.patientKey, 'Patient key')] = { id: result.patientId, facilityId: facility.id }
   }
 
@@ -421,10 +422,10 @@ export default async function applyHospitalOnboarding(
     const provider = foundation.providers[key(input.providerKey, 'Appointment provider key')]
     const appointmentType = foundation.appointmentTypes[key(input.appointmentTypeSlug, 'Appointment type slug')]
     const facility = foundation.facilities[key(input.facilitySlug, 'Appointment facility slug')]
-    if (!patient || !provider || !appointmentType || !facility) throw new Error('Onboarding appointment has missing scope')
+    if (!patient || !provider || !appointmentType || !facility) throw new HospitalRefusal('Onboarding appointment has missing scope')
     const referenceDate = calendarDateInTimeZone(now, facility.timeZone)
     const dayOffset = Number(input.dayOffset)
-    if (!Number.isInteger(dayOffset) || dayOffset < 1 || dayOffset > 180) throw new Error('Onboarding appointment day offset is invalid')
+    if (!Number.isInteger(dayOffset) || dayOffset < 1 || dayOffset > 180) throw new HospitalRefusal('Onboarding appointment day offset is invalid')
     const date = addCalendarDays(referenceDate, dayOffset)
     const startsAt = localDateTimeToUtc(date, Number(input.startHour), Number(input.startMinute || 0), facility.timeZone)
     const endsAt = new Date(startsAt.getTime() + Number(appointmentType.durationMinutes) * 60_000)
@@ -451,7 +452,7 @@ export default async function applyHospitalOnboarding(
     const patient = patients[key(input.patientKey, 'Intake patient key')]
     const appointmentNumber = bounded(input.appointmentNumber, 'Intake appointment number', 100, true)
     const appointment = appointments[appointmentNumber]
-    if (!patient || !appointment) throw new Error('Onboarding intake has missing patient or appointment')
+    if (!patient || !appointment) throw new HospitalRefusal('Onboarding intake has missing patient or appointment')
     const result = await issueIntakeForm(null, { data: {
       operationKey: `onboarding-intake-${appointmentNumber}-${key(input.templateKey, 'Intake template key')}`,
       facilityId: appointment.facilityId,
@@ -474,7 +475,7 @@ export default async function applyHospitalOnboarding(
     const patient = patients[key(input.patientKey, 'Follow-up patient key')]
     const appointmentNumber = bounded(input.appointmentNumber, 'Follow-up appointment number', 100, true)
     const appointment = appointments[appointmentNumber]
-    if (!patient || !appointment) throw new Error('Onboarding follow-up has missing patient or appointment')
+    if (!patient || !appointment) throw new HospitalRefusal('Onboarding follow-up has missing patient or appointment')
     await sendSecurePatientMessage(null, {
       operationKey: `onboarding-follow-up-${appointmentNumber}`,
       facilityId: appointment.facilityId,

@@ -4,16 +4,17 @@ import type { Context } from '.keystone/types'
 
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
 import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireCommunications(context: Context) {
   const role = context.session?.data.role
-  if (!role?.canManageCommunications) throw new Error('Not authorized to manage communications')
+  if (!role?.canManageCommunications) throw new HospitalRefusal('Not authorized to manage communications')
 }
 
 async function scopedFacility(context: Context, facilityId: string) {
   requireCommunications(context)
   const facility = await context.query.Facility.findOne({ where: { id: facilityId }, query: 'id status' }) as any
-  if (!facility || facility.status !== 'active') throw new Error('Facility not found or not accessible')
+  if (!facility || facility.status !== 'active') throw new HospitalRefusal('Facility not found or not accessible')
 }
 
 function result(row: any, replayed = false) {
@@ -25,7 +26,7 @@ export async function createCommunicationTemplate(_root: unknown, { data }: any,
   const templateKey = bounded(data.templateKey, 'Template key', 100, true).toLowerCase()
   const name = bounded(data.name, 'Template name', 200, true)
   const channel = bounded(data.channel, 'Template channel', 20, true)
-  if (!['sms', 'email'].includes(channel)) throw new Error('Template channel must be sms or email')
+  if (!['sms', 'email'].includes(channel)) throw new HospitalRefusal('Template channel must be sms or email')
   const subjectTemplate = bounded(data.subjectTemplate, 'Subject template', 300)
   const bodyTemplate = narrativeText(data.bodyTemplate, 'Body template', 4000, true)
   const evidence = operationEvidence({ ...data, templateKey, name, channel, subjectTemplate, bodyTemplate })
@@ -34,10 +35,10 @@ export async function createCommunicationTemplate(_root: unknown, { data }: any,
     await lockOperation(prisma, 'communication-template-create', evidence.operationKeyHash)
     const existing = await prisma.communicationTemplate.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (existing) {
-      if (existing.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return result(existing, true)
     }
-    if (await prisma.communicationTemplate.findFirst({ where: { facilityId: data.facilityId, templateKey } })) throw new Error('Template key already exists in the facility')
+    if (await prisma.communicationTemplate.findFirst({ where: { facilityId: data.facilityId, templateKey } })) throw new HospitalRefusal('Template key already exists in the facility')
     const now = new Date()
     const template = await prisma.communicationTemplate.create({ data: {
       templateKey, name, channel, status: 'active', version: 1, transitionVersion: 1,
@@ -58,13 +59,13 @@ export async function createCommunicationTemplate(_root: unknown, { data }: any,
 export async function reviseCommunicationTemplate(_root: unknown, args: any, context: Context) {
   requireCommunications(context)
   const scoped = await context.query.CommunicationTemplate.findOne({ where: { id: args.templateId }, query: 'id' })
-  if (!scoped) throw new Error('Communication template not found or not accessible')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected template version is invalid')
+  if (!scoped) throw new HospitalRefusal('Communication template not found or not accessible')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected template version is invalid')
   const name = bounded(args.name, 'Template name', 200, true)
   const subjectTemplate = bounded(args.subjectTemplate, 'Subject template', 300)
   const bodyTemplate = narrativeText(args.bodyTemplate, 'Body template', 4000, true)
   const toStatus = bounded(args.toStatus, 'Template status', 20, true)
-  if (!['active', 'inactive'].includes(toStatus)) throw new Error('Template status is invalid')
+  if (!['active', 'inactive'].includes(toStatus)) throw new HospitalRefusal('Template status is invalid')
   const evidence = transitionEvidence(args.operationKey, { templateId: args.templateId, expectedVersion: args.expectedVersion, name, subjectTemplate, bodyTemplate, toStatus })
   return context.transaction(async (transactionContext: any) => {
     const prisma = transactionContext.sudo().prisma
@@ -73,7 +74,7 @@ export async function reviseCommunicationTemplate(_root: unknown, args: any, con
     const replay = await replayTransition(prisma, evidence, 'communication_template', args.templateId)
     if (replay) return replay
     const current = await prisma.communicationTemplate.findUnique({ where: { id: args.templateId } })
-    if (!current || current.transitionVersion !== args.expectedVersion) throw new Error('Communication template changed; refresh before retrying')
+    if (!current || current.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Communication template changed; refresh before retrying')
     const now = new Date()
     const updated = await prisma.communicationTemplate.update({ where: { id: current.id }, data: {
       name, subjectTemplate, bodyTemplate, status: toStatus, version: { increment: 1 },
@@ -104,10 +105,10 @@ export async function setCommunicationPreference(_root: unknown, { data }: any, 
   const status = bounded(data.status, 'Preference status', 20, true)
   const reasonCode = bounded(data.reasonCode, 'Preference reason', 80, true)
   if (!['sms', 'email'].includes(channel) || !['care_operations', 'billing', 'general'].includes(purpose) || !['allowed', 'opted_out'].includes(status)) {
-    throw new Error('Communication preference is invalid')
+    throw new HospitalRefusal('Communication preference is invalid')
   }
   const expectedVersion = data.expectedVersion == null ? null : Number(data.expectedVersion)
-  if (expectedVersion !== null && (!Number.isInteger(expectedVersion) || expectedVersion < 1)) throw new Error('Expected preference version is invalid')
+  if (expectedVersion !== null && (!Number.isInteger(expectedVersion) || expectedVersion < 1)) throw new HospitalRefusal('Expected preference version is invalid')
   const payload = { facilityId: data.facilityId, patientId: data.patientId, channel, purpose, status, reasonCode, expectedVersion }
   const creation = operationEvidence({ operationKey: data.operationKey, ...payload })
   const transition = transitionEvidence(data.operationKey, payload)
@@ -118,7 +119,7 @@ export async function setCommunicationPreference(_root: unknown, { data }: any, 
     await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`communication-preference:${data.facilityId}:${data.patientId}:${channel}:${purpose}`}, 0))::text AS "lock"`)
     const current = await prisma.communicationPreference.findFirst({ where: { facilityId: data.facilityId, patientId: data.patientId, channel, purpose } })
     if (!current) {
-      if (expectedVersion !== null) throw new Error('Communication preference does not exist; refresh before retrying')
+      if (expectedVersion !== null) throw new HospitalRefusal('Communication preference does not exist; refresh before retrying')
       const now = new Date()
       const created = await prisma.communicationPreference.create({ data: {
         channel, purpose, status, transitionVersion: 1, ...creation,
@@ -135,13 +136,13 @@ export async function setCommunicationPreference(_root: unknown, { data }: any, 
       return result(created)
     }
     if (current.operationKeyHash === creation.operationKeyHash) {
-      if (current.requestHash !== creation.requestHash) throw new Error('Operation key was reused with a different payload')
+      if (current.requestHash !== creation.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
       return result(current, true)
     }
     const replay = await replayTransition(prisma, transition, 'communication_preference', current.id)
     if (replay) return replay
-    if (expectedVersion === null || current.transitionVersion !== expectedVersion) throw new Error('Communication preference changed; refresh before retrying')
-    if (current.status === status) throw new Error('Communication preference is already in that state')
+    if (expectedVersion === null || current.transitionVersion !== expectedVersion) throw new HospitalRefusal('Communication preference changed; refresh before retrying')
+    if (current.status === status) throw new HospitalRefusal('Communication preference is already in that state')
     const now = new Date()
     const updated = await prisma.communicationPreference.update({ where: { id: current.id }, data: {
       status, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId, reasonCode, changedAt: now,

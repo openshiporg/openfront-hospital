@@ -1,3 +1,4 @@
+import { HospitalRefusal } from '../../lib/constraint-errors'
 export const ENCOUNTER_TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
   open: ['in_progress', 'cancelled'],
   in_progress: ['closed', 'cancelled'],
@@ -15,13 +16,13 @@ export function validateBoundedEncounterTransitionEvidence(input: {
   reason?: string | null
 }) {
   if (String(input.diagnosisSummary || '').trim()) {
-    throw new Error('Diagnosis authorship is unavailable in this bounded patient-operations release')
+    throw new HospitalRefusal('Diagnosis authorship is unavailable in this bounded patient-operations release')
   }
   if (input.toStatus === 'closed' && !String(input.reason || '').trim()) {
-    throw new Error('Operational closure reason is required to close an encounter')
+    throw new HospitalRefusal('Operational closure reason is required to close an encounter')
   }
   if (input.toStatus === 'cancelled' && !String(input.reason || '').trim()) {
-    throw new Error('Cancellation reason is required')
+    throw new HospitalRefusal('Cancellation reason is required')
   }
 }
 

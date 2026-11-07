@@ -1,14 +1,15 @@
+import { HospitalRefusal } from '../../lib/constraint-errors'
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 
 function dateParts(date: string) {
   const match = DATE_PATTERN.exec(date)
-  if (!match) throw new Error('date must use YYYY-MM-DD format')
+  if (!match) throw new HospitalRefusal('date must use YYYY-MM-DD format')
   const year = Number(match[1])
   const month = Number(match[2])
   const day = Number(match[3])
   const probe = new Date(Date.UTC(year, month - 1, day))
   if (probe.getUTCFullYear() !== year || probe.getUTCMonth() !== month - 1 || probe.getUTCDate() !== day) {
-    throw new Error('date must be a real calendar date')
+    throw new HospitalRefusal('date must be a real calendar date')
   }
   return { year, month, day }
 }
@@ -38,12 +39,12 @@ function zonedParts(instant: Date, timeZone: string) {
 export function assertIanaTimeZone(value: unknown) {
   const timeZone = String(value || '').trim()
   if (!timeZone || timeZone.length > 100 || !/^[A-Za-z_+-]+(?:\/[A-Za-z0-9_+.-]+)+$|^UTC$/.test(timeZone)) {
-    throw new Error('Facility time zone must be a valid IANA identifier')
+    throw new HospitalRefusal('Facility time zone must be a valid IANA identifier')
   }
   try {
     new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date(0))
   } catch {
-    throw new Error('Facility time zone must be a valid IANA identifier')
+    throw new HospitalRefusal('Facility time zone must be a valid IANA identifier')
   }
   return timeZone
 }
@@ -58,7 +59,7 @@ export function localDateTimeToUtc(
   const timeZone = assertIanaTimeZone(timeZoneValue)
   const { year, month, day } = dateParts(date)
   if (!Number.isInteger(hour) || hour < 0 || hour > 23 || !Number.isInteger(minute) || minute < 0 || minute > 59) {
-    throw new Error('Local facility time is invalid')
+    throw new HospitalRefusal('Local facility time is invalid')
   }
   const target = Date.UTC(year, month - 1, day, hour, minute, 0, 0)
   let candidate = target
@@ -79,12 +80,12 @@ export function localDateTimeToUtc(
     parts.year === year && parts.month === month && parts.day === day &&
     parts.hour === hour && parts.minute === minute
   if (!matchesTarget(finalParts)) {
-    throw new Error('Local facility time does not exist because of a time-zone transition')
+    throw new HospitalRefusal('Local facility time does not exist because of a time-zone transition')
   }
   for (let offsetMinutes = -180; offsetMinutes <= 180; offsetMinutes += 15) {
     if (offsetMinutes === 0) continue
     if (matchesTarget(zonedParts(new Date(candidate + offsetMinutes * 60_000), timeZone))) {
-      throw new Error('Local facility time is ambiguous because of a time-zone transition')
+      throw new HospitalRefusal('Local facility time is ambiguous because of a time-zone transition')
     }
   }
   return new Date(candidate)
@@ -98,7 +99,7 @@ export function calendarDateInTimeZone(instant: Date, timeZoneValue: unknown) {
 
 export function addCalendarDays(date: string, days: number) {
   const { year, month, day } = dateParts(date)
-  if (!Number.isInteger(days) || Math.abs(days) > 3660) throw new Error('Calendar-day offset is invalid')
+  if (!Number.isInteger(days) || Math.abs(days) > 3660) throw new HospitalRefusal('Calendar-day offset is invalid')
   const result = new Date(Date.UTC(year, month - 1, day + days))
   return result.toISOString().slice(0, 10)
 }

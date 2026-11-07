@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 
 import { bounded, lockOperation, operationEvidence, scopedFacilityPatient } from '../operational/evidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 export default async function recordConsentDecision(
   _root: unknown,
@@ -12,11 +13,11 @@ export default async function recordConsentDecision(
 ) {
   const role = context.session?.data.role
   if (!role?.canManagePatients && !role?.canManageIntake) {
-    throw new Error('Not authorized to record consent decisions')
+    throw new HospitalRefusal('Not authorized to record consent decisions')
   }
   await scopedFacilityPatient(context, data.facilityId, data.patientId)
   const decision = bounded(data.decision, 'Consent decision', 40, true)
-  if (!['granted', 'declined', 'withdrawn'].includes(decision)) throw new Error('Consent decision is invalid')
+  if (!['granted', 'declined', 'withdrawn'].includes(decision)) throw new HospitalRefusal('Consent decision is invalid')
   const consentType = bounded(data.consentType, 'Consent type', 100, true)
   const policyVersion = bounded(data.policyVersion, 'Policy version', 100, true)
   const statementKey = bounded(data.statementKey, 'Statement key', 150, true)
@@ -45,8 +46,8 @@ export default async function recordConsentDecision(
     )
     const replay = await prisma.patientConsent.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
     if (replay) {
-      if (replay.requestHash !== evidence.requestHash) throw new Error('Operation key was reused with a different payload')
-      if (replay.facilityId !== data.facilityId || replay.patientId !== data.patientId || replay.evidence?.actorReference !== currentContext.session!.itemId) throw new Error('Original consent owner could not be verified; legacy evidence requires review')
+      if (replay.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
+      if (replay.facilityId !== data.facilityId || replay.patientId !== data.patientId || replay.evidence?.actorReference !== currentContext.session!.itemId) throw new HospitalRefusal('Original consent owner could not be verified; legacy evidence requires review')
       return { id: replay.id, decision: replay.decision, effectiveAt: replay.effectiveAt, replayed: true }
     }
     if (data.supersedesConsentId) await prisma.$queryRaw(Prisma.sql`SELECT "id" FROM "PatientConsent" WHERE "id" = ${data.supersedesConsentId} FOR SHARE`)
@@ -59,9 +60,9 @@ export default async function recordConsentDecision(
     if (data.supersedesConsentId && (
       !previous || previous.facility?.id !== data.facilityId || previous.patient?.id !== data.patientId ||
       previous.consentType !== consentType || previous.supersedingDecision
-    )) throw new Error('Superseded consent is not the current accessible decision')
+    )) throw new HospitalRefusal('Superseded consent is not the current accessible decision')
     if (decision === 'withdrawn' && (!previous || previous.decision !== 'granted')) {
-      throw new Error('Withdrawal must supersede the current granted consent decision')
+      throw new HospitalRefusal('Withdrawal must supersede the current granted consent decision')
     }
 
     const currentDecisions = await prisma.patientConsent.findMany({
@@ -75,16 +76,16 @@ export default async function recordConsentDecision(
       take: 2,
       select: { id: true },
     })
-    if (currentDecisions.length > 1) throw new Error('Consent history is ambiguous and requires administrator review')
+    if (currentDecisions.length > 1) throw new HospitalRefusal('Consent history is ambiguous and requires administrator review')
     if (currentDecisions[0] && currentDecisions[0].id !== previous?.id) {
-      throw new Error('A current consent decision already exists; select it as the superseded decision')
+      throw new HospitalRefusal('A current consent decision already exists; select it as the superseded decision')
     }
     if (previous) {
       const current = await prisma.patientConsent.findUnique({
         where: { id: previous.id },
         include: { supersedingDecision: { select: { id: true } } },
       })
-      if (!current || current.supersedingDecision) throw new Error('Consent decision changed; refresh before retrying')
+      if (!current || current.supersedingDecision) throw new HospitalRefusal('Consent decision changed; refresh before retrying')
     }
     const now = new Date()
     const consent = await prisma.patientConsent.create({

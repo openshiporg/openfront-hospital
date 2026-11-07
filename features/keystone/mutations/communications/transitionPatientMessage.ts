@@ -3,6 +3,7 @@ import type { Context } from '.keystone/types'
 
 import { appendAuditAndOutbox } from '../operational/evidence'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 export default async function transitionPatientMessage(
   _root: unknown,
@@ -11,18 +12,18 @@ export default async function transitionPatientMessage(
 ) {
   const role = context.session?.data.role
   if (!role?.canManageCommunications && !role?.canManageAppointments) {
-    throw new Error('Not authorized to complete patient follow-up')
+    throw new HospitalRefusal('Not authorized to complete patient follow-up')
   }
-  if (args.toStatus !== 'completed') throw new Error('Only manual follow-up completion is supported here')
-  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new Error('Expected message version is invalid')
+  if (args.toStatus !== 'completed') throw new HospitalRefusal('Only manual follow-up completion is supported here')
+  if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected message version is invalid')
   const reasonCode = String(args.reasonCode || 'manual_follow_up_completed').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_')
-  if (!reasonCode || reasonCode.length > 80) throw new Error('Follow-up reason code is invalid')
+  if (!reasonCode || reasonCode.length > 80) throw new HospitalRefusal('Follow-up reason code is invalid')
 
   const visible = await context.query.PatientMessage.findOne({
     where: { id: args.messageId },
     query: 'id status transitionVersion',
   }) as any
-  if (!visible) throw new Error('Patient follow-up not found or not accessible')
+  if (!visible) throw new HospitalRefusal('Patient follow-up not found or not accessible')
   const evidence = transitionEvidence(args.operationKey, {
     messageId: args.messageId,
     toStatus: args.toStatus,
@@ -40,10 +41,10 @@ export default async function transitionPatientMessage(
     if (replay) return replay
     const current = await prisma.patientMessage.findUnique({ where: { id: args.messageId } })
     if (!current || current.transitionVersion !== args.expectedVersion) {
-      throw new Error('Patient follow-up changed; refresh before retrying')
+      throw new HospitalRefusal('Patient follow-up changed; refresh before retrying')
     }
     if (current.status !== 'manual_required') {
-      throw new Error('Only a manual follow-up task can be completed by an operator')
+      throw new HospitalRefusal('Only a manual follow-up task can be completed by an operator')
     }
     const now = new Date()
     const updated = await prisma.patientMessage.update({

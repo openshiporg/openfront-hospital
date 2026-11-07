@@ -10,6 +10,7 @@ import {
   REGISTRATION_CONSENT,
   type RegistrationInput,
 } from './registrationPolicy'
+import { HospitalRefusal } from '../../lib/constraint-errors'
 
 type Args = { data: RegistrationInput }
 
@@ -25,7 +26,7 @@ type CandidateRecord = {
 function requirePermission(context: Context) {
   const role = context.session?.data.role
   if (!role?.canManagePatients && !role?.canAccessAllClinicalData) {
-    throw new Error('Not authorized to register patients')
+    throw new HospitalRefusal('Not authorized to register patients')
   }
 }
 
@@ -65,7 +66,7 @@ export default async function registerPatient(root: unknown, args: Args, context
     query: 'id status',
   }) as { id: string; status: string } | null
   if (!scopedFacility || scopedFacility.status !== 'active') {
-    throw new Error('Facility not found, inactive, or not accessible')
+    throw new HospitalRefusal('Facility not found, inactive, or not accessible')
   }
 
   const idempotencyKeyHash = hashRegistrationIdempotencyKey(input.idempotencyKey)
@@ -85,7 +86,7 @@ export default async function registerPatient(root: unknown, args: Args, context
       })
       if (replay) {
         if (replay.requestHash !== requestHash) {
-          throw new Error('Registration idempotency key was already used with a different payload')
+          throw new HospitalRefusal('Registration idempotency key was already used with a different payload')
         }
         return completedDto(replay, true)
       }
@@ -94,7 +95,7 @@ export default async function registerPatient(root: unknown, args: Args, context
         where: { facilityId: input.facilityId, normalizedValue: input.medicalRecordNumber, status: 'active' },
       })
       if (existingIdentifier) {
-        throw new Error('Medical record number is already assigned at this facility')
+        throw new HospitalRefusal('Medical record number is already assigned at this facility')
       }
 
       const birthDate = new Date(input.dateOfBirth)
@@ -142,14 +143,14 @@ export default async function registerPatient(root: unknown, args: Args, context
         }
       }
       if (input.duplicateResolution && candidates.length === 0) {
-        throw new Error('Duplicate resolution was supplied but no deterministic candidate exists')
+        throw new HospitalRefusal('Duplicate resolution was supplied but no deterministic candidate exists')
       }
 
       let patientId: string
       let duplicateResolution: 'no_candidate' | 'create_new' | 'link_existing'
       if (input.duplicateResolution === 'link_existing') {
         const selected = candidates.find(({ candidate }) => candidate.id === input.duplicatePatientId)
-        if (!selected) throw new Error('Selected duplicate patient is not an accessible deterministic candidate')
+        if (!selected) throw new HospitalRefusal('Selected duplicate patient is not an accessible deterministic candidate')
         patientId = selected.candidate.id
         duplicateResolution = 'link_existing'
       } else {
@@ -234,7 +235,7 @@ export default async function registerPatient(root: unknown, args: Args, context
     }, { isolationLevel: 'Serializable' })
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code)) {
-      throw new Error('Registration conflicted with another request; retry with the same idempotency key')
+      throw new HospitalRefusal('Registration conflicted with another request; retry with the same idempotency key')
     }
     throw error
   }
