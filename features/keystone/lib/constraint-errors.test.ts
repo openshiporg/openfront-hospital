@@ -65,3 +65,9 @@ test('the dashboard shows HOSPITAL_* refusals and still hides unknown codes', ()
   assert.equal(publicGraphQLErrorMessage({ response: { errors: [{ message: 'Unexpected error.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] } }),
     'Unable to complete the request. Please try again.')
 })
+
+test('a field-only unique conflict is named for its own list, not another list with the same field', () => {
+  const returned = (modelName: string) => new GraphQLError('Prisma error: Unique constraint failed on the fields: (`code`)', { extensions: { code: 'KS_PRISMA_ERROR', prisma: { code: 'P2002', meta: { modelName, target: ['code'] } } } })
+  assert.equal(constraintRefusal(returned('LabTest'))?.code, 'HOSPITAL_DUPLICATE_LAB_TEST')
+  assert.equal(constraintRefusal(returned('Department'))?.code, 'HOSPITAL_DUPLICATE_DEPARTMENT')
+})

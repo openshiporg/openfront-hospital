@@ -41,6 +41,7 @@ export const CONSTRAINT_MESSAGES: Record<string, { code: string; message: string
   CommunicationTemplate_facility_key: { code: 'HOSPITAL_DUPLICATE_TEMPLATE', message: 'This facility already has a template with that key.', fields: ['facility', 'templateKey'] },
   RetentionPolicy_facility_record_key: { code: 'HOSPITAL_DUPLICATE_RETENTION_POLICY', message: 'This facility already has a retention policy for that record type.', fields: ['facility', 'recordType'] },
   Room_roomNumber_key: { code: 'HOSPITAL_DUPLICATE_ROOM', message: 'A room with this number already exists.', fields: ['roomNumber'] },
+  LabTest_code_key: { code: 'HOSPITAL_DUPLICATE_LAB_TEST', message: 'A lab test with this code already exists.', fields: ['code'] },
   Department_code_key: { code: 'HOSPITAL_DUPLICATE_DEPARTMENT', message: 'A department with this code already exists.', fields: ['code'] },
   AppointmentType_slug_key: { code: 'HOSPITAL_DUPLICATE_VISIT_TYPE', message: 'A visit type with this web address already exists.', fields: ['slug'] },
   Facility_slug_key: { code: 'HOSPITAL_DUPLICATE_FACILITY', message: 'A facility with this web address already exists.', fields: ['slug'] },
@@ -78,7 +79,9 @@ export function constraintRefusal(error: unknown): { code: string; message: stri
     const target = link?.code === 'P2002' && Array.isArray(link?.meta?.target) ? link.meta.target as string[] : listed ?? keyed
     if (target?.length) {
       const key = [...target].map(String).sort().join(',')
-      const match = Object.values(CONSTRAINT_MESSAGES).find(rule => rule.fields && [...rule.fields].sort().join(',') === key)
+      // Several lists share field names (code, slug), so when Prisma names the model only that list's rule matches.
+      const model = String(link?.meta?.modelName ?? (link?.extensions?.prisma?.meta as any)?.modelName ?? '')
+      const match = Object.entries(CONSTRAINT_MESSAGES).find(([name, rule]) => rule.fields && [...rule.fields].sort().join(',') === key && (!model || name.startsWith(`${model}_`)))?.[1]
       if (match) return match
     }
   }
