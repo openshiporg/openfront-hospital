@@ -1,4 +1,5 @@
 import { createTransport } from "nodemailer";
+import { emailButton, emailLayout, emailMuted, emailPanel, emailParagraph } from "./email-layout";
 
 export function getBaseUrlForEmails(): string {
   const configured = String(process.env.SMTP_STORE_LINK || '').trim()
@@ -21,38 +22,13 @@ const transport = createTransport({
 });
 
 function passwordResetEmail({ url }: { url: string }): string {
-  const backgroundColor = "#f9f9f9";
-  const textColor = "#444444";
-  const mainBackgroundColor = "#ffffff";
-  const buttonBackgroundColor = "#346df1";
-  const buttonBorderColor = "#346df1";
-  const buttonTextColor = "#ffffff";
-
-  return `
-    <body style="background: ${backgroundColor};">
-      <table width="100%" border="0" cellspacing="20" cellpadding="0" style="background: ${mainBackgroundColor}; max-width: 600px; margin: auto; border-radius: 10px;">
-        <tr>
-          <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-            Please click below to reset your password
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding: 20px 0;">
-            <table border="0" cellspacing="0" cellpadding="0">
-              <tr>
-                <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${buttonTextColor}; text-decoration: none; border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBorderColor}; display: inline-block; font-weight: bold;">Reset Password</a></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-            If you did not request this email you can safely ignore it.
-          </td>
-        </tr>
-      </table>
-    </body>
-  `;
+  return emailLayout({
+    preheader: "Use this link to choose a new password.",
+    title: "Reset your password",
+    body: `${emailParagraph("We received a request to reset the password for your account. Use the button below to choose a new one.")}
+${emailButton("Reset password", url)}
+${emailMuted("If you did not request this, you can safely ignore this email. Your password will not change.")}`,
+  });
 }
 
 export async function sendPasswordResetEmail(resetToken: string, to: string, baseUrl?: string): Promise<void> {
@@ -87,7 +63,15 @@ export async function sendAppointmentRequestEmail(
       to,
       from: process.env.SMTP_FROM,
       subject: `${details.facilityName}: we received your appointment request`,
-      html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><p>Hi ${escape(details.firstName)}, ${escape(details.facilityName)} received your appointment request. We will contact you to confirm it.</p><p>Requested time: ${escape(details.whenLabel)}<br>Request number: ${escape(details.appointmentNumber)}</p>${details.intakeUrl ? `<p><a href="${escape(details.intakeUrl)}" style="background:#346df1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">Complete your intake form</a></p>` : ''}${details.manageUrl ? `<p><a href="${escape(details.manageUrl)}">View or cancel this visit</a></p>` : ''}</body>`,
+      html: emailLayout({
+        storeName: details.facilityName,
+        preheader: 'We received your appointment request.',
+        title: 'We received your appointment request',
+        body: `${emailParagraph(`Hi ${escape(details.firstName)}, ${escape(details.facilityName)} received your appointment request. We will contact you to confirm it.`)}
+${emailPanel(`Requested time: ${escape(details.whenLabel)}<br>Request number: ${escape(details.appointmentNumber)}`)}
+${details.intakeUrl ? emailButton('Complete your intake form', details.intakeUrl) : ''}
+${details.manageUrl ? emailMuted(`<a class="em-link" href="${escape(details.manageUrl)}" style="color:#52525b;text-decoration:underline;">View or cancel this visit</a>`) : ''}`,
+      }),
     });
     return { sent: true, messageId: [String((info as any)?.messageId || ''), String((info as any)?.response || '').slice(0,120)].filter(Boolean).join(' | ') };
   } catch (error) {
@@ -110,7 +94,13 @@ export async function sendVisitNoticeEmail(
       to,
       from: process.env.SMTP_FROM,
       subject: `${details.facilityName}: ${details.heading.toLowerCase()}`,
-      html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><h2 style="color:#1d2b3a;">${escape(details.heading)}</h2>${details.lines.map(line => `<p>${escape(line)}</p>`).join('')}${manageUrl ? `<p><a href="${escape(manageUrl)}" style="background:#346df1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">View your visit</a></p>` : ''}</body>`,
+      html: emailLayout({
+        storeName: details.facilityName,
+        preheader: details.heading,
+        title: details.heading,
+        body: `${details.lines.map(line => emailParagraph(escape(line))).join('')}
+${manageUrl ? emailButton('View your visit', manageUrl) : ''}`,
+      }),
     })
     return { sent: true }
   } catch (error) {
@@ -130,7 +120,14 @@ export async function sendAccountConfirmEmail(to: string, details: { name: strin
       to,
       from: process.env.SMTP_FROM,
       subject: `${details.facilityName}: confirm your email`,
-      html: `<body style="font-family: Helvetica, Arial, sans-serif; color: #444;"><h2 style="color:#1d2b3a;">Confirm your email</h2><p>Hi ${escape(details.name)}, confirm this address to see your visits in your ${escape(details.facilityName)} account.</p><p><a href="${escape(url)}">Confirm my email</a></p><p>This link works for 2 days. If you didn't create an account, ignore this email.</p></body>`,
+      html: emailLayout({
+        storeName: details.facilityName,
+        preheader: 'Confirm your email address.',
+        title: 'Confirm your email',
+        body: `${emailParagraph(`Hi ${escape(details.name)}, confirm this address to see your visits in your ${escape(details.facilityName)} account.`)}
+${emailButton('Confirm my email', url)}
+${emailMuted("This link works for 2 days. If you didn't create an account, ignore this email.")}`,
+      }),
     })
     return { sent: true }
   } catch (error) {
