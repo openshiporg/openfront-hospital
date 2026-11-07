@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { expireBedReservations, expireUnconfirmedAppointments, resetExpiredPaymentSession } from './maintenance'
+import { expireBedReservations, expireUnconfirmedAppointments, PAYMENT_SWEEP_ACTOR, reconcileStalePayments, resetExpiredPaymentSession, STALE_PAYMENT_MS } from './maintenance'
 
 function fakePrisma(state: any) {
   const tx: any = {
@@ -62,4 +62,26 @@ test('expired payment session reset only applies to the same dead session', asyn
   const state: any = { payment: { id: 'x', status: 'pending', providerPaymentId: 'cs_old', transitionVersion: 2, facilityId: 'f', patientId: 'p' }, audit: [], outbox: [] }
   const prisma = fakePrisma(state)
   assert.equal(await resetExpiredPaymentSession(prisma, 'x', 'cs_other'), false)
+})
+
+test('payment sweep: only card checkouts with a session left unconfirmed 10+ minutes are settled, each through settle()', async () => {
+  const now = new Date('2026-01-01T12:00:00Z')
+  let query: any
+  const prisma = { patientPayment: { findMany: async (args: any) => { query = args; return [{ id: 'p1' }, { id: 'p2' }] } } }
+  const settled: string[] = []
+  const touched = await reconcileStalePayments(prisma, async id => { settled.push(id); if (id === 'p2') throw new Error('Provider amount mismatch; reconciliation required') }, now)
+  assert.equal(STALE_PAYMENT_MS, 10 * 60_000)
+  assert.deepEqual(query.where, { status: 'pending', method: 'card_online', providerPaymentId: { not: null }, updatedAt: { lte: new Date('2026-01-01T11:50:00Z') } })
+  assert.deepEqual(settled, ['p1', 'p2'])
+  assert.equal(touched, 1, 'a refused settle is logged and skipped, not counted, and does not stop the batch')
+})
+
+test('payment sweep: an expired session is cleared once under the sweep actor; the bill stays owed', async () => {
+  const state: any = { payment: { id: 'x', status: 'pending', providerPaymentId: 'cs_old', transitionVersion: 2, facilityId: 'f', patientId: 'p' }, audit: [], outbox: [] }
+  const prisma = fakePrisma(state)
+  assert.equal(await resetExpiredPaymentSession(prisma, 'x', 'cs_old', new Date(), PAYMENT_SWEEP_ACTOR), true)
+  assert.equal(state.audit[0].actorReference, PAYMENT_SWEEP_ACTOR)
+  assert.equal(state.audit[0].metadata.source, 'payment_sweep')
+  state.payment = { ...state.payment, providerPaymentId: null }
+  assert.equal(await resetExpiredPaymentSession(prisma, 'x', 'cs_old', new Date(), PAYMENT_SWEEP_ACTOR), false, 'a second sweep finds nothing to clear')
 })

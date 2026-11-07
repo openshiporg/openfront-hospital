@@ -6,7 +6,9 @@ import { appendAuditAndOutbox } from './evidence'
 // sweep is idempotent, compare-and-set, and safe to run beside other replicas.
 const SYSTEM_ACTOR = 'system_maintenance'
 export const REQUEST_GRACE_MS = 60 * 60_000
-export const STALE_PAYMENT_MS = 30 * 60_000
+/** A Checkout Session left unconfirmed this long is settled by the sweep (the payer may never load the return page). */
+export const STALE_PAYMENT_MS = 10 * 60_000
+export const PAYMENT_SWEEP_ACTOR = 'payment_sweep'
 
 async function lock(tx: any, key: string) {
   await tx.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text AS "lock"`)
@@ -65,22 +67,22 @@ export async function expireUnconfirmedAppointments(prisma: any, now = new Date(
 }
 
 /**
- * Pending online card payments with a provider session: ask the provider (the authority) once stale. Paid settles
- * (covers a missed webhook); an expired Checkout Session cancels, so the bill is not stuck on a dead link.
+ * Pending online card payments whose Checkout Session has sat unconfirmed for STALE_PAYMENT_MS: ask the provider
+ * (the authority) through the same settle path as the return page. Paid settles, with the same amount/currency
+ * check and compare-and-set; an expired session clears the dead link so the bill (still owed) can be paid afresh.
+ * The session reference is written when checkout starts, which bumps updatedAt, so the age is measured from there.
+ * Only rows that have a session are selected, so never-started bills can't crowd the batch.
  */
 export async function reconcileStalePayments(prisma: any, settle: (paymentId: string) => Promise<unknown>, now = new Date(), limit = 25) {
+  const cutoff = new Date(now.getTime() - STALE_PAYMENT_MS)
   const stale = await prisma.patientPayment.findMany({
-    where: { status: 'pending', method: 'card_online', createdAt: { lte: new Date(now.getTime() - STALE_PAYMENT_MS) } },
-    select: { id: true, providerPaymentId: true, createdAt: true }, orderBy: { createdAt: 'asc' }, take: limit,
+    where: { status: 'pending', method: 'card_online', providerPaymentId: { not: null }, updatedAt: { lte: cutoff } },
+    select: { id: true }, orderBy: { updatedAt: 'asc' }, take: limit,
   })
   let touched = 0
   for (const payment of stale) {
-    try {
-      // A bill nobody has started is a valid open balance (the patient may still pay the link), so only
-      // payments with a provider session are reconciled.
-      if (payment.providerPaymentId) { await settle(payment.id); touched += 1 }
-    } catch (error) {
-      console.error(JSON.stringify({ component: 'hospital-maintenance', task: 'payment-reconcile', paymentId: payment.id, error: error instanceof Error ? error.message : String(error) }))
+    try { await settle(payment.id); touched += 1 } catch (error) {
+      console.error(JSON.stringify({ component: 'hospital-maintenance', task: 'payment-sweep', paymentId: payment.id, error: error instanceof Error ? error.message : String(error) }))
     }
   }
   return touched
@@ -91,19 +93,19 @@ export async function reconcileStalePayments(prisma: any, settle: (paymentId: st
  * so it stays pending; the dead session reference is cleared (compare-and-set on the reference) and the version
  * bumped so the next attempt gets a fresh provider idempotency key and a new session.
  */
-export async function resetExpiredPaymentSession(prisma: any, paymentId: string, expiredSessionId: string, now = new Date()) {
+export async function resetExpiredPaymentSession(prisma: any, paymentId: string, expiredSessionId: string, now = new Date(), actorReference = SYSTEM_ACTOR) {
   return prisma.$transaction(async (tx: any) => {
     await lock(tx, `payment:${paymentId}`)
     const reset = await tx.patientPayment.updateMany({
       where: { id: paymentId, status: 'pending', providerPaymentId: expiredSessionId },
-      data: { providerPaymentId: null, transitionVersion: { increment: 1 }, actorReference: SYSTEM_ACTOR },
+      data: { providerPaymentId: null, transitionVersion: { increment: 1 }, actorReference },
     })
     if (reset.count !== 1) return false
     const current = await tx.patientPayment.findUnique({ where: { id: paymentId } })
     await appendAuditAndOutbox(tx, {
       eventKey: `payment:${paymentId}:v${current.transitionVersion}:session_expired`, eventType: 'payment.session_expired', aggregateType: 'payment', aggregateId: paymentId,
-      facilityId: current.facilityId, patientId: current.patientId, actorReference: SYSTEM_ACTOR, occurredAt: now,
-      metadata: { source: 'maintenance_sweep', aggregateId: paymentId, status: 'pending', transitionVersion: current.transitionVersion },
+      facilityId: current.facilityId, patientId: current.patientId, actorReference, occurredAt: now,
+      metadata: { source: actorReference === PAYMENT_SWEEP_ACTOR ? 'payment_sweep' : 'maintenance_sweep', aggregateId: paymentId, status: 'pending', transitionVersion: current.transitionVersion },
     })
     return true
   }, { timeout: 30_000 })

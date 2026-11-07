@@ -72,7 +72,7 @@ export async function settleFromProvider(context: Context, where: { id?: string;
   if (status.amount !== payment.amountCents || status.currency !== payment.currency) throw new HospitalRefusal('Provider amount mismatch; reconciliation required')
   if (status.status === 'canceled' && payment.status === 'pending') {
     // The Checkout Session expired at the provider and nothing was charged: free the bill for a fresh session.
-    await resetExpiredPaymentSession(prisma, payment.id, payment.providerPaymentId)
+    await resetExpiredPaymentSession(prisma, payment.id, payment.providerPaymentId, new Date(), actorReference)
     return { status: 'pending' }
   }
   if (status.status !== 'succeeded') return { status: payment.status }
