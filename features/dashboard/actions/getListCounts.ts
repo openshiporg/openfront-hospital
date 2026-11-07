@@ -30,14 +30,21 @@ export async function getListCounts(
       return `${list.key}: ${countName}`
     })
 
-    const query = `query GetListCounts { ${countQueries.join('\n')} }`
-    
-    // Each count is independent: a list this role cannot read, or a transient failure on one list, leaves that
-    // card without a count and keeps every other count.
-    const response = await keystonePartialQuery<Record<string, any>>(query)
-    if (!response.success) return response
+    // The GraphQL guard rejects documents with more than 50 aliases and Hospital has more lists than that, so
+    // counts go out in batches. Each count is independent: a list this role cannot read, or a transient failure
+    // on one list or one batch, leaves those cards without a count and keeps every other count.
+    const BATCH = 40
+    const batches: string[][] = []
+    for (let i = 0; i < countQueries.length; i += BATCH) batches.push(countQueries.slice(i, i + BATCH))
+    const responses = await Promise.all(
+      batches.map((batch) => keystonePartialQuery<Record<string, any>>(`query GetListCounts { ${batch.join('\n')} }`)),
+    )
     const data: Record<string, any> = {}
-    for (const [key, value] of Object.entries(response.data)) if (value !== null && value !== undefined) data[key] = value
+    for (const response of responses) {
+      if (!response.success) continue
+      for (const [key, value] of Object.entries(response.data)) if (value !== null && value !== undefined) data[key] = value
+    }
+    if (!responses.some((response) => response.success)) return responses[0]
     return { success: true as const, data }
   } catch (error: unknown) {
     console.error("Dashboard operation failed (details redacted).")
