@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client'
 
-import { appendAuditAndOutbox } from './evidence'
+import { appendAudit } from './evidence'
 
-// Time-based state settlement. There is no scheduler besides the in-process loop in instrumentation.ts, so every
+// Time-based state settlement. Settlement runs from the in-process loop in instrumentation.ts (no separate worker service), so every
 // sweep is idempotent, compare-and-set, and safe to run beside other replicas.
 const SYSTEM_ACTOR = 'system_maintenance'
 export const REQUEST_GRACE_MS = 60 * 60_000
@@ -28,8 +28,8 @@ export async function expireBedReservations(prisma: any, now = new Date(), limit
       if (bed && bed.status === 'reserved' && !bed.currentPatientId) {
         await tx.bed.update({ where: { id: bed.id }, data: { status: 'available', transitionVersion: { increment: 1 } } })
       }
-      await appendAuditAndOutbox(tx, {
-        eventKey: `bed_reservation:${updated.id}:v${updated.transitionVersion}:expired`, eventType: 'bed_reservation.expired',
+      await appendAudit(tx, {
+        eventType: 'bed_reservation.expired',
         aggregateType: 'bed_reservation', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId,
         actorReference: SYSTEM_ACTOR, occurredAt: now,
         metadata: { source: 'maintenance_sweep', aggregateId: updated.id, bedId: updated.bedId, fromStatus: 'active', status: 'expired', transitionVersion: updated.transitionVersion },
@@ -58,7 +58,6 @@ export async function expireUnconfirmedAppointments(prisma: any, now = new Date(
       } })
       const metadata = { source: 'maintenance_sweep', aggregateType: 'appointment', aggregateId: current.id, fromStatus: 'requested', status: 'cancelled', transitionVersion: nextVersion, reasonProvided: true }
       await tx.clinicalAuditLog.create({ data: { eventType: 'appointment.cancelled', occurredAt: now, actorType: 'system', actorReference: SYSTEM_ACTOR, facilityId: current.facilityId, patientId: current.patientId, appointmentId: current.id, metadata } })
-      await tx.clinicalOutboxEvent.create({ data: { eventKey: `appointment:${current.id}:v${nextVersion}:${updated.status}`, eventType: 'appointment.cancelled', aggregateType: 'appointment', aggregateId: current.id, status: 'recorded', attempts: 0, nextAttemptAt: null, facilityId: current.facilityId, patientId: current.patientId, appointmentId: current.id, payload: metadata } })
       return true
     }, { timeout: 30_000 })
     if (done) expired += 1
@@ -102,8 +101,8 @@ export async function resetExpiredPaymentSession(prisma: any, paymentId: string,
     })
     if (reset.count !== 1) return false
     const current = await tx.patientPayment.findUnique({ where: { id: paymentId } })
-    await appendAuditAndOutbox(tx, {
-      eventKey: `payment:${paymentId}:v${current.transitionVersion}:session_expired`, eventType: 'payment.session_expired', aggregateType: 'payment', aggregateId: paymentId,
+    await appendAudit(tx, {
+      eventType: 'payment.session_expired', aggregateType: 'payment', aggregateId: paymentId,
       facilityId: current.facilityId, patientId: current.patientId, actorReference, occurredAt: now,
       metadata: { source: actorReference === PAYMENT_SWEEP_ACTOR ? 'payment_sweep' : 'maintenance_sweep', aggregateId: paymentId, status: 'pending', transitionVersion: current.transitionVersion },
     })

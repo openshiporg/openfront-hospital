@@ -74,7 +74,7 @@ async function loadAvailableAppointmentSlots(
   if (providers.length > 100) throw new HospitalRefusal('Too many providers match this public availability request')
   const providerIds = providers.map((provider: any) => provider.id)
 
-  const [scheduleBlocks, appointmentCandidates, communicationInstallations] = await Promise.all([
+  const [scheduleBlocks, appointmentCandidates] = await Promise.all([
     prisma.providerScheduleBlock.findMany({
       where: {
         providerId: { in: providerIds },
@@ -112,23 +112,12 @@ async function loadAvailableAppointmentSlots(
         },
       },
     }),
-    prisma.integrationInstallation.findMany({
-      where: { kind: 'communications', status: 'active', facilityId },
-      take: 1_001,
-      select: { facilityId: true, allowedEventTypes: true },
-    }),
   ])
 
-  if (scheduleBlocks.length > 2_000 || appointmentCandidates.length > 2_000 || communicationInstallations.length > 1_000) {
+  if (scheduleBlocks.length > 2_000 || appointmentCandidates.length > 2_000) {
     throw new HospitalRefusal('Public availability window is too broad')
   }
-  const eligibleFollowUpInstallations = communicationInstallations.filter((item: any) =>
-    Array.isArray(item.allowedEventTypes) && item.allowedEventTypes.includes('message.queued'),
-  )
-  if (eligibleFollowUpInstallations.length > 1) {
-    throw new Error('Public follow-up configuration is ambiguous for this facility')
-  }
-  const followUpMode = eligibleFollowUpInstallations.length === 1 ? 'integration' : 'manual'
+  const followUpMode = 'manual'
   const now = new Date()
   const slots: Array<Record<string, unknown>> = []
   const seen = new Set<string>()

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Context } from '.keystone/types'
 import { createDeliverableIntakeAccessToken, deliverableIntakeAccessToken, verifyIntakeAccessToken } from '../../security/intakeAccess'
 import { inspectProviderWindow, lockProviderSchedule, normalizeAppointmentTypePolicy } from '../scheduling/schedulePolicy'
-import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from '../operational/evidence'
+import { appendAudit, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from '../operational/evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireOnboarding(context: Context) {
@@ -65,8 +65,7 @@ export async function createOnboardingAppointment(_root: unknown, { data }: any,
             transitionVersion: { increment: 1 },
           },
         })
-        await appendAuditAndOutbox(prisma, {
-          eventKey: `appointment:${updated.id}:v${updated.transitionVersion}:schedule_reconciled`,
+        await appendAudit(prisma, {
           eventType: 'appointment.schedule_reconciled',
           aggregateType: 'appointment',
           aggregateId: updated.id,
@@ -94,7 +93,7 @@ export async function createOnboardingAppointment(_root: unknown, { data }: any,
       locationName: bounded(data.locationName, 'Location name', 300), reasonForVisit: bounded(data.reasonForVisit, 'Reason for visit', 2000),
       facilityId: data.facilityId, patientId: data.patientId, providerId: data.providerId, appointmentTypeId: data.appointmentTypeId,
     } })
-    await appendAuditAndOutbox(prisma, { eventKey: `appointment:${appointment.id}:v1:onboarded`, eventType: 'appointment.onboarded',
+    await appendAudit(prisma, { eventType: 'appointment.onboarded',
       aggregateType: 'appointment', aggregateId: appointment.id, facilityId: appointment.facilityId, patientId: appointment.patientId,
       actorReference: context.session!.itemId, metadata: { source: 'onboarding_workflow', aggregateId: appointment.id, status: appointment.status, transitionVersion: 1 }, occurredAt: now })
     return { id: appointment.id, appointmentNumber: appointment.appointmentNumber, status: appointment.status, transitionVersion: 1, replayed: false }
@@ -129,8 +128,7 @@ export async function issueIntakeForm(_root: unknown, { data }: any, context: Co
           accessUsedAt: null,
           accessRevokedAt: null,
         } })
-        await appendAuditAndOutbox(prisma, {
-          eventKey: `intake:${row.id}:v${row.transitionVersion}:access_rotated:${Math.floor(expiresAt.getTime() / 1_000)}`,
+        await appendAudit(prisma, {
           eventType: 'intake.access_rotated',
           aggregateType: 'intake_form',
           aggregateId: row.id,
@@ -160,7 +158,7 @@ export async function issueIntakeForm(_root: unknown, { data }: any, context: Co
       facilityId: data.facilityId, patientId: data.patientId, appointmentId: data.appointmentId,
       formSchema: data.formSchema || { sections: ['contact', 'reason_for_visit', 'insurance'] },
     } })
-    await appendAuditAndOutbox(prisma, { eventKey: `intake:${intake.id}:v1:issued`, eventType: 'intake.issued',
+    await appendAudit(prisma, { eventType: 'intake.issued',
       aggregateType: 'intake_form', aggregateId: intake.id, facilityId: intake.facilityId, patientId: intake.patientId,
       actorReference: context.session!.itemId, metadata: { source: 'intake_issue_workflow', aggregateId: intake.id, status: intake.status, transitionVersion: 1 }, occurredAt: now })
     return { id: intake.id, status: intake.status, transitionVersion: 1, accessCode: access.token, accessExpiresAt: access.expiresAt, replayed: false }

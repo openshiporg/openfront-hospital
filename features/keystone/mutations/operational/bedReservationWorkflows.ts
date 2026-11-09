@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
-import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
+import { appendAudit, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireBeds(context: Context) {
@@ -40,8 +40,8 @@ export async function reserveBed(_root: unknown, { data }: any, context: Context
     const prior = await prisma.bedReservation.findFirst({ where: { bedId: data.bedId, status: 'active' } })
     if (prior && prior.expiresAt <= now) {
       const expired = await prisma.bedReservation.update({ where: { id: prior.id }, data: { status: 'expired', transitionVersion: { increment: 1 }, releasedAt: now, actorReference: context.session!.itemId } })
-      await appendAuditAndOutbox(prisma, {
-        eventKey: `bed_reservation:${expired.id}:v${expired.transitionVersion}:expired`, eventType: 'bed_reservation.expired',
+      await appendAudit(prisma, {
+        eventType: 'bed_reservation.expired',
         aggregateType: 'bed_reservation', aggregateId: expired.id, facilityId: expired.facilityId, patientId: expired.patientId,
         actorReference: context.session!.itemId,
         metadata: { source: 'bed_reservation_workflow', aggregateId: expired.id, bedId: expired.bedId, fromStatus: prior.status, status: expired.status, transitionVersion: expired.transitionVersion },
@@ -59,7 +59,7 @@ export async function reserveBed(_root: unknown, { data }: any, context: Context
       actorReference: context.session!.itemId, reasonCode, expiresAt,
     } })
     await prisma.bed.update({ where: { id: currentBed.id }, data: { status: 'reserved', transitionVersion: { increment: 1 } } })
-    await appendAuditAndOutbox(prisma, { eventKey: `bed_reservation:${reservation.id}:v1:active`, eventType: 'bed_reservation.active',
+    await appendAudit(prisma, { eventType: 'bed_reservation.active',
       aggregateType: 'bed_reservation', aggregateId: reservation.id, facilityId: reservation.facilityId, patientId: reservation.patientId,
       actorReference: context.session!.itemId, metadata: { source: 'bed_reservation_workflow', aggregateId: reservation.id, bedId: reservation.bedId, status: reservation.status, transitionVersion: 1 }, occurredAt: now })
     return result(reservation)
@@ -87,13 +87,13 @@ export async function releaseBedReservation(_root: unknown, args: any, context: 
     const now = new Date()
     const updated = await prisma.bedReservation.update({ where: { id: current.id }, data: { status: 'released', transitionVersion: { increment: 1 }, releasedAt: now, reasonCode } })
     await prisma.bed.update({ where: { id: bed.id }, data: { status: 'available', transitionVersion: { increment: 1 } } })
-    const events = await appendAuditAndOutbox(prisma, { eventKey: `bed_reservation:${updated.id}:v${updated.transitionVersion}:released`, eventType: 'bed_reservation.released',
+    const events = await appendAudit(prisma, { eventType: 'bed_reservation.released',
       aggregateType: 'bed_reservation', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId,
       actorReference: context.session!.itemId, metadata: { source: 'bed_reservation_workflow', aggregateId: updated.id, bedId: updated.bedId, fromStatus: current.status, status: updated.status, transitionVersion: updated.transitionVersion }, occurredAt: now })
     const projected = result(updated)
     await recordTransition(prisma, { evidence, aggregateType: 'bed_reservation', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, patientId: updated.patientId, auditLogId: events.audit.id, outboxEventId: events.outbox.id,
+      facilityId: updated.facilityId, patientId: updated.patientId, auditLogId: events.audit.id, 
       result: projected, occurredAt: now })
     return projected
   }, { timeout: 30_000 })

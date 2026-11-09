@@ -4,7 +4,7 @@ Source: `features/keystone/models/**` (63 lists), `features/keystone/mutations/*
 
 Two kinds of list:
 - **Master data**: plain Keystone CRUD behind permissions, usually `canAccessAllClinicalData`. Covers Facility, Department, Ward, Room, Bed (create only), Provider, Clinician, AppointmentType, LabTest, ProviderScheduleBlock, HospitalProfile, User and Role.
-- **Controlled clinical and operational records**: GraphQL create, update and delete are denied or omitted. Every write goes through a workflow mutation that carries `operationKey`, `expectedVersion` and a `transitionVersion`, writes a `WorkflowTransition` and audit row, and may enqueue a `ClinicalOutboxEvent`.
+- **Controlled clinical and operational records**: GraphQL create, update and delete are denied or omitted. Every write goes through a workflow mutation that carries `operationKey`, `expectedVersion` and a `transitionVersion`, writes a `WorkflowTransition` and audit row.
 
 ## Lists
 
@@ -59,14 +59,12 @@ Two kinds of list:
 | ExportJob | Encrypted data export | jobNumber, filters, status, expiresAt | facility | Staff (`requestExportJob`, `processExportJob`) | queued → processing → ready → expired; failed |
 | IntegrationInstallation | External integration | installationKey, kind, allowedEventTypes, status, lastSuccessAt | facility | Staff (`installIntegration`, `transitionIntegrationInstallation`) | active / paused / revoked |
 | MachineCredential | Integration credential (digest only) | name, expiresAt, status | facility, createdBy | Staff (`issueMachineCredential`, `revokeMachineCredential`) | active / revoked / expired |
-| IntegrationDeliveryAttempt | Outbound delivery attempt | attemptNumber, status, responseStatus | installation | System worker | append-only |
 | IntegrationWebhookReceipt | Inbound webhook receipt | receiptKey, requestDigest, status | facility | System | append-only |
-| ClinicalOutboxEvent | Outbound event queue | aggregateType, eventKey, status, attempts | facility, installation | System | recorded / pending → processing → delivered; retry; dead_letter |
 | ExternalIdentityLink | Link to external system IDs | linkNumber, system, localType, status | — | Staff (`linkExternalIdentity`) | active |
 | RetentionPolicy | Retention rules per record type | recordType, status | facility | Staff (`establishRetentionPolicy`, `transitionRetentionPolicy`) | active / inactive |
 | RecordHold | Legal hold | holdNumber, status | facility, patient | Staff (`placeRecordHold`, `releaseRecordHold`) | active / released |
 | RetentionDisposition | Disposition decision | recordType, decision, cutoffAt | policy, patient, facility | Staff (`recordRetentionDisposition`) | append-only |
-| WorkflowTransition | Every controlled transition | aggregateType, from/to status and version, result | auditLog, outboxEvent, patient, facility | System | append-only |
+| WorkflowTransition | Every controlled transition | aggregateType, from/to status and version, result | auditLog, patient, facility | System | append-only |
 | ClinicalAuditLog | Clinical audit trail | eventType, actorType, occurredAt, metadata | patient, appointment, encounter, intakeForm, consent | System | append-only |
 | PhiReadAudit | PHI read audit | operationName, purpose, rootFields, resultCount, success | — | System (GraphQL plugin) | append-only |
 | User | Staff and portal login | name, email, password, onboardingStatus, securityVersion | role, facilities, providerProfile, patientProfile | Merchant (init, staff admin) | onboarding not_started / in_progress / completed / dismissed |
@@ -87,7 +85,7 @@ Two kinds of list:
 9. **Revenue cycle:** PatientCoverage → InsuranceClaim (prepare → submit → acknowledge or reject → correct) with ClaimVersion; PatientPayment → PatientRefund.
 10. **Supplies:** InventoryItem → InventoryMovement; CSV ImportBatch.
 11. **Communications:** CommunicationTemplate, CommunicationPreference, PatientMessage queue.
-12. **Platform operations:** IntegrationInstallation, MachineCredential, outbox; RetentionPolicy, RecordHold, RetentionDisposition; ExportJob.
+12. **Platform operations:** IntegrationInstallation, MachineCredential; RetentionPolicy, RecordHold, RetentionDisposition; ExportJob.
 13. **Oversight:** reports; audit trail (ClinicalAuditLog, WorkflowTransition, PhiReadAudit).
 
 ## Coverage (platform pages)
@@ -115,7 +113,7 @@ Before this pass, compared with after.
 | InsuranceClaim, ClaimVersion | `/platform/claims` (operations) | same |
 | PatientCoverage, PatientPayment, PatientRefund, PatientConsent | `/platform/operational-fabric` (operational-fabric) | same |
 | InventoryItem, InventoryMovement, ImportBatch | `/platform/operational-fabric` (operational-fabric) | same |
-| Integrations, credentials, outbox, retention, holds, exports, external identity | `/platform/operational-fabric` (operational-fabric) | same |
+| Integrations, credentials, retention, holds, exports, external identity | `/platform/operational-fabric` (operational-fabric) | same |
 | User, Role (staff and permissions) | **MISSING** | `/platform/staff` (staff) |
 | ClinicalAuditLog, WorkflowTransition | **MISSING** | `/platform/audit` (audit) |
 | Reports | `/platform/reports` (reports) | same |
@@ -123,7 +121,7 @@ Before this pass, compared with after.
 No page needed:
 - BedOccupancyEvent: covered by inpatient.
 - ClaimVersion: covered by claims.
-- IntegrationDeliveryAttempt, IntegrationWebhookReceipt, ClinicalOutboxEvent: covered by operational-fabric.
+- IntegrationWebhookReceipt: covered by operational-fabric.
 - PhiReadAudit: security log, readable in the admin list; audit links to it.
 - PasswordResetRequest, RequestRateLimitBucket: system only, never readable.
 - PatientPortalAccess: no workflow issues invites; nothing for staff to act on.

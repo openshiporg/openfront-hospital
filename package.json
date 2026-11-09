@@ -7,7 +7,6 @@
     "dev": "keystone build --no-ui && npm run migrate && next dev",
     "build": "keystone build --no-ui && npm run migrate && next build",
     "start": "next start",
-    "worker:outbox": "node scripts/run-outbox-worker.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit --pretty false",
     "validate:onboarding-seed": "node scripts/validate-onboarding-seed.mjs",

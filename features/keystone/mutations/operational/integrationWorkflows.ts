@@ -3,14 +3,12 @@ import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 
 import { encryptSecret, integrationEncryptionKey, sha256 } from '../../integrations/crypto'
-import { dispatchExternalOutbox } from '../../integrations/outboxWorker'
 import { validateIntegrationEndpoint } from '../../integrations/endpointPolicy'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
-import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence } from './evidence'
+import { appendAudit, bounded, lockOperation, operationEvidence } from './evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 const EVENT_TYPES = new Set([
-  'message.queued',
   'payment.pending',
   'refund.pending',
   'medical_order.ordered',
@@ -76,8 +74,8 @@ export async function createIntegrationInstallation(_root: unknown, { data }: an
       keyVersion: 1,
       actorReference: context.session!.itemId,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `integration:${installation.id}:v1:active`, eventType: 'integration.created',
+    await appendAudit(prisma, {
+      eventType: 'integration.created',
       aggregateType: 'integration', aggregateId: installation.id, facilityId: installation.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'integration_workflow', aggregateId: installation.id, kind, status: 'active', transitionVersion: 1 },
@@ -108,17 +106,10 @@ export async function transitionIntegrationInstallation(_root: unknown, args: an
     const updated = await prisma.integrationInstallation.update({ where: { id: current.id }, data: {
       status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId,
     } })
-    if (args.toStatus !== 'active') {
-      await prisma.clinicalOutboxEvent.updateMany({
-        where: { installationId: updated.id, deliveryMode: 'external', status: { in: ['pending', 'retry'] } },
-        data: { status: 'dead_letter', nextAttemptAt: null, lastError: 'integration_generation_revoked' },
-      })
-    }
     if (args.toStatus === 'revoked') {
       await prisma.machineCredential.updateMany({ where: { installationId: updated.id, status: 'active' }, data: { status: 'revoked', revokedAt: now, transitionVersion: { increment: 1 } } })
     }
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `integration:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: `integration.${updated.status}`, aggregateType: 'integration', aggregateId: updated.id,
       facilityId: updated.facilityId, actorReference: context.session!.itemId,
       metadata: { source: 'integration_workflow', aggregateId: updated.id, fromStatus: current.status, status: updated.status, transitionVersion: updated.transitionVersion },
@@ -128,7 +119,7 @@ export async function transitionIntegrationInstallation(_root: unknown, args: an
     await recordTransition(prisma, {
       evidence, aggregateType: 'integration', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -170,8 +161,8 @@ export async function issueMachineCredential(_root: unknown, { data }: any, cont
       status: 'active', facilityId: currentInstallation.facilityId, installationId: currentInstallation.id,
       createdById: context.session!.itemId, createdAt: now, expiresAt,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `machine_credential:${row.id}:v1:active`, eventType: 'machine_credential.issued',
+    await appendAudit(prisma, {
+      eventType: 'machine_credential.issued',
       aggregateType: 'machine_credential', aggregateId: row.id, facilityId: row.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'integration_workflow', aggregateId: row.id, installationId: row.installationId, status: 'active', transitionVersion: 1, expiresAt: expiresAt.toISOString() },
@@ -200,8 +191,8 @@ export async function revokeMachineCredential(_root: unknown, args: any, context
     if (!current || current.status !== 'active' || current.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Machine credential changed or is not active')
     const now = new Date()
     const updated = await prisma.machineCredential.update({ where: { id: current.id }, data: { status: 'revoked', transitionVersion: { increment: 1 }, revokedAt: now } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `machine_credential:${updated.id}:v${updated.transitionVersion}:revoked`, eventType: 'machine_credential.revoked',
+    const events = await appendAudit(prisma, {
+      eventType: 'machine_credential.revoked',
       aggregateType: 'machine_credential', aggregateId: updated.id, facilityId: updated.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'integration_workflow', aggregateId: updated.id, installationId: updated.installationId, status: 'revoked', transitionVersion: updated.transitionVersion },
@@ -211,7 +202,7 @@ export async function revokeMachineCredential(_root: unknown, args: any, context
     await recordTransition(prisma, {
       evidence, aggregateType: 'machine_credential', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -223,13 +214,6 @@ const LOCAL_TYPES: Record<string, { list: string; query: string }> = {
   encounter: { list: 'Encounter', query: 'id facility { id }' },
   claim: { list: 'InsuranceClaim', query: 'id facility { id }' },
   inventory_item: { list: 'InventoryItem', query: 'id facility { id }' },
-}
-
-export async function dispatchIntegrationOutbox(_root: unknown, args: { limit?: number }, context: Context) {
-  if (!context.session?.data.role?.canAccessAllClinicalData || !context.session?.data.role?.canManageIntegrations) {
-    throw new HospitalRefusal('Only the global maintenance administrator can dispatch integration events')
-  }
-  return dispatchExternalOutbox(context.sudo().prisma, args.limit)
 }
 
 export async function linkExternalIdentity(_root: unknown, { data }: any, context: Context) {
@@ -263,8 +247,8 @@ export async function linkExternalIdentity(_root: unknown, { data }: any, contex
       externalId, localType, localId: data.localId, status: 'active', ...evidence,
       actorReference: context.session!.itemId, createdAt: now,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `external_identity:${link.id}:linked`, eventType: 'external_identity.linked',
+    await appendAudit(prisma, {
+      eventType: 'external_identity.linked',
       aggregateType: 'external_identity', aggregateId: link.id, facilityId: link.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'integration_workflow', aggregateId: link.id, system, resourceType, localType, localId: link.localId },

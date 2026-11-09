@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 import { createPayment, getPaymentStatus } from '../../utils/paymentProviderAdapter'
 import { consumeSharedRateLimit, requestIdentity } from '../../security/graphqlSecurity'
-import { appendAuditAndOutbox } from '../operational/evidence'
+import { appendAudit } from '../operational/evidence'
 import { resetExpiredPaymentSession } from '../operational/maintenance'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
@@ -86,7 +86,7 @@ export async function settleFromProvider(context: Context, where: { id?: string;
     if (current.transitionVersion !== payment.transitionVersion) throw new HospitalRefusal('Payment changed; reconcile again')
     const nextVersion = current.transitionVersion + 1
     const updated = await db.patientPayment.update({ where: { id: current.id }, data: { status: 'succeeded', transitionVersion: nextVersion, receivedAt: new Date(), externalReference: payment.providerPaymentId } })
-    await appendAuditAndOutbox(db, { eventKey: `payment:${updated.id}:v${nextVersion}:succeeded`, eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference, deliveryMode: 'internal', metadata: { source: 'payment_reconciliation', aggregateId: updated.id, providerPaymentId: updated.providerPaymentId, transitionVersion: nextVersion, amountCents: updated.amountCents, currency: updated.currency } })
+    await appendAudit(db, { eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference, metadata: { source: 'payment_reconciliation', aggregateId: updated.id, providerPaymentId: updated.providerPaymentId, transitionVersion: nextVersion, amountCents: updated.amountCents, currency: updated.currency } })
     return { status: updated.status }
   }, { timeout: 30_000 })
 }

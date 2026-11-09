@@ -1713,76 +1713,6 @@ input ClinicalAuditLogOrderByInput {
   createdAt: OrderDirection
 }
 
-type ClinicalOutboxEvent {
-  id: ID!
-  eventKey: String
-  eventType: String
-  aggregateType: String
-  aggregateId: String
-  contractVersion: String
-  deliveryMode: String
-  installation: IntegrationInstallation
-  installationVersion: Int
-  status: String
-  attempts: Int
-  nextAttemptAt: DateTime
-  deliveredAt: DateTime
-  lastError: String
-  facility: Facility
-  patient: Patient
-  appointment: Appointment
-  encounter: Encounter
-  payload: JSON
-  createdAt: DateTime
-}
-
-input ClinicalOutboxEventWhereUniqueInput {
-  id: ID
-  eventKey: String
-}
-
-input ClinicalOutboxEventWhereInput {
-  AND: [ClinicalOutboxEventWhereInput!]
-  OR: [ClinicalOutboxEventWhereInput!]
-  NOT: [ClinicalOutboxEventWhereInput!]
-  id: IDFilter
-  eventKey: StringFilter
-  eventType: StringFilter
-  aggregateType: StringFilter
-  aggregateId: StringFilter
-  contractVersion: StringFilter
-  deliveryMode: StringFilter
-  installation: IntegrationInstallationWhereInput
-  installationVersion: IntNullableFilter
-  status: StringFilter
-  attempts: IntFilter
-  nextAttemptAt: DateTimeNullableFilter
-  deliveredAt: DateTimeNullableFilter
-  lastError: StringFilter
-  facility: FacilityWhereInput
-  patient: PatientWhereInput
-  appointment: AppointmentWhereInput
-  encounter: EncounterWhereInput
-  createdAt: DateTimeFilter
-}
-
-input ClinicalOutboxEventOrderByInput {
-  id: OrderDirection
-  eventKey: OrderDirection
-  eventType: OrderDirection
-  aggregateType: OrderDirection
-  aggregateId: OrderDirection
-  contractVersion: OrderDirection
-  deliveryMode: OrderDirection
-  installationVersion: OrderDirection
-  status: OrderDirection
-  attempts: OrderDirection
-  nextAttemptAt: OrderDirection
-  deliveredAt: OrderDirection
-  lastError: OrderDirection
-  createdAt: OrderDirection
-}
-
 type WorkflowTransition {
   id: ID!
   operationKeyHash: String
@@ -1797,7 +1727,6 @@ type WorkflowTransition {
   facility: Facility
   patient: Patient
   auditLog: ClinicalAuditLog
-  outboxEvent: ClinicalOutboxEvent
   result: JSON
   occurredAt: DateTime
 }
@@ -1821,7 +1750,6 @@ input WorkflowTransitionWhereInput {
   facility: FacilityWhereInput
   patient: PatientWhereInput
   auditLog: ClinicalAuditLogWhereInput
-  outboxEvent: ClinicalOutboxEventWhereInput
   occurredAt: DateTimeFilter
 }
 
@@ -4437,56 +4365,6 @@ input MachineCredentialOrderByInput {
   lastUsedFingerprint: OrderDirection
 }
 
-type IntegrationDeliveryAttempt {
-  id: ID!
-  attemptKey: String
-  facility: Facility
-  installation: IntegrationInstallation
-  outboxEvent: ClinicalOutboxEvent
-  attemptNumber: Int
-  status: String
-  responseStatus: Int
-  errorCode: String
-  responseDigest: String
-  startedAt: DateTime
-  completedAt: DateTime
-}
-
-input IntegrationDeliveryAttemptWhereUniqueInput {
-  id: ID
-  attemptKey: String
-}
-
-input IntegrationDeliveryAttemptWhereInput {
-  AND: [IntegrationDeliveryAttemptWhereInput!]
-  OR: [IntegrationDeliveryAttemptWhereInput!]
-  NOT: [IntegrationDeliveryAttemptWhereInput!]
-  id: IDFilter
-  attemptKey: StringFilter
-  facility: FacilityWhereInput
-  installation: IntegrationInstallationWhereInput
-  outboxEvent: ClinicalOutboxEventWhereInput
-  attemptNumber: IntFilter
-  status: StringFilter
-  responseStatus: IntNullableFilter
-  errorCode: StringFilter
-  responseDigest: StringFilter
-  startedAt: DateTimeFilter
-  completedAt: DateTimeFilter
-}
-
-input IntegrationDeliveryAttemptOrderByInput {
-  id: OrderDirection
-  attemptKey: OrderDirection
-  attemptNumber: OrderDirection
-  status: OrderDirection
-  responseStatus: OrderDirection
-  errorCode: OrderDirection
-  responseDigest: OrderDirection
-  startedAt: OrderDirection
-  completedAt: OrderDirection
-}
-
 type IntegrationWebhookReceipt {
   id: ID!
   receiptKey: String
@@ -5177,7 +5055,6 @@ type Mutation {
   recordConsentDecision(data: ConsentDecisionWorkflowInput!): ConsentDecisionResult!
   arriveAppointment(appointmentId: ID!, idempotencyKey: String!, reasonCode: String): CareQueueResult!
   transitionCareQueue(operationKey: String!, ticketId: ID!, toStatus: String!, expectedVersion: Int!, encounterId: ID): CareQueueResult!
-  dispatchClinicalOutbox(limit: Int): ClinicalOutboxDispatchResult!
   admitPatient(data: AdmissionWorkflowInput!): ControlledClinicalResult!
   transitionAdmission(operationKey: String!, admissionId: ID!, toStatus: String!, expectedVersion: Int!, bedId: ID, reasonCode: String, dischargeDisposition: String): ControlledClinicalResult!
   transitionBedReadiness(operationKey: String!, bedId: ID!, toStatus: String!, expectedVersion: Int!): ControlledBedResult!
@@ -5218,7 +5095,6 @@ type Mutation {
   transitionIntegrationInstallation(operationKey: String!, installationId: ID!, expectedVersion: Int!, toStatus: String!): ControlledClinicalResult!
   issueMachineCredential(data: MachineCredentialWorkflowInput!): MachineCredentialWorkflowResult!
   revokeMachineCredential(operationKey: String!, credentialId: ID!, expectedVersion: Int!): ControlledClinicalResult!
-  dispatchIntegrationOutbox(limit: Int): IntegrationDispatchResult!
   linkExternalIdentity(data: ExternalIdentityWorkflowInput!): ExternalIdentityWorkflowResult!
   establishRetentionPolicy(data: RetentionPolicyWorkflowInput!): ControlledClinicalResult!
   transitionRetentionPolicy(operationKey: String!, policyId: ID!, expectedVersion: Int!, toStatus: String!): ControlledClinicalResult!
@@ -5238,6 +5114,9 @@ type Mutation {
   createOnboardingAppointment(data: OnboardingAppointmentInput!): OnboardingAppointmentResult!
   issueIntakeForm(data: IntakeIssueInput!): OneTimeAccessResult!
   cancelPatientVisit(accessToken: String!, reason: String): PatientVisit
+  registerPatientAccount(name: String!, email: String!, password: String!): PatientAccountResult!
+  confirmPatientAccountEmail(token: String!): PatientAccountResult!
+  resendPatientAccountConfirmation: PatientAccountResult!
   requestAppointment(appointmentTypeId: ID!, providerId: ID!, facilityId: ID!, startsAt: String!, patient: PatientAppointmentRequestInput!, reasonForVisit: String, preferredContactMethod: String, consent: WorkflowConsentInput!): AppointmentRequestResult
   submitIntakeForm(accessCode: String!, responses: JSON!, patientUpdates: PatientIntakeUpdateInput, consent: WorkflowConsentInput!): PatientIntakeForm
   transitionAppointment(operationKey: String!, appointmentId: ID!, toStatus: String!, expectedVersion: Int!, reason: String, operationalNotes: String): AppointmentTransitionResult!
@@ -5314,9 +5193,6 @@ type Query {
   clinicalAuditLog(where: ClinicalAuditLogWhereUniqueInput!): ClinicalAuditLog
   clinicalAuditLogs(where: ClinicalAuditLogWhereInput! = {}, orderBy: [ClinicalAuditLogOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: ClinicalAuditLogWhereUniqueInput): [ClinicalAuditLog!]
   clinicalAuditLogsCount(where: ClinicalAuditLogWhereInput! = {}): Int
-  clinicalOutboxEvent(where: ClinicalOutboxEventWhereUniqueInput!): ClinicalOutboxEvent
-  clinicalOutboxEvents(where: ClinicalOutboxEventWhereInput! = {}, orderBy: [ClinicalOutboxEventOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: ClinicalOutboxEventWhereUniqueInput): [ClinicalOutboxEvent!]
-  clinicalOutboxEventsCount(where: ClinicalOutboxEventWhereInput! = {}): Int
   workflowTransition(where: WorkflowTransitionWhereUniqueInput!): WorkflowTransition
   workflowTransitions(where: WorkflowTransitionWhereInput! = {}, orderBy: [WorkflowTransitionOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: WorkflowTransitionWhereUniqueInput): [WorkflowTransition!]
   workflowTransitionsCount(where: WorkflowTransitionWhereInput! = {}): Int
@@ -5425,9 +5301,6 @@ type Query {
   machineCredential(where: MachineCredentialWhereUniqueInput!): MachineCredential
   machineCredentials(where: MachineCredentialWhereInput! = {}, orderBy: [MachineCredentialOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: MachineCredentialWhereUniqueInput): [MachineCredential!]
   machineCredentialsCount(where: MachineCredentialWhereInput! = {}): Int
-  integrationDeliveryAttempt(where: IntegrationDeliveryAttemptWhereUniqueInput!): IntegrationDeliveryAttempt
-  integrationDeliveryAttempts(where: IntegrationDeliveryAttemptWhereInput! = {}, orderBy: [IntegrationDeliveryAttemptOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: IntegrationDeliveryAttemptWhereUniqueInput): [IntegrationDeliveryAttempt!]
-  integrationDeliveryAttemptsCount(where: IntegrationDeliveryAttemptWhereInput! = {}): Int
   integrationWebhookReceipt(where: IntegrationWebhookReceiptWhereUniqueInput!): IntegrationWebhookReceipt
   integrationWebhookReceipts(where: IntegrationWebhookReceiptWhereInput! = {}, orderBy: [IntegrationWebhookReceiptOrderByInput!]! = [], take: Int! = 100, skip: Int! = 0, cursor: IntegrationWebhookReceiptWhereUniqueInput): [IntegrationWebhookReceipt!]
   integrationWebhookReceiptsCount(where: IntegrationWebhookReceiptWhereInput! = {}): Int
@@ -5473,6 +5346,7 @@ type Query {
   workflowEncounterCandidates(facilityId: ID!, patientId: ID!, search: String!, take: Int, skip: Int): [WorkflowEncounterCandidate!]!
   lookupPatientBill(paymentNumber: String!, dateOfBirth: String!): BillLookupResult!
   patientVisit(accessToken: String, appointmentNumber: String, dateOfBirth: String): PatientVisit
+  myPatientAppointments: PatientAppointments!
 }
 
 union AuthenticatedItem = User
@@ -5850,6 +5724,18 @@ type PatientVisit {
   accessToken: String!
 }
 
+type PatientAccountResult {
+  ok: Boolean!
+}
+
+type PatientAppointments {
+  name: String!
+  email: String!
+  emailConfirmed: Boolean!
+  upcoming: [PatientVisit!]!
+  past: [PatientVisit!]!
+}
+
 type AppointmentRequestResult {
   id: ID!
   appointmentNumber: String
@@ -5970,11 +5856,6 @@ type ConsentDecisionResult {
   decision: String!
   effectiveAt: DateTime!
   replayed: Boolean!
-}
-
-type ClinicalOutboxDispatchResult {
-  claimed: Int!
-  delivered: Int!
 }
 
 type ControlledClinicalResult {

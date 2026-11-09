@@ -113,22 +113,6 @@ export default async function transitionIntakeReview(_root: unknown, args: Args,
         metadata,
       },
     })
-    const outbox = await tx.clinicalOutboxEvent.create({
-      data: {
-        eventKey: `intake:${form.id}:v${nextVersion}:${updated.status}`,
-        eventType,
-        aggregateType: 'intake_form',
-        aggregateId: form.id,
-        status: 'recorded',
-        attempts: 0,
-        nextAttemptAt: null,
-        facilityId: form.facilityId,
-        patientId: form.patientId,
-        appointmentId: form.appointmentId,
-        payload: metadata,
-        createdAt: now,
-      },
-    })
     const result = {
       id: updated.id,
       fromStatus: form.status,
@@ -150,7 +134,7 @@ export default async function transitionIntakeReview(_root: unknown, args: Args,
       facilityId: form.facilityId,
       patientId: form.patientId,
       auditLogId: audit.id,
-      outboxEventId: outbox.id,
+      
       result,
       occurredAt: now,
     })

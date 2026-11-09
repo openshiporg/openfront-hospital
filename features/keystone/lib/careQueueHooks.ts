@@ -71,5 +71,4 @@ export async function afterCareQueueOperation({ operation, item, originalItem, c
   const now = new Date()
   const metadata = { source: 'care_queue_hook', queueTicketId: record.id, status: record.status, transitionVersion: record.transitionVersion }
   await context.sudo().prisma.clinicalAuditLog.create({ data: { eventType, occurredAt: now, actorType: 'staff_user', actorReference: context.session?.itemId ?? '', facilityId: record.facilityId, patientId: record.patientId, appointmentId: record.appointmentId, encounterId: record.encounterId, metadata, createdAt: now } })
-  await context.sudo().prisma.clinicalOutboxEvent.create({ data: { eventKey, eventType, aggregateType: 'care_queue', aggregateId: record.id, status: 'recorded', attempts: 0, nextAttemptAt: null, facilityId: record.facilityId, patientId: record.patientId, appointmentId: record.appointmentId, encounterId: record.encounterId, payload: metadata, createdAt: now } })
 }

@@ -202,23 +202,6 @@ export async function openEncounter(_root: unknown, { data }: OpenArgs, context:
           createdAt: now,
         },
       })
-      await tx.clinicalOutboxEvent.create({
-        data: {
-          eventKey: `encounter:${encounter.id}:v1:opened`,
-          eventType: 'encounter.opened',
-          aggregateType: 'encounter',
-          aggregateId: encounter.id,
-          status: 'recorded',
-          attempts: 0,
-          nextAttemptAt: null,
-          facilityId: encounter.facilityId,
-          patientId: encounter.patientId,
-          appointmentId: encounter.appointmentId,
-          encounterId: encounter.id,
-          payload: metadata,
-          createdAt: now,
-        },
-      })
       return projection(encounter)
     }, { timeout: 30_000 })
   } catch (error) {
@@ -371,23 +354,6 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
         },
       })
     }
-    const outbox = await tx.clinicalOutboxEvent.create({
-      data: {
-        eventKey: `encounter:${encounter.id}:v${transitionVersion}:${updated.status}`,
-        eventType,
-        aggregateType: 'encounter',
-        aggregateId: encounter.id,
-        status: 'recorded',
-        attempts: 0,
-        nextAttemptAt: null,
-        facilityId: encounter.facilityId,
-        patientId: encounter.patientId,
-        appointmentId: encounter.appointmentId,
-        encounterId: encounter.id,
-        payload: metadata,
-        createdAt: now,
-      },
-    })
     const result = {
       id: updated.id,
       encounterNumber: updated.encounterNumber,
@@ -415,7 +381,7 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
       facilityId: encounter.facilityId,
       patientId: encounter.patientId,
       auditLogId: audit.id,
-      outboxEventId: outbox.id,
+      
       result,
       occurredAt: now,
     })

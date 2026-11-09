@@ -44,11 +44,6 @@ export async function downloadExport(request: Request, jobId: string) {
         eventType: 'export.downloaded', occurredAt: now, actorType: 'staff_user', actorReference: requestContext.session.itemId,
         facilityId: job.facilityId, metadata, createdAt: now,
       } })
-      await tx.clinicalOutboxEvent.create({ data: {
-        eventKey: `export_job:${job.id}:downloaded`, eventType: 'export.downloaded', aggregateType: 'export_job', aggregateId: job.id,
-        contractVersion: 'hospital.event.v1', deliveryMode: 'internal', status: 'recorded', attempts: 0, nextAttemptAt: null,
-        facilityId: job.facilityId, payload: metadata, createdAt: now,
-      } })
       return { artifact, format: job.format, jobNumber: job.jobNumber }
     }, { timeout: 30_000 })
     const extension = outcome.format === 'csv' ? 'csv' : 'json'

@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 
-import { appendAuditAndOutbox } from '../operational/evidence'
+import { appendAudit } from '../operational/evidence'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
@@ -60,8 +60,7 @@ export default async function transitionPatientMessage(
         },
       },
     })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `patient_message:${updated.id}:v${updated.transitionVersion}:completed`,
+    const events = await appendAudit(prisma, {
       eventType: 'message.manual_completed',
       aggregateType: 'patient_message',
       aggregateId: updated.id,
@@ -96,7 +95,7 @@ export default async function transitionPatientMessage(
       facilityId: updated.facilityId,
       patientId: updated.patientId,
       auditLogId: events.audit.id,
-      outboxEventId: events.outbox.id,
+      
       result,
       occurredAt: now,
     })

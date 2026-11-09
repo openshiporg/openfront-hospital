@@ -7,7 +7,7 @@ import {
   replayTransition,
   transitionEvidence,
 } from '../transitionEvidence'
-import { appendAuditAndOutbox } from '../operational/evidence'
+import { appendAudit } from '../operational/evidence'
 import { currentEpisodeActor, currentEpisodeChild, guardEpisodeChild } from './episodeFence'
 import { recheckEpisodeRelated } from './episodeRelatedScope'
 import { requireHumanEpisodeReview } from './episodePolicy'
@@ -249,10 +249,6 @@ async function transitionControlled(
       operationKey: options.operationKey, resultId: options.id, toStatus: options.toStatus, expectedVersion: options.expectedVersion,
       actorReference: fresh.session.itemId,
     } } : {}) }
-    const outbox = await sudo.prisma.clinicalOutboxEvent.findUnique({
-      where: { eventKey: `${options.prefix}:${options.id}:v${row.transitionVersion}:${row.status}` },
-      select: { id: true },
-    })
     await recordTransition(sudo.prisma, {
       evidence: ev,
       aggregateType: options.prefix,
@@ -264,7 +260,7 @@ async function transitionControlled(
       actorReference: context.session?.itemId ?? '',
       facilityId: current.facilityId,
       patientId: current.patientId,
-      outboxEventId: outbox?.id,
+      
       result,
       occurredAt: new Date(),
     })
@@ -314,12 +310,6 @@ async function recordAdmissionTransition(
   },
 ) {
   const result = projection(input.row, false)
-  const outbox = await prisma.clinicalOutboxEvent.findUnique({
-    where: {
-      eventKey: `admission:${input.current.id}:v${input.row.transitionVersion}:${input.row.status}`,
-    },
-    select: { id: true },
-  })
   await recordTransition(prisma, {
     evidence: input.ev,
     aggregateType: 'admission',
@@ -331,7 +321,7 @@ async function recordAdmissionTransition(
     actorReference: input.actorReference,
     facilityId: input.current.facilityId,
     patientId: input.current.patientId,
-    outboxEventId: outbox?.id,
+    
     result,
     occurredAt: input.occurredAt,
   })
@@ -422,8 +412,8 @@ export async function admitPatient(_root: unknown, { data }: any, context: Conte
         where: { id: activeReservation.id },
         data: { status: 'consumed', transitionVersion: { increment: 1 }, consumedAt: now, admissionId: admission.id, actorReference: context.session!.itemId },
       })
-      await appendAuditAndOutbox(sudo.prisma, {
-        eventKey: `bed_reservation:${consumed.id}:v${consumed.transitionVersion}:consumed`, eventType: 'bed_reservation.consumed',
+      await appendAudit(sudo.prisma, {
+        eventType: 'bed_reservation.consumed',
         aggregateType: 'bed_reservation', aggregateId: consumed.id, facilityId: consumed.facilityId, patientId: consumed.patientId,
         actorReference: context.session!.itemId,
         metadata: { source: 'admission_workflow', aggregateId: consumed.id, admissionId: admission.id, bedId: consumed.bedId, fromStatus: activeReservation.status, status: consumed.status, transitionVersion: consumed.transitionVersion },
@@ -689,20 +679,6 @@ export async function transitionBedReadiness(_root: unknown, args: any, context:
         createdAt: now,
       },
     })
-    const outbox = await sudo.prisma.clinicalOutboxEvent.create({
-      data: {
-        eventKey: `bed:${current.id}:v${updated.transitionVersion}:${updated.status}`,
-        eventType,
-        aggregateType: 'bed',
-        aggregateId: current.id,
-        status: 'recorded',
-        attempts: 0,
-        nextAttemptAt: null,
-        facilityId,
-        payload: metadata,
-        createdAt: now,
-      },
-    })
     if (updated.status === 'available') {
       await sudo.prisma.bedOccupancyEvent.create({
         data: {
@@ -733,7 +709,7 @@ export async function transitionBedReadiness(_root: unknown, args: any, context:
       actorReference: context.session!.itemId,
       facilityId,
       auditLogId: audit.id,
-      outboxEventId: outbox.id,
+      
       result,
       occurredAt: now,
     })

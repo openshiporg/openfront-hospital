@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { appendAuditAndOutbox } from '../operational/evidence'
+import { appendAudit } from '../operational/evidence'
 import { lockTransitionOperation, recordTransition, transitionEvidence } from '../transitionEvidence'
 import { assertEpisodeTuple, episodeDigest, episodeEligibility, requireHumanEpisodeReview, validateEpisodePolicy } from './episodePolicy'
 import { currentEpisodeActor, effectiveEpisodePolicy, lockCurrentEncounter, lockEpisodeFacility } from './episodeFence'
@@ -17,13 +17,13 @@ export async function rejectEpisodeCommand(context: any, scope: any, policy: any
     outcome: 'rejected', reasonCode, episodeReceipt: { tuple: scope.tuple, originalCommand, policy: policyProjection(policy),
       actorId: context.session.itemId, roleId: context.session.data.role.id, accepted: false, reasonCode,
       clinicalAuthority: 'not_asserted', descendantsClosed: false, admissionDischarged: false } }
-  const events = await appendAuditAndOutbox(context.prisma, { eventKey: `encounter_command:${evidence.operationKeyHash}:rejected`, eventType: 'encounter_command.rejected',
+  const events = await appendAudit(context.prisma, { eventType: 'encounter_command.rejected',
     aggregateType: 'encounter_command', aggregateId: row.id, facilityId: scope.tuple.facilityId, patientId: scope.tuple.patientId,
     actorReference: context.session.itemId, metadata: { source: 'episode_policy_workflow', reasonCode, policyId: policy?.id || null, transitionPerformed: false }, occurredAt: now })
   await recordTransition(context.prisma, { evidence, aggregateType: 'encounter_command', aggregateId: row.id,
     fromStatus: row.status, toStatus: 'rejected', fromVersion: row.transitionVersion, toVersion: row.transitionVersion,
     actorReference: context.session.itemId, facilityId: scope.tuple.facilityId, patientId: scope.tuple.patientId,
-    auditLogId: events.audit.id, outboxEventId: events.outbox.id, result, occurredAt: now })
+    auditLogId: events.audit.id, result, occurredAt: now })
   return result
 }
 
@@ -61,7 +61,7 @@ export async function reviewEpisodePolicy(_root: unknown, { data }: any, context
       reviewedByReference: current.session.itemId, reviewedRoleReference: current.session.data.role.id,
       ...evidence, originalCommand, effectiveAt: now, createdAt: now, updatedAt: now,
     } })
-    await appendAuditAndOutbox(current.prisma, { eventKey: `episode_policy:${row.id}:reviewed`, eventType: 'episode_policy.reviewed',
+    await appendAudit(current.prisma, { eventType: 'episode_policy.reviewed',
       aggregateType: 'episode_policy', aggregateId: row.id, facilityId: data.facilityId, actorReference: current.session.itemId,
       metadata: { source: 'episode_policy_workflow', policyId: row.id, revision: row.revision, humanReviewRecorded: true, clinicalAuthority: 'not_asserted', retentionDispositionChanged: false }, occurredAt: now })
     return { original: policyProjection(row), current: policyProjection(row), replayed: false }

@@ -1,6 +1,6 @@
 import { narrativeText } from '../../../lib/narrativeText'
 import type { Context } from '.keystone/types'
-import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from '../operational/evidence'
+import { appendAudit, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from '../operational/evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 type Args = {
@@ -76,15 +76,9 @@ export default async function sendSecurePatientMessage(_root: unknown, args: Arg
   if (args.purpose === 'general' && preference?.[0]?.status !== 'allowed') {
     throw new HospitalRefusal('General messages require an explicit allowed communication preference')
   }
-  const manualFollowUp = args.channel === 'phone'
-  if (manualFollowUp && installation) {
-    throw new HospitalRefusal('Manual phone follow-up cannot use an external communications integration')
-  }
-  if (!manualFollowUp && (
-    !installation || installation.status !== 'active' || installation.kind !== 'communications' ||
-    installation.facility?.id !== args.facilityId
-  )) {
-    throw new HospitalRefusal('SMS and email messages require an active facility communications integration')
+  // No automatic sending: the message is recorded as a staff follow-up task.
+  if (installation) {
+    throw new HospitalRefusal('Patient messages are staff follow-up tasks and cannot use an external integration')
   }
   if (
     template &&
@@ -147,28 +141,24 @@ export default async function sendSecurePatientMessage(_root: unknown, args: Arg
         purpose: args.purpose,
         subject,
         body,
-        status: manualFollowUp ? 'manual_required' : 'queued',
-        metadata: { source: 'platform_secure_message', followUpMode: manualFollowUp ? 'manual' : 'integration' },
+        status: 'manual_required',
+        metadata: { source: 'platform_secure_message', followUpMode: 'manual' },
       },
     })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `patient_message:${message.id}:v1:${message.status}`,
-      eventType: manualFollowUp ? 'message.manual_required' : 'message.queued',
+    await appendAudit(prisma, {
+      eventType: 'message.manual_required',
       aggregateType: 'patient_message',
       aggregateId: message.id,
       facilityId: args.facilityId,
       patientId: patient.id,
       actorReference: context.session?.itemId || '',
-      deliveryMode: manualFollowUp ? 'internal' : 'external',
-      installationId: installation?.id,
-      installationVersion: installation?.transitionVersion,
       metadata: {
         source: 'patient_message_workflow',
         aggregateId: message.id,
         channel: args.channel,
         purpose: args.purpose,
         status: message.status,
-        followUpMode: manualFollowUp ? 'manual' : 'integration',
+        followUpMode: 'manual',
         transitionVersion: 1,
       },
       occurredAt: now,

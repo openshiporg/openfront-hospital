@@ -22,7 +22,6 @@ export type FabricQueryKey =
   | 'retention'
   | 'portability'
   | 'encounters'
-  | 'outbox'
 
 export function deriveOperationalFabricAccess(role: OperationalFabricRole | null | undefined) {
   const global = role?.canAccessAllClinicalData === true
@@ -38,10 +37,6 @@ export function deriveOperationalFabricAccess(role: OperationalFabricRole | null
   const mayRecordConsent = clinicalOperations || intakeOperations
   const hasOperationalAccess = billing || inventory || integrations || communications || dataPortability || retention || mayRecordConsent
   const maySelectPatients = hasOperationalAccess && (billing || communications || mayRecordConsent)
-  // Outbox list/count access is explicitly canViewReports in the installed List policy;
-  // unlike the custom worker mutation, global authority is not an implicit bypass here.
-  const mayReadOutbox = hasOperationalAccess && role?.canViewReports === true
-
   const capabilities = {
     hasOperationalAccess,
     global,
@@ -54,8 +49,6 @@ export function deriveOperationalFabricAccess(role: OperationalFabricRole | null
     clinicalOperations,
     mayRecordConsent,
     maySelectPatients,
-    mayDispatchOutbox: global && integrations,
-    mayReadOutbox,
     mayPlaceEncounterHold: retention && clinicalOperations,
     mayLinkPatientIdentity: integrations && clinicalOperations,
   }
@@ -71,7 +64,6 @@ export function deriveOperationalFabricAccess(role: OperationalFabricRole | null
   if (dataPortability) queries.push('portability')
   // Encounter display is only needed for the explicitly gated clinical hold picker.
   if (capabilities.mayPlaceEncounterHold) queries.push('encounters')
-  if (mayReadOutbox) queries.push('outbox')
 
   return { capabilities, queries }
 }

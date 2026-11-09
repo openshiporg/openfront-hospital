@@ -14,7 +14,6 @@ import { PatientMessage } from './PatientMessage'
 import { PatientPortalAccess } from './PatientPortalAccess'
 import { PatientConsent } from './PatientConsent'
 import { ClinicalAuditLog } from './ClinicalAuditLog'
-import { ClinicalOutboxEvent } from './ClinicalOutboxEvent'
 import { WorkflowTransition } from './WorkflowTransition'
 import { CareQueueTicket } from './CareQueueTicket'
 import { Encounter } from './Encounter'
@@ -65,7 +64,6 @@ import { CommunicationTemplate } from './CommunicationTemplate'
 import { BedReservation } from './BedReservation'
 import { IntegrationInstallation } from './IntegrationInstallation'
 import { MachineCredential } from './MachineCredential'
-import { IntegrationDeliveryAttempt } from './IntegrationDeliveryAttempt'
 import { IntegrationWebhookReceipt } from './IntegrationWebhookReceipt'
 import { ClinicalDocument } from './ClinicalDocument'
 import { Specimen } from './Specimen'
@@ -95,7 +93,6 @@ const rawModels = {
   PatientPortalAccess,
   PatientConsent,
   ClinicalAuditLog,
-  ClinicalOutboxEvent,
   WorkflowTransition,
   CareQueueTicket,
   CarePlan,
@@ -132,7 +129,6 @@ const rawModels = {
   BedReservation,
   IntegrationInstallation,
   MachineCredential,
-  IntegrationDeliveryAttempt,
   IntegrationWebhookReceipt,
   ClinicalDocument,
   Specimen,

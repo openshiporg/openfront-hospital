@@ -401,6 +401,3 @@ export async function rollbackImport(batchId: string, expectedVersion: number, s
 export async function processExport(jobId: string, expectedVersion: number, suppliedKey?: string) {
   return run(`mutation($operationKey:String!,$jobId:ID!,$expectedVersion:Int!){processExportJob(operationKey:$operationKey,jobId:$jobId,expectedVersion:$expectedVersion){${controlled}}}`, { operationKey: suppliedKey || operationKey(), jobId, expectedVersion })
 }
-export async function dispatchIntegrations() {
-  return run(`mutation{dispatchIntegrationOutbox(limit:10){claimed delivered retried deadLettered}}`, {})
-}

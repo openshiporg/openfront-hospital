@@ -39,17 +39,11 @@ export async function OperationalFabricPage() {
     )
   }
   const metrics: Array<{ label: string; value: number; tone: WardTone }> = [
-    ...(workspace.outbox ? [
-      { label: 'Pending events', value: workspace.outbox.pending, tone: (workspace.outbox.pending > 0 ? 'info' : 'ok') as WardTone },
-      { label: 'Retry events', value: workspace.outbox.retry, tone: (workspace.outbox.retry > 0 ? 'warn' : 'ok') as WardTone },
-      { label: 'Dead letters', value: workspace.outbox.deadLetter, tone: (workspace.outbox.deadLetter > 0 ? 'bad' : 'ok') as WardTone },
-    ] : []),
     ...(workspace.availability.inventory && workspace.totals.inventory !== null ? [{ label: 'Inventory items', value: workspace.totals.inventory, tone: 'accent' as WardTone }] : []),
     ...(workspace.totals.succeededPayments !== null ? [{ label: 'Payments in scope', value: workspace.totals.succeededPayments, tone: 'ok' as WardTone }] : []),
     ...(workspace.availability.portability && workspace.totals.exports !== null ? [{ label: 'Export jobs', value: workspace.totals.exports, tone: 'idle' as WardTone }] : []),
   ]
-  const deadLetters = workspace.outbox?.deadLetter ?? 0
-  const headerTone: WardTone = workspace.unavailable.length > 0 || deadLetters > 0 ? 'bad' : (workspace.outbox?.retry ?? 0) > 0 ? 'warn' : 'ok'
+  const headerTone: WardTone = workspace.unavailable.length > 0 ? 'bad' : 'ok'
   return (
     <PageContainer
       title="Operational fabric"
@@ -59,7 +53,7 @@ export async function OperationalFabricPage() {
           eyebrow="Hospital operations"
           title="Operational fabric"
           tone={headerTone}
-          status={deadLetters > 0 ? `${deadLetters} dead letters` : workspace.unavailable.length > 0 ? 'Some data unverified' : 'Operational'}
+          status={workspace.unavailable.length > 0 ? 'Some data unverified' : 'Operational'}
           meta="Billing, inventory, integrations, communications, portability and retention"
         />
       )}
@@ -77,8 +71,8 @@ export async function OperationalFabricPage() {
             {metrics.map(metric => <Readout key={metric.label} label={metric.label} value={metric.value} tone={metric.tone} />)}
           </ReadoutStrip>
         )}
-        {((workspace.capabilities.dataPortability && workspace.availability.portability) || workspace.capabilities.mayDispatchOutbox) && (
-          <WardSection id="queued-actions" title="Worker and queued actions">
+        {(workspace.capabilities.dataPortability && workspace.availability.portability) && (
+          <WardSection id="queued-actions" title="Queued actions">
             <OperationalQueueActions workspace={workspace} />
           </WardSection>
         )}

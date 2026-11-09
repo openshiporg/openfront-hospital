@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Activity, BedDouble, Boxes, Cable, CalendarClock, ClipboardCheck, MailWarning } from 'lucide-react'
+import { Activity, BedDouble, Boxes, CalendarClock, ClipboardCheck, MailWarning } from 'lucide-react'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import {
   Actions,
@@ -132,7 +132,6 @@ export async function ReportsPage() {
             <MetricCard title="Active care queue" value={report.operational.activeQueue} description={`${report.operational.currentAdmissions} current admissions`} icon={Activity} tone={report.operational.activeQueue > 0 ? 'warning' : 'good'} />
             <MetricCard title="Unavailable beds" value={report.operational.unavailableBeds} description="Occupied, reserved, cleaning, or out of service" icon={BedDouble} />
             <MetricCard title="Open fulfillment" value={report.operational.openOrders} description={`${report.operational.openClaims} open claims · ${report.operational.lowStockItems} low stock`} icon={Boxes} />
-            <MetricCard title="Delivery exceptions" value={report.operational.retryEvents + report.operational.deadLetterEvents} description={`${report.operational.retryEvents} retry · ${report.operational.deadLetterEvents} dead letter`} icon={Cable} tone={report.operational.deadLetterEvents > 0 ? 'warning' : 'good'} />
           </ReadoutStrip>
         </WardSection>
 

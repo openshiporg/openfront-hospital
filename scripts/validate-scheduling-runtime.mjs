@@ -128,7 +128,6 @@ async function cleanup() {
   const appointmentIds = appointments.map((appointment) => appointment.id)
 
   await prisma.$transaction([
-    prisma.clinicalOutboxEvent.deleteMany({ where: { OR: [{ patientId: { in: patientIds } }, { appointmentId: { in: appointmentIds } }] } }),
     prisma.clinicalAuditLog.deleteMany({ where: { OR: [{ patientId: { in: patientIds } }, { appointmentId: { in: appointmentIds } }] } }),
     prisma.patientConsent.deleteMany({ where: { patientId: { in: patientIds } } }),
     prisma.patientMessage.deleteMany({ where: { patientId: { in: patientIds } } }),

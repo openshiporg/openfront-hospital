@@ -76,7 +76,7 @@ async function authorizedHeader(context: Context, header: LabHeader) {
 async function receiptHeader(context: Context, header: LabHeader) {
   // Never select private result JSON to discover ownership/correlation.
   const receipt = await context.prisma.workflowTransition.findUnique({ where: { operationKeyHash: originalLabReceiptKey(header.operationKeyHash) },
-    select: { id: true, aggregateType: true, aggregateId: true, actorReference: true, facilityId: true, patientId: true, requestHash: true, toStatus: true, toVersion: true, auditLogId: true, outboxEventId: true } })
+    select: { id: true, aggregateType: true, aggregateId: true, actorReference: true, facilityId: true, patientId: true, requestHash: true, toStatus: true, toVersion: true, auditLogId: true } })
   if (receipt && (receipt.aggregateType !== 'lab_result_creation' || receipt.aggregateId !== header.id || receipt.facilityId !== header.facilityId || receipt.patientId !== header.patientId || receipt.requestHash !== header.requestHash)) throw denied()
   const origin = receipt ? null : await context.prisma.clinicalAuditLog.findFirst({ where: {
     eventType: 'lab_result.created', facilityId: header.facilityId, patientId: header.patientId, encounterId: header.encounterId,
@@ -183,17 +183,15 @@ export async function persistOriginalLabReceipt(prisma: Context['prisma'], row: 
   }, recordVersion,
     ...(sourceRecordVersion != null ? { sourceRecordVersion } : {}),
     operationKeyHash: evidence.operationKeyHash, requestHash: evidence.requestHash, rawRequestHash: rawLabRequestHash(command) } }
-  const eventKey = row.transitionVersion === 1 ? `lab_result:${tuple.facilityId}:create:${evidence.operationKeyHash}` : `lab_result:${row.id}:v${row.transitionVersion}:${row.status}`
-  const outbox = await prisma.clinicalOutboxEvent.findUnique({ where: { eventKey }, select: { id: true, aggregateType: true, aggregateId: true, facilityId: true, patientId: true, encounterId: true } })
   const audit = await prisma.clinicalAuditLog.findFirst({ where: { eventType: row.transitionVersion === 1 ? 'lab_result.created' : `lab_result.${row.status}`,
     actorReference, facilityId: tuple.facilityId, patientId: tuple.patientId, encounterId: tuple.encounterId,
     AND: [{ metadata: { path: ['aggregateId'], equals: row.id } }, { metadata: { path: ['transitionVersion'], equals: row.transitionVersion } }],
   }, select: { id: true } })
-  if (!audit || !outbox || outbox.aggregateType !== 'lab_result' || outbox.aggregateId !== row.id || outbox.facilityId !== tuple.facilityId || outbox.patientId !== tuple.patientId || outbox.encounterId !== tuple.encounterId) throw new HospitalRefusal('Original lab acknowledgement lacks correlated native audit/outbox evidence')
+  if (!audit) throw new HospitalRefusal('Original lab acknowledgement lacks correlated native audit evidence')
   await recordTransition(prisma, { evidence: { operationKeyHash: originalLabReceiptKey(evidence.operationKeyHash), requestHash: evidence.requestHash },
     aggregateType: 'lab_result_creation', aggregateId: row.id, fromStatus: 'not_recorded', toStatus: row.status,
     fromVersion: 0, toVersion: row.transitionVersion, actorReference, facilityId: tuple.facilityId, patientId: tuple.patientId,
-    auditLogId: audit.id, outboxEventId: outbox.id, occurredAt: new Date(), result })
+    auditLogId: audit.id, occurredAt: new Date(), result })
 }
 
 export async function replayAcceptedLabCorrection(context: Context, evidence: Evidence, command: LabCorrectionCommand) {
@@ -264,7 +262,7 @@ export async function labResultReadback(_root: unknown, args: { resultId?: strin
     // Inverse IDs from normal List access are not permission to load their values.
     return { outcome: original ? 'accepted' : owner === current.session?.itemId ? 'legacy_original_body_unknown' : 'current_only_original_not_owned', original,
       current: value, knownLegacyOriginalHeader, creationReceipt: receipt && owner === current.session?.itemId ? {
-        id: receipt.id, auditLogId: receipt.auditLogId, outboxEventId: receipt.outboxEventId, originalStatus: receipt.toStatus, originalTransitionVersion: receipt.toVersion,
+        id: receipt.id, auditLogId: receipt.auditLogId, originalStatus: receipt.toStatus, originalTransitionVersion: receipt.toVersion,
       } : null, ownedHistory: history.slice(0, 25), nextVersion: history.length > 25 ? history[24].toVersion : null,
       interpretation: 'operational_transcription_not_laboratory_truth_or_complete_clinical_history' }
   }, { timeout: 30_000 })

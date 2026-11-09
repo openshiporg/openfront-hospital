@@ -116,7 +116,6 @@ export async function arriveAppointment(
 
     let checkedIn = appointment
     let appointmentAudit: any = null
-    let appointmentOutbox: any = null
     if (!priorTransition) {
       checkedIn = await sudo.prisma.appointment.update({
         where: { id: appointment.id },
@@ -136,12 +135,6 @@ export async function arriveAppointment(
         eventType, occurredAt: now, actorType: 'staff_user', actorReference: context.session?.itemId || '',
         facilityId: appointment.facilityId, patientId: appointment.patientId, appointmentId: appointment.id,
         metadata, createdAt: now,
-      } })
-      appointmentOutbox = await sudo.prisma.clinicalOutboxEvent.create({ data: {
-        eventKey: `appointment:${appointment.id}:v${checkedIn.transitionVersion}:${eventType}`,
-        eventType, aggregateType: 'appointment', aggregateId: appointment.id, status: 'recorded', attempts: 0,
-        nextAttemptAt: null, facilityId: appointment.facilityId, patientId: appointment.patientId,
-        appointmentId: appointment.id, payload: metadata, createdAt: now,
       } })
     }
 
@@ -175,7 +168,7 @@ export async function arriveAppointment(
         facilityId: appointment.facilityId,
         patientId: appointment.patientId,
         auditLogId: appointmentAudit.id,
-        outboxEventId: appointmentOutbox.id,
+        
         result: {
           id: checkedIn.id, appointmentNumber: checkedIn.appointmentNumber,
           fromStatus: appointment.status, status: 'checked_in', transitionVersion: checkedIn.transitionVersion,
@@ -279,10 +272,6 @@ export async function transitionCareQueue(
     })
     const result = queueResult(updated, false)
     const eventType = `queue.${updated.status}`
-    const outbox = await sudo.prisma.clinicalOutboxEvent.findUnique({
-      where: { eventKey: `queue:${current.id}:v${updated.transitionVersion}:${eventType}` },
-      select: { id: true },
-    })
     await recordTransition(sudo.prisma, {
       evidence,
       aggregateType: 'care_queue',
@@ -294,7 +283,7 @@ export async function transitionCareQueue(
       actorReference: context.session?.itemId || '',
       facilityId: current.facilityId,
       patientId: current.patientId,
-      outboxEventId: outbox?.id,
+      
       result,
       occurredAt: new Date(),
     })

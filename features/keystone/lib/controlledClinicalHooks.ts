@@ -66,7 +66,6 @@ export function controlledClinicalHooks(config: HookConfig) {
       const now = new Date()
       const metadata = { source: 'controlled_clinical_hook', aggregateType: config.eventPrefix, aggregateId: record.id, status: record.status, transitionVersion: record.transitionVersion }
       await prisma.clinicalAuditLog.create({ data: { eventType, occurredAt: now, actorType: 'staff_user', actorReference: context.session?.itemId ?? '', facilityId: record.facilityId, patientId: record.patientId, encounterId: record.encounterId ?? null, metadata, createdAt: now } })
-      await prisma.clinicalOutboxEvent.create({ data: { eventKey, eventType, aggregateType: config.eventPrefix, aggregateId: record.id, status: 'recorded', attempts: 0, nextAttemptAt: null, facilityId: record.facilityId, patientId: record.patientId, encounterId: record.encounterId ?? null, payload: metadata, createdAt: now } })
     },
   }
 }

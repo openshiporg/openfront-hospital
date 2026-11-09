@@ -125,21 +125,6 @@ export default async function recordConsentDecision(
       metadata,
       createdAt: now,
     } })
-    await prisma.clinicalOutboxEvent.create({ data: {
-      eventKey: `patient_consent:${consent.id}:${decision}`,
-      eventType: `consent.${decision}`,
-      aggregateType: 'patient_consent',
-      aggregateId: consent.id,
-      contractVersion: 'hospital.event.v1',
-      deliveryMode: 'internal',
-      status: 'recorded',
-      attempts: 0,
-      nextAttemptAt: null,
-      facilityId: data.facilityId,
-      patientId: data.patientId,
-      payload: { ...metadata, auditLogId: audit.id },
-      createdAt: now,
-    } })
     return { id: consent.id, decision: consent.decision, effectiveAt: consent.effectiveAt, replayed: false }
   }, { timeout: 30_000 })
 }

@@ -5,7 +5,7 @@ import type { Context } from '.keystone/types'
 import { encryptSecret, exportEncryptionKey, sha256 } from '../../integrations/crypto'
 import { inventoryRowsToCsv, previewInventoryCsv, type InventoryImportRow } from '../../portability/inventoryCsv'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
-import { appendAuditAndOutbox, bounded, hash, lockOperation, operationEvidence } from './evidence'
+import { appendAudit, bounded, hash, lockOperation, operationEvidence } from './evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requirePortability(context: Context) {
@@ -52,8 +52,8 @@ export async function previewInventoryImport(_root: unknown, { data }: any, cont
       ...evidence, sourceHash, facilityId: data.facilityId, rowCount: preview.rowCount, errorCount: preview.errors.length,
       preview, actorReference: context.session!.itemId,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `import_batch:${batch.id}:v1:previewed`, eventType: 'import.previewed',
+    await appendAudit(prisma, {
+      eventType: 'import.previewed',
       aggregateType: 'import_batch', aggregateId: batch.id, facilityId: batch.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'portability_workflow', aggregateId: batch.id, importType: 'inventory', rowCount: batch.rowCount, errorCount: batch.errorCount, status: 'previewed', transitionVersion: 1 },
@@ -113,8 +113,8 @@ export async function applyInventoryImport(_root: unknown, args: any, context: C
     const updated = await prisma.importBatch.update({ where: { id: batch.id }, data: {
       status: 'applied', transitionVersion: { increment: 1 }, appliedIds, appliedAt: now, actorReference: context.session!.itemId,
     } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `import_batch:${updated.id}:v${updated.transitionVersion}:applied`, eventType: 'import.applied',
+    const events = await appendAudit(prisma, {
+      eventType: 'import.applied',
       aggregateType: 'import_batch', aggregateId: updated.id, facilityId: updated.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'portability_workflow', aggregateId: updated.id, importType: 'inventory', rowCount: updated.rowCount, status: 'applied', transitionVersion: updated.transitionVersion },
@@ -124,7 +124,7 @@ export async function applyInventoryImport(_root: unknown, args: any, context: C
     await recordTransition(prisma, {
       evidence, aggregateType: 'import_batch', aggregateId: updated.id, fromStatus: batch.status, toStatus: updated.status,
       fromVersion: batch.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -171,8 +171,8 @@ export async function rollbackInventoryImport(_root: unknown, args: any, context
     const updated = await prisma.importBatch.update({ where: { id: batch.id }, data: {
       status: 'rolled_back', transitionVersion: { increment: 1 }, rolledBackAt: now, actorReference: context.session!.itemId,
     } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `import_batch:${updated.id}:v${updated.transitionVersion}:rolled_back`, eventType: 'import.rolled_back',
+    const events = await appendAudit(prisma, {
+      eventType: 'import.rolled_back',
       aggregateType: 'import_batch', aggregateId: updated.id, facilityId: updated.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'portability_workflow', aggregateId: updated.id, importType: 'inventory', rowCount: updated.rowCount, status: 'rolled_back', transitionVersion: updated.transitionVersion, reasonCode }, occurredAt: now,
@@ -181,7 +181,7 @@ export async function rollbackInventoryImport(_root: unknown, args: any, context
     await recordTransition(prisma, {
       evidence, aggregateType: 'import_batch', aggregateId: updated.id, fromStatus: batch.status, toStatus: updated.status,
       fromVersion: batch.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -224,8 +224,8 @@ export async function requestExportJob(_root: unknown, { data }: any, context: C
       ...evidence, facilityId: data.facilityId, requestedById: context.session!.itemId,
       format, filters, accessTokenDigest: sha256(accessToken), actorReference: context.session!.itemId, expiresAt,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `export_job:${job.id}:v1:queued`, eventType: 'export.queued',
+    await appendAudit(prisma, {
+      eventType: 'export.queued',
       aggregateType: 'export_job', aggregateId: job.id, facilityId: job.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'portability_workflow', aggregateId: job.id, exportType, format, status: 'queued', transitionVersion: 1, expiresAt: expiresAt.toISOString() }, occurredAt: now,
@@ -306,8 +306,8 @@ export async function processExportJob(_root: unknown, args: any, context: Conte
       resultCiphertext: encrypted.ciphertext, resultIv: encrypted.iv, resultTag: encrypted.tag,
       objectKey: `database-encrypted:${job.id}`, readyAt: now, actorReference: context.session!.itemId,
     } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `export_job:${updated.id}:v${updated.transitionVersion}:ready`, eventType: 'export.ready',
+    const events = await appendAudit(prisma, {
+      eventType: 'export.ready',
       aggregateType: 'export_job', aggregateId: updated.id, facilityId: updated.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'portability_workflow', aggregateId: updated.id, exportType: updated.exportType, format: updated.format, rowCount: rows.length, status: 'ready', transitionVersion: updated.transitionVersion, expiresAt: updated.expiresAt.toISOString() }, occurredAt: now,
@@ -316,7 +316,7 @@ export async function processExportJob(_root: unknown, args: any, context: Conte
     await recordTransition(prisma, {
       evidence, aggregateType: 'export_job', aggregateId: updated.id, fromStatus: job.status, toStatus: updated.status,
       fromVersion: job.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })

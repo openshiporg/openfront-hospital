@@ -19,7 +19,6 @@ const created = {
   appointmentIds: [],
   encounterIds: [],
   ticketIds: [],
-  outboxIds: [],
   auditIds: [],
 }
 
@@ -71,7 +70,6 @@ async function snapshot() {
     appointments: await prisma.appointment.count(),
     encounters: await prisma.encounter.count(),
     tickets: await prisma.careQueueTicket.count(),
-    outbox: await prisma.clinicalOutboxEvent.count(),
     audits: await prisma.clinicalAuditLog.count(),
   }
 }
@@ -178,8 +176,7 @@ try {
   if (repairedTicket.status !== 'waiting' || repairedTicket.replayed || replayedRepair.arriveAppointment.id !== repairedTicket.id || !replayedRepair.arriveAppointment.replayed) throw new Error('Checked-in appointment reconciliation did not create/replay one queue ticket')
   const repairedAppointment = await prisma.appointment.findUnique({ where: { id: reconciliationAppointment.id }, select: { status: true, transitionVersion: true, checkInAt: true } })
   const repairAudit = await prisma.clinicalAuditLog.findFirst({ where: { appointmentId: reconciliationAppointment.id, eventType: 'appointment.arrival_reconciled' } })
-  const repairOutbox = await prisma.clinicalOutboxEvent.findFirst({ where: { appointmentId: reconciliationAppointment.id, eventType: 'appointment.arrival_reconciled' } })
-  if (repairedAppointment?.status !== 'checked_in' || repairedAppointment.transitionVersion !== 3 || !repairedAppointment.checkInAt || !repairAudit || !repairOutbox) throw new Error('Checked-in queue handoff repair lacks transition or audit/outbox evidence')
+  if (repairedAppointment?.status !== 'checked_in' || repairedAppointment.transitionVersion !== 3 || !repairedAppointment.checkInAt || !repairAudit) throw new Error('Checked-in queue handoff repair lacks transition or audit evidence')
 
   const failedAppointment = await makeAppointment('rollback')
   const failed = await raw(arriveMutation, { id: failedAppointment.id, key: `${prefix}-idempotency-rollback`, reason: 'x'.repeat(100) }, cookie)
@@ -189,25 +186,15 @@ try {
     throw new Error('Hook failure did not roll back appointment and ticket')
   }
 
-  const queueEvents = await prisma.clinicalOutboxEvent.findMany({ where: { aggregateId: ticket.id } })
   const queueAudits = (await prisma.clinicalAuditLog.findMany({ where: { patientId: patient.id, eventType: { startsWith: 'queue.' } } })).filter(row => row.metadata?.aggregateId === ticket.id)
-  created.outboxIds.push(...queueEvents.map(row => row.id))
   created.auditIds.push(...queueAudits.map(row => row.id))
-  if (queueEvents.length !== 4 || queueAudits.length !== 4) {
-    throw new Error(`Expected arrival/called/in-care/completed audit and outbox pairs, got ${queueAudits.length}/${queueEvents.length}`)
+  if (queueAudits.length !== 4) {
+    throw new Error(`Expected arrival/called/in-care/completed audit rows, got ${queueAudits.length}`)
   }
 
-  const dispatched = await gql('inspect internal outbox', 'mutation{dispatchClinicalOutbox(limit:10){claimed delivered}}', {}, cookie)
-  if (
-    dispatched.dispatchClinicalOutbox.claimed !== 0 || dispatched.dispatchClinicalOutbox.delivered !== 0 ||
-    await prisma.clinicalOutboxEvent.count({ where: { id: { in: queueEvents.map(row => row.id) }, deliveryMode: 'internal', status: 'recorded' } }) !== 4
-  ) {
-    throw new Error('Internal queue events were mislabeled as transport deliveries')
-  }
-
-  const anonymous = await gql('anonymous boundary', 'query{careQueueTickets{id} clinicalOutboxEvents{id}}')
-  if (anonymous.careQueueTickets.length || anonymous.clinicalOutboxEvents.length) throw new Error('Anonymous queue/outbox rows leaked')
-  for (const operation of ['createCareQueueTicket', 'updateCareQueueTicket', 'deleteCareQueueTicket', 'createClinicalOutboxEvent', 'updateClinicalOutboxEvent', 'deleteClinicalOutboxEvent']) {
+  const anonymous = await gql('anonymous boundary', 'query{careQueueTickets{id}}')
+  if (anonymous.careQueueTickets.length ) throw new Error('Anonymous queue rows leaked')
+  for (const operation of ['createCareQueueTicket', 'updateCareQueueTicket', 'deleteCareQueueTicket']) {
     await denied(operation, `mutation{${operation}(data:{}){id}}`, {}, cookie)
   }
 
@@ -219,15 +206,13 @@ try {
     crossPatientEncounterDenied: true,
     hookFailureRollback: true,
     checkedInHandoffReconciliation: true,
-    auditOutboxPairs: 4,
-    internalEventLedgerRecordedWithoutFakeDelivery: true,
+    auditRows: 4,
     anonymousPhiDenied: true,
     rawQueueMutationsOmitted: true,
   }))
 } finally {
   const triggerBypass = await beginDisposableCleanup(prisma)
   try {
-    await prisma.clinicalOutboxEvent.deleteMany({ where: { OR: [{ id: { in: created.outboxIds } }, { patientId: { in: created.patientIds } }] } })
     await prisma.careQueueTicket.deleteMany({ where: { id: { in: created.ticketIds } } })
     await prisma.clinicalAuditLog.deleteMany({ where: { OR: [{ id: { in: created.auditIds } }, { patientId: { in: created.patientIds }, eventType: { startsWith: 'queue.' } }] } })
     await prisma.appointment.deleteMany({ where: { id: { in: created.appointmentIds } } })

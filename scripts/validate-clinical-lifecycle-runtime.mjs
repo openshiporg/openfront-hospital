@@ -75,17 +75,16 @@ async function authenticate() {
 }
 
 async function counts() {
-  const [patients, appointments, encounters, intakeForms, messages, audits, outbox, scheduleBlocks] = await Promise.all([
+  const [patients, appointments, encounters, intakeForms, messages, audits, scheduleBlocks] = await Promise.all([
     prisma.patient.count(),
     prisma.appointment.count(),
     prisma.encounter.count(),
     prisma.intakeForm.count(),
     prisma.patientMessage.count(),
     prisma.clinicalAuditLog.count(),
-    prisma.clinicalOutboxEvent.count(),
     prisma.providerScheduleBlock.count(),
   ])
-  return { patients, appointments, encounters, intakeForms, messages, audits, outbox, scheduleBlocks }
+  return { patients, appointments, encounters, intakeForms, messages, audits, scheduleBlocks }
 }
 
 async function cleanup() {
@@ -97,7 +96,6 @@ async function cleanup() {
   const aggregateIds = [...appointmentIds, ...tickets.map((ticket) => ticket.id)]
   await prisma.$transaction([
     prisma.workflowTransition.deleteMany({ where: { aggregateId: { in: aggregateIds } } }),
-    prisma.clinicalOutboxEvent.deleteMany({ where: { patientId: { in: patientIds } } }),
     prisma.clinicalAuditLog.deleteMany({ where: { patientId: { in: patientIds } } }),
     prisma.careQueueTicket.deleteMany({ where: { id: { in: tickets.map((ticket) => ticket.id) } } }),
     prisma.patientMessage.deleteMany({ where: { patientId: { in: patientIds } } }),
@@ -378,8 +376,6 @@ try {
   if (!expectedEvents.every((event) => actualEvents.includes(event))) throw new Error(`Missing lifecycle audit events: ${actualEvents.join(', ')}`)
   const encounterAuditCount = persisted?.clinicalAuditLogs.filter((event) => event.encounterId === encounter.id).length || 0
   if (encounterAuditCount !== 5) throw new Error(`Encounter audit relationship proof failed: ${encounterAuditCount}`)
-  const encounterOutboxCount = await prisma.clinicalOutboxEvent.count({ where: { aggregateType: 'encounter', aggregateId: encounter.id } })
-  if (encounterOutboxCount !== 3) throw new Error(`Encounter outbox exactness failed: ${encounterOutboxCount}`)
   if (persisted?.messages.length !== 1 || persisted.messages[0].body !== 'Disposable local secure-message verification.') throw new Error('Secure message persistence proof failed')
 
   const auditId = persisted.clinicalAuditLogs[0]?.id
@@ -423,7 +419,6 @@ try {
     encounterTransition: 'open -> in_progress -> closed',
     auditEvents: expectedEvents,
     encounterAuditRelationship: encounterAuditCount,
-    encounterOutboxEvents: encounterOutboxCount,
     encounterOpenReplayAndTransitionConcurrency: true,
     userRoleTracking: true,
     negativeProofs: ['unauthenticated operations denied', 'cross-patient message denied', 'invalid transition denied', 'generic appointment/intake status rewrites denied', 'direct appointment check-in rejected in favor of atomic queue arrival', 'encounter operation-key mismatch denied', 'stale concurrent encounter transition denied', 'review without notes denied', 'authenticated audit update/delete omitted and persisted unchanged', 'message/consent/audit create-delete-update bypasses omitted'],

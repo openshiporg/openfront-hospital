@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
-import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
+import { appendAudit, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireCommunications(context: Context) {
@@ -45,8 +45,8 @@ export async function createCommunicationTemplate(_root: unknown, { data }: any,
       ...evidence, actorReference: context.session!.itemId, facilityId: data.facilityId,
       subjectTemplate, bodyTemplate,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `communication_template:${template.id}:v1:active`, eventType: 'communication_template.created',
+    await appendAudit(prisma, {
+      eventType: 'communication_template.created',
       aggregateType: 'communication_template', aggregateId: template.id, facilityId: template.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'communication_workflow', aggregateId: template.id, channel, status: template.status, templateVersion: 1, transitionVersion: 1 },
@@ -80,8 +80,7 @@ export async function reviseCommunicationTemplate(_root: unknown, args: any, con
       name, subjectTemplate, bodyTemplate, status: toStatus, version: { increment: 1 },
       transitionVersion: { increment: 1 }, actorReference: context.session!.itemId,
     } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `communication_template:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: 'communication_template.revised', aggregateType: 'communication_template', aggregateId: updated.id,
       facilityId: updated.facilityId, actorReference: context.session!.itemId,
       metadata: { source: 'communication_workflow', aggregateId: updated.id, fromStatus: current.status, status: updated.status, templateVersion: updated.version, transitionVersion: updated.transitionVersion },
@@ -91,7 +90,7 @@ export async function reviseCommunicationTemplate(_root: unknown, args: any, con
     await recordTransition(prisma, {
       evidence, aggregateType: 'communication_template', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -126,8 +125,8 @@ export async function setCommunicationPreference(_root: unknown, { data }: any, 
         facilityId: data.facilityId, patientId: data.patientId, actorReference: context.session!.itemId,
         reasonCode, changedAt: now,
       } })
-      await appendAuditAndOutbox(prisma, {
-        eventKey: `communication_preference:${created.id}:v1:${created.status}`, eventType: 'communication_preference.recorded',
+      await appendAudit(prisma, {
+        eventType: 'communication_preference.recorded',
         aggregateType: 'communication_preference', aggregateId: created.id, facilityId: created.facilityId,
         patientId: created.patientId, actorReference: context.session!.itemId,
         metadata: { source: 'communication_workflow', aggregateId: created.id, channel, purpose, status, transitionVersion: 1, reasonCode },
@@ -147,8 +146,7 @@ export async function setCommunicationPreference(_root: unknown, { data }: any, 
     const updated = await prisma.communicationPreference.update({ where: { id: current.id }, data: {
       status, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId, reasonCode, changedAt: now,
     } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `communication_preference:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: `communication_preference.${updated.status}`, aggregateType: 'communication_preference', aggregateId: updated.id,
       facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'communication_workflow', aggregateId: updated.id, channel, purpose, fromStatus: current.status, status, transitionVersion: updated.transitionVersion, reasonCode },
@@ -159,7 +157,7 @@ export async function setCommunicationPreference(_root: unknown, { data }: any, 
       evidence: transition, aggregateType: 'communication_preference', aggregateId: updated.id,
       fromStatus: current.status, toStatus: updated.status, fromVersion: current.transitionVersion, toVersion: updated.transitionVersion,
       actorReference: context.session!.itemId, facilityId: updated.facilityId, patientId: updated.patientId,
-      auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })

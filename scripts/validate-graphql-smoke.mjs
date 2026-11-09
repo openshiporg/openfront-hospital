@@ -204,7 +204,6 @@ const operations = {
     mutation CareQueueOperationsSmoke($appointmentId: ID!, $key: String!, $operationKey: String!, $ticketId: ID!, $version: Int!) {
       arriveAppointment(appointmentId: $appointmentId, idempotencyKey: $key) { id status transitionVersion replayed }
       transitionCareQueue(operationKey: $operationKey, ticketId: $ticketId, toStatus: "called", expectedVersion: $version) { id status transitionVersion }
-      dispatchClinicalOutbox(limit: 1) { claimed delivered }
     }
   `,
   careQueuePage: /* GraphQL */ `

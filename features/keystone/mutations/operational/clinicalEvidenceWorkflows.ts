@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
-import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
+import { appendAudit, bounded, lockOperation, operationEvidence, scopedFacilityPatient } from './evidence'
 import { currentEpisodeActor, currentEpisodeChild, guardEpisodeChild } from '../clinical/episodeFence'
 import { recheckEpisodeRelated } from '../clinical/episodeRelatedScope'
 import { HospitalRefusal } from '../../lib/constraint-errors'
@@ -60,8 +60,8 @@ export async function createClinicalDocument(_root: unknown, { data }: any, cont
         contentHash: createHash('sha256').update(content).digest('hex'), actorReference: context.session!.itemId,
       },
     })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `clinical_document:${document.id}:v1:created`, eventType: 'clinical_document.created',
+    await appendAudit(prisma, {
+      eventType: 'clinical_document.created',
       aggregateType: 'clinical_document', aggregateId: document.id, facilityId: document.facilityId,
       patientId: document.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'clinical_document_workflow', aggregateId: document.id, status: document.status, documentVersion: 1, transitionVersion: 1 },
@@ -101,8 +101,7 @@ export async function transitionClinicalDocument(_root: unknown, args: any, cont
       status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId,
       ...(args.toStatus === 'signed' ? { signedAt: now, signedById: context.session!.itemId } : {}),
     } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `clinical_document:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: `clinical_document.${updated.status}`, aggregateType: 'clinical_document', aggregateId: updated.id,
       facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'clinical_document_workflow', aggregateId: updated.id, fromStatus: current.status, status: updated.status, documentVersion: updated.version, transitionVersion: updated.transitionVersion, reasonProvided: Boolean(reason) },
@@ -112,7 +111,7 @@ export async function transitionClinicalDocument(_root: unknown, args: any, cont
     await recordTransition(prisma, { evidence, aggregateType: 'clinical_document', aggregateId: updated.id,
       fromStatus: current.status, toStatus: updated.status, fromVersion: current.transitionVersion, toVersion: updated.transitionVersion,
       actorReference: context.session!.itemId, facilityId: updated.facilityId, patientId: updated.patientId,
-      auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now })
+      auditLogId: events.audit.id, result: projected, occurredAt: now })
     return projected
   }, { timeout: 30_000 })
 }
@@ -147,7 +146,7 @@ export async function collectSpecimen(_root: unknown, { data }: any, context: Co
       facilityId: data.facilityId, patientId: data.patientId, encounterId: data.encounterId, medicalOrderId: data.medicalOrderId,
       specimenType, actorReference: context.session!.itemId, collectedAt: now,
     } })
-    await appendAuditAndOutbox(prisma, { eventKey: `specimen:${specimen.id}:v1:collected`, eventType: 'specimen.collected',
+    await appendAudit(prisma, { eventType: 'specimen.collected',
       aggregateType: 'specimen', aggregateId: specimen.id, facilityId: specimen.facilityId, patientId: specimen.patientId,
       actorReference: context.session!.itemId, metadata: { source: 'specimen_workflow', aggregateId: specimen.id, status: specimen.status, transitionVersion: 1 }, occurredAt: now })
     return result(specimen)
@@ -239,8 +238,8 @@ export async function recordVitalSign(_root: unknown, { data }: any, context: Co
       ...values,
       notes,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `vital_sign:${vital.id}:recorded`, eventType: 'vital_sign.recorded',
+    await appendAudit(prisma, {
+      eventType: 'vital_sign.recorded',
       aggregateType: 'vital_sign', aggregateId: vital.id, facilityId: vital.facilityId,
       patientId: vital.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'vital_sign_workflow', aggregateId: vital.id, recordedAt: now.toISOString() },
@@ -279,15 +278,14 @@ export async function transitionSpecimen(_root: unknown, args: any, context: Con
       ...(args.toStatus === 'received' ? { receivedAt: now } : {}), ...(args.toStatus === 'disposed' ? { disposedAt: now } : {}),
       ...(args.toStatus === 'rejected' ? { rejectionReason: reason } : {}),
     } })
-    const events = await appendAuditAndOutbox(prisma, { eventKey: `specimen:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
-      eventType: `specimen.${updated.status}`, aggregateType: 'specimen', aggregateId: updated.id,
+    const events = await appendAudit(prisma, { eventType: `specimen.${updated.status}`, aggregateType: 'specimen', aggregateId: updated.id,
       facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'specimen_workflow', aggregateId: updated.id, fromStatus: current.status, status: updated.status, transitionVersion: updated.transitionVersion, reasonProvided: Boolean(reason) }, occurredAt: now })
     const projected = result(updated)
     await recordTransition(prisma, { evidence, aggregateType: 'specimen', aggregateId: updated.id, fromStatus: current.status,
       toStatus: updated.status, fromVersion: current.transitionVersion, toVersion: updated.transitionVersion,
       actorReference: context.session!.itemId, facilityId: updated.facilityId, patientId: updated.patientId,
-      auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now })
+      auditLogId: events.audit.id, result: projected, occurredAt: now })
     return projected
   }, { timeout: 30_000 })
 }

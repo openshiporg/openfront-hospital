@@ -265,7 +265,6 @@ async function cleanupRuntimeFlowPatient() {
   const patientIds = patients.map((patient) => patient.id)
 
   await prisma.$transaction([
-    prisma.clinicalOutboxEvent.deleteMany({ where: { patientId: { in: patientIds } } }),
     prisma.clinicalAuditLog.deleteMany({ where: { patientId: { in: patientIds } } }),
     prisma.patientConsent.deleteMany({ where: { patientId: { in: patientIds } } }),
     prisma.patientMessage.deleteMany({ where: { patientId: { in: patientIds } } }),
@@ -408,15 +407,8 @@ try {
   const queuedFollowUp = await prisma.patientMessage.findFirst({
     where: { appointmentId: appointment.id, direction: 'outbound' },
   })
-  const followUpEvent = queuedFollowUp ? await prisma.clinicalOutboxEvent.findFirst({
-    where: { aggregateType: 'patient_message', aggregateId: queuedFollowUp.id, eventType: 'message.queued' },
-  }) : null
-  if (
-    !queuedFollowUp?.body.includes('{{intake_link}}') || queuedFollowUp.body.includes(intake.accessCode) ||
-    followUpEvent?.deliveryMode !== 'external' || followUpEvent.status !== 'pending' ||
-    followUpEvent.installationId !== communicationInstallationId || JSON.stringify(followUpEvent.payload).includes(intake.accessCode)
-  ) {
-    throw new Error('Appointment follow-up was not queued through a token-safe retryable communications event')
+  if (queuedFollowUp?.status !== 'manual_required' || queuedFollowUp.body.includes(intake.accessCode)) {
+    throw new Error('Appointment follow-up must be a token-safe manual staff task; nothing is sent automatically')
   }
 
   const intakeData = await requestGraphQL(
@@ -533,8 +525,8 @@ try {
   if (persisted.clinicalAuditLogs.some((event) => containsForbiddenMetadataKey(event.metadata))) {
     throw new Error('Audit metadata contains forbidden PHI/workflow payload keys')
   }
-  if (!persisted.messages.some((message) => message.direction === 'outbound' && message.status === 'queued')) {
-    throw new Error('Missing queued appointment-request message')
+  if (!persisted.messages.some((message) => message.direction === 'outbound' && message.status === 'manual_required')) {
+    throw new Error('Missing manual appointment-request follow-up task')
   }
   if (!persisted.clinicalAuditLogs.some((event) => event.eventType === 'intake.viewed')) {
     throw new Error('Missing one-time intake view audit evidence')

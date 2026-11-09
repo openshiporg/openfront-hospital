@@ -29,8 +29,6 @@ export type PracticeReportData = {
     openOrders: number
     openClaims: number
     lowStockItems: number
-    retryEvents: number
-    deadLetterEvents: number
   }
 }
 
@@ -54,8 +52,6 @@ const summaryQuery = `
     unavailableBeds:bedsCount(where:{status:{in:["occupied","reserved","cleaning","out_of_service"]}})
     openOrders:medicalOrdersCount(where:{status:{in:["draft","ordered","in_progress"]}})
     openClaims:insuranceClaimsCount(where:{status:{in:["draft","prepared","submitted","external_rejected","denied","corrected"]}})
-    retryEvents:clinicalOutboxEventsCount(where:{status:{equals:"retry"}})
-    deadLetterEvents:clinicalOutboxEventsCount(where:{status:{equals:"dead_letter"}})
     upcomingAppointments:appointments(where:{startsAt:{gte:$now},status:{in:["requested","confirmed","checked_in","in_visit"]}},orderBy:[{startsAt:asc}],take:8){
       id appointmentNumber status startsAt patient{id displayName} provider{id displayName} appointmentType{id name} facility{id name timeZone}
     }
@@ -236,8 +232,6 @@ export async function getPracticeReportData(days = 30) {
         openOrders: summary.openOrders || 0,
         openClaims: summary.openClaims || 0,
         lowStockItems,
-        retryEvents: summary.retryEvents || 0,
-        deadLetterEvents: summary.deadLetterEvents || 0,
       },
     } satisfies PracticeReportData,
   }

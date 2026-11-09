@@ -33,7 +33,7 @@ const PHI_ROOT_FIELD_NAMES = new Set([
   'patientIdentifier', 'patientIdentifiers', 'patientIdentifiersCount', 'patientPayment', 'patientPayments', 'patientPaymentsCount',
   'patientRefund', 'patientRefunds', 'patientRefundsCount', 'patientRegistration', 'patientRegistrations', 'patientRegistrationsCount',
   'patientPortalAccess', 'patientPortalAccesses', 'patientPortalAccessesCount', 'clinicalDocument', 'clinicalDocuments', 'clinicalDocumentsCount',
-  'clinicalAuditLog', 'clinicalAuditLogs', 'clinicalAuditLogsCount', 'clinicalOutboxEvent', 'clinicalOutboxEvents', 'clinicalOutboxEventsCount',
+  'clinicalAuditLog', 'clinicalAuditLogs', 'clinicalAuditLogsCount', 
   'workflowTransition', 'workflowTransitions', 'workflowTransitionsCount', 'labResult', 'labResults', 'labResultsCount',
   'medicalOrder', 'medicalOrders', 'medicalOrdersCount', 'prescription', 'prescriptions', 'prescriptionsCount',
   'procedure', 'procedures', 'proceduresCount', 'specimen', 'specimens', 'specimensCount', 'vitalSign', 'vitalSigns', 'vitalSignsCount',
@@ -55,7 +55,7 @@ const PHI_FIELD_NAMES = new Set([
 const PHI_TYPE_NAMES = new Set([
   'Patient', 'Appointment', 'IntakeForm', 'Encounter', 'Admission', 'CarePlan', 'CareQueueTicket', 'PatientMessage',
   'PatientConsent', 'PatientCoverage', 'PatientIdentifier', 'PatientPayment', 'PatientRefund', 'PatientRegistration',
-  'PatientPortalAccess', 'ClinicalDocument', 'ClinicalAuditLog', 'ClinicalOutboxEvent', 'WorkflowTransition', 'LabResult',
+  'PatientPortalAccess', 'ClinicalDocument', 'ClinicalAuditLog', 'WorkflowTransition', 'LabResult',
   'MedicalOrder', 'Prescription', 'Procedure', 'Specimen', 'VitalSign', 'InsuranceClaim', 'ClaimVersion',
   'BedReservation', 'BedOccupancyEvent', 'RecordHold', 'RetentionDisposition', 'ExportJob',
   'PatientRegistrationResult', 'PatientRegistrationCandidate', 'PatientIntakePatient', 'PatientIntakeAppointment', 'WorkflowPatientCandidate', 'WorkflowEncounterCandidate',

@@ -52,7 +52,6 @@ export const WorkflowTransition = list({
     facility: relationship({ ref: 'Facility' }),
     patient: relationship({ ref: 'Patient' }),
     auditLog: relationship({ ref: 'ClinicalAuditLog' }),
-    outboxEvent: relationship({ ref: 'ClinicalOutboxEvent' }),
     // Original lab creation/correction receipts contain private clinical bodies,
     // not audit metadata. Reports-only authority must not disclose them through
     // generated, nested or inverse GraphQL traversal.

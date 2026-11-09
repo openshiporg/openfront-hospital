@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
-import { appendAuditAndOutbox, bounded, lockOperation, operationEvidence } from './evidence'
+import { appendAudit, bounded, lockOperation, operationEvidence } from './evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireRetention(context: Context) {
@@ -64,8 +64,8 @@ export async function createRetentionPolicy(_root: unknown, { data }: any, conte
       recordType, retentionDays, status: 'active', transitionVersion: 1, ...evidence,
       actorReference: context.session!.itemId, facilityId: data.facilityId,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `retention_policy:${policy.id}:v1:active`, eventType: 'retention_policy.created',
+    await appendAudit(prisma, {
+      eventType: 'retention_policy.created',
       aggregateType: 'retention_policy', aggregateId: policy.id, facilityId: policy.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'retention_workflow', aggregateId: policy.id, recordType, retentionDays, status: 'active', transitionVersion: 1 },
@@ -94,8 +94,7 @@ export async function transitionRetentionPolicy(_root: unknown, args: any, conte
     if (!current || current.transitionVersion !== args.expectedVersion || current.status === args.toStatus) throw new HospitalRefusal('Retention policy changed; refresh before retrying')
     const now = new Date()
     const updated = await prisma.retentionPolicy.update({ where: { id: current.id }, data: { status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `retention_policy:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: `retention_policy.${updated.status}`, aggregateType: 'retention_policy', aggregateId: updated.id,
       facilityId: updated.facilityId, actorReference: context.session!.itemId,
       metadata: { source: 'retention_workflow', aggregateId: updated.id, recordType: updated.recordType, fromStatus: current.status, status: updated.status, transitionVersion: updated.transitionVersion }, occurredAt: now,
@@ -104,7 +103,7 @@ export async function transitionRetentionPolicy(_root: unknown, args: any, conte
     await recordTransition(prisma, {
       evidence, aggregateType: 'retention_policy', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -136,8 +135,8 @@ export async function placeRecordHold(_root: unknown, { data }: any, context: Co
       ...evidence, facilityId: data.facilityId, patientId: target.patientId, reasonCode, notes,
       actorReference: context.session!.itemId, placedAt: now,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `record_hold:${hold.id}:v1:active`, eventType: 'record_hold.placed',
+    await appendAudit(prisma, {
+      eventType: 'record_hold.placed',
       aggregateType: 'record_hold', aggregateId: hold.id, facilityId: hold.facilityId, patientId: hold.patientId,
       actorReference: context.session!.itemId,
       metadata: { source: 'retention_workflow', aggregateId: hold.id, heldAggregateType: aggregateType, heldAggregateId: aggregateId, reasonCode, status: 'active', transitionVersion: 1 }, occurredAt: now,
@@ -168,8 +167,8 @@ export async function releaseRecordHold(_root: unknown, args: any, context: Cont
     if (!refreshed || refreshed.status !== 'active' || refreshed.transitionVersion !== args.expectedVersion) throw new HospitalRefusal('Record hold changed or is no longer active')
     const now = new Date()
     const updated = await prisma.recordHold.update({ where: { id: current.id }, data: { status: 'released', transitionVersion: { increment: 1 }, reasonCode, actorReference: context.session!.itemId, releasedAt: now } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `record_hold:${updated.id}:v${updated.transitionVersion}:released`, eventType: 'record_hold.released',
+    const events = await appendAudit(prisma, {
+      eventType: 'record_hold.released',
       aggregateType: 'record_hold', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId,
       actorReference: context.session!.itemId,
       metadata: { source: 'retention_workflow', aggregateId: updated.id, heldAggregateType: updated.aggregateType, heldAggregateId: updated.aggregateId, status: 'released', transitionVersion: updated.transitionVersion, reasonCode }, occurredAt: now,
@@ -178,7 +177,7 @@ export async function releaseRecordHold(_root: unknown, args: any, context: Cont
     await recordTransition(prisma, {
       evidence, aggregateType: 'record_hold', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, patientId: updated.patientId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, patientId: updated.patientId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -224,8 +223,8 @@ export async function recordRetentionDisposition(_root: unknown, { data }: any, 
       recordType: policy.recordType, aggregateType, aggregateId, decision, reasonCode,
       actorReference: context.session!.itemId, cutoffAt, reviewedAt: now,
     } })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `retention_disposition:${disposition.id}:${decision}`, eventType: 'retention.disposition_reviewed',
+    await appendAudit(prisma, {
+      eventType: 'retention.disposition_reviewed',
       aggregateType: 'retention_disposition', aggregateId: disposition.id, facilityId: disposition.facilityId,
       patientId: disposition.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'retention_workflow', aggregateId: disposition.id, reviewedAggregateType: aggregateType, reviewedAggregateId: aggregateId, decision, reasonCode, policyId: policy.id, policyRevision: policy.transitionVersion, retentionDays: policy.retentionDays, calculatedAt: calculatedAt.toISOString(), cutoffAt: cutoffAt.toISOString(), physicalDeletion: false }, occurredAt: now,

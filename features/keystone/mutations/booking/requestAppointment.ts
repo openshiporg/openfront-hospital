@@ -198,23 +198,9 @@ export default async function requestAppointment(_root: unknown, args: Args, con
         throw new HospitalRefusal('That appointment slot was just taken. Please choose another time.')
       }
       const facility = requestedSlot.facility
-      const communicationInstallations = await tx.integrationInstallation.findMany({
-        where: { facilityId: facility.id, kind: 'communications', status: 'active' },
-        orderBy: { createdAt: 'asc' },
-        take: 101,
-        select: { id: true, transitionVersion: true, allowedEventTypes: true },
-      })
-      const eligibleCommunicationInstallations = communicationInstallations.filter(item =>
-        Array.isArray(item.allowedEventTypes) && item.allowedEventTypes.includes('message.queued'),
-      )
-      if (communicationInstallations.length > 100 || eligibleCommunicationInstallations.length > 1) {
-        throw new Error('Online appointment follow-up configuration is ambiguous')
-      }
-      // A missing external communications adapter does not make scheduling
-      // disappear. It creates an explicit staff follow-up task instead of a
-      // fictional queued/sent state.
-      const communicationInstallation = eligibleCommunicationInstallations[0] || null
-      const followUpMode = communicationInstallation ? 'integration' : 'manual'
+      // The hospital sends no automatic texts or emails. Every request creates an
+      // explicit staff follow-up task.
+      const followUpMode = 'manual'
       const outstandingRequests = await tx.appointment.count({
         where: { facilityId: facility.id, source: 'patient_portal', status: 'requested' },
       })
@@ -284,12 +270,11 @@ export default async function requestAppointment(_root: unknown, args: Args, con
           facilityId: facility.id,
           patientId: patient.id,
           appointmentId: appointment.id,
-          installationId: communicationInstallation?.id || null,
           direction: 'outbound',
           channel: preferredContactMethod === 'email' ? 'email' : preferredContactMethod === 'phone' ? 'phone' : 'sms',
-          status: communicationInstallation ? 'queued' : 'manual_required',
+          status: 'manual_required',
           subject: 'Appointment request follow-up',
-          body: `Appointment request ${appointment.appointmentNumber} needs confirmation and intake follow-up for ${new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: facilityConfiguration.timeZone }).format(appointment.startsAt)}. ${communicationInstallation ? 'Complete intake: {{intake_link}}' : 'Contact the patient through the selected channel; no external message was sent.'}`,
+          body: `Appointment request ${appointment.appointmentNumber} needs confirmation and intake follow-up for ${new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: facilityConfiguration.timeZone }).format(appointment.startsAt)}. Contact the patient through the selected channel; no external message was sent.`,
           metadata: { source: 'public_booking', intakeFormId: intakeForm.id, followUpMode },
         },
       })
@@ -329,36 +314,6 @@ export default async function requestAppointment(_root: unknown, args: Args, con
         },
       })
 
-      await tx.clinicalOutboxEvent.create({
-        data: {
-          eventKey: `patient_message:${message.id}:v1:${message.status}`,
-          eventType: communicationInstallation ? 'message.queued' : 'message.manual_required',
-          aggregateType: 'patient_message',
-          aggregateId: message.id,
-          contractVersion: communicationInstallation ? 'hospital.webhook.v1' : 'hospital.event.v1',
-          deliveryMode: communicationInstallation ? 'external' : 'internal',
-          installationId: communicationInstallation?.id || null,
-          installationVersion: communicationInstallation?.transitionVersion || null,
-          status: communicationInstallation ? 'pending' : 'recorded',
-          attempts: 0,
-          nextAttemptAt: communicationInstallation ? new Date() : null,
-          facilityId: facility.id,
-          patientId: patient.id,
-          appointmentId: appointment.id,
-          payload: {
-            source: 'public_booking',
-            aggregateId: message.id,
-            channel: message.channel,
-            purpose: message.purpose,
-            status: message.status,
-            followUpMode,
-            transitionVersion: 1,
-            intakeFormId: intakeForm.id,
-          },
-          createdAt: new Date(),
-        },
-      })
-
       return appointment.id
     }, { isolationLevel: 'ReadCommitted' })
 
@@ -371,26 +326,6 @@ export default async function requestAppointment(_root: unknown, args: Args, con
         intakeForms: { select: { id: true, status: true } },
       },
     })
-    // After the commit, never inside it. Minimal content; failures never touch the request.
-    if (appointment) {
-      try {
-        const { deliverAppointmentRequestEmail } = await import('../../lib/appointmentRequestEmail')
-        await deliverAppointmentRequestEmail(sudo.prisma, {
-          appointmentId: appointment.id,
-          appointmentNumber: appointment.appointmentNumber,
-          facilityId: appointment.facilityId,
-          facilityName: facilityName(appointment),
-          timeZone: facilityConfiguration.timeZone,
-          startsAt: appointment.startsAt.toISOString(),
-          patientId: appointment.patientId,
-          to: patientInput.email || '',
-          firstName: patientInput.firstName,
-          intakeToken: intakeAccess.token,
-        })
-      } catch (mailError) {
-        console.error('Appointment request email not sent:', mailError instanceof Error ? mailError.message : 'Unknown error')
-      }
-    }
     const appointmentWithAccess = appointment
       ? {
           ...appointment,

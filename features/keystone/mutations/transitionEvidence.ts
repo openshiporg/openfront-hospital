@@ -68,7 +68,6 @@ type RecordTransitionInput = {
   facilityId: string
   patientId?: string | null
   auditLogId?: string | null
-  outboxEventId?: string | null
   result: Record<string, unknown>
   occurredAt: Date
 }
@@ -93,7 +92,6 @@ export async function recordTransition(tx: any, input: RecordTransitionInput) {
       facilityId: input.facilityId,
       patientId: input.patientId || null,
       auditLogId: input.auditLogId || null,
-      outboxEventId: input.outboxEventId || null,
       result: input.result,
       occurredAt: input.occurredAt,
     },

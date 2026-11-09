@@ -8,7 +8,7 @@ import {
   transitionEvidence,
 } from '../transitionEvidence'
 import {
-  appendAuditAndOutbox,
+  appendAudit,
   bounded,
   lockOperation,
   operationEvidence,
@@ -77,8 +77,8 @@ export async function recordPatientCoverage(_root: unknown, { data }: any, conte
         terminatesAt: data.terminatesAt ? new Date(data.terminatesAt) : null,
       },
     })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `coverage:${coverage.id}:v1:recorded`, eventType: 'coverage.recorded',
+    await appendAudit(prisma, {
+      eventType: 'coverage.recorded',
       aggregateType: 'coverage', aggregateId: coverage.id, facilityId: coverage.facilityId,
       patientId: coverage.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'coverage_workflow', aggregateId: coverage.id, status: coverage.status, transitionVersion: 1 },
@@ -127,8 +127,7 @@ export async function transitionPatientCoverage(_root: unknown, args: any, conte
         ...(args.toStatus === 'active' ? { verifiedAt: now, verifiedById: context.session!.itemId } : {}),
       },
     })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `coverage:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: `coverage.${updated.status}`, aggregateType: 'coverage', aggregateId: updated.id,
       facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'coverage_workflow', aggregateId: updated.id, fromStatus: current.status, status: updated.status, transitionVersion: updated.transitionVersion, reasonCode },
@@ -139,7 +138,7 @@ export async function transitionPatientCoverage(_root: unknown, args: any, conte
       evidence, aggregateType: 'coverage', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
       facilityId: updated.facilityId, patientId: updated.patientId, auditLogId: events.audit.id,
-      outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -191,12 +190,9 @@ export async function recordPatientPayment(_root: unknown, { data }: any, contex
         receivedAt: isExternal ? null : now,
       },
     })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `payment:${payment.id}:v1:${payment.status}`,
+    await appendAudit(prisma, {
       eventType: `payment.${payment.status}`, aggregateType: 'payment', aggregateId: payment.id,
       facilityId: payment.facilityId, patientId: payment.patientId, actorReference: context.session!.itemId,
-      deliveryMode: isExternal ? 'external' : 'internal', installationId: installation?.id,
-      installationVersion: installation?.transitionVersion,
       metadata: { source: 'payment_workflow', aggregateId: payment.id, status: payment.status, transitionVersion: 1, amountCents, currency: input.currency },
       occurredAt: now,
     })
@@ -247,8 +243,7 @@ async function transitionPaymentLike(
     if (options.aggregateType === 'refund' && options.toStatus === 'succeeded') {
       await prisma.patientPayment.update({ where: { id: current.paymentId }, data: { refundedAmountCents: { increment: current.amountCents } } })
     }
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `${options.aggregateType}:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: `${options.aggregateType}.${updated.status}`, aggregateType: options.aggregateType, aggregateId: updated.id,
       facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'billing_workflow', aggregateId: updated.id, fromStatus: current.status, status: updated.status, transitionVersion: updated.transitionVersion, reasonCode },
@@ -258,7 +253,7 @@ async function transitionPaymentLike(
     await recordTransition(prisma, {
       evidence, aggregateType: options.aggregateType, aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, patientId: updated.patientId, auditLogId: events.audit.id, outboxEventId: events.outbox.id,
+      facilityId: updated.facilityId, patientId: updated.patientId, auditLogId: events.audit.id, 
       result: projected, occurredAt: now,
     })
     return projected
@@ -326,12 +321,9 @@ export async function requestPatientRefund(_root: unknown, { data }: any, contex
     if (!isExternal && !isOnline) {
       await prisma.patientPayment.update({ where: { id: payment.id }, data: { refundedAmountCents: { increment: amountCents } } })
     }
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `refund:${refund.id}:v1:${refund.status}`,
+    await appendAudit(prisma, {
       eventType: `refund.${refund.status}`, aggregateType: 'refund', aggregateId: refund.id,
       facilityId: refund.facilityId, patientId: refund.patientId, actorReference: context.session!.itemId,
-      deliveryMode: isExternal ? 'external' : 'internal', installationId: payment.installationId,
-      installationVersion: paymentInstallation?.transitionVersion,
       metadata: { source: 'refund_workflow', aggregateId: refund.id, paymentId: payment.id, status: refund.status, transitionVersion: 1, amountCents },
       occurredAt: now,
     })
@@ -362,8 +354,8 @@ async function settleOnlineRefund(context: Context, refundId: string) {
     const now = new Date()
     const updated = await db.patientRefund.update({ where: { id: current.id }, data: { status: 'succeeded', transitionVersion: { increment: 1 }, completedAt: now, externalReference: providerRefund.id } })
     await db.patientPayment.update({ where: { id: payment.id }, data: { refundedAmountCents: { increment: current.amountCents } } })
-    await appendAuditAndOutbox(db, {
-      eventKey: `refund:${updated.id}:v${updated.transitionVersion}:succeeded`, eventType: 'refund.succeeded', aggregateType: 'refund', aggregateId: updated.id,
+    await appendAudit(db, {
+      eventType: 'refund.succeeded', aggregateType: 'refund', aggregateId: updated.id,
       facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
       metadata: { source: 'card_refund', aggregateId: updated.id, paymentId: payment.id, providerRefundId: providerRefund.id, status: 'succeeded', transitionVersion: updated.transitionVersion, amountCents: updated.amountCents },
       occurredAt: now,

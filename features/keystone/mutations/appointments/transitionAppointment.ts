@@ -164,22 +164,6 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
         metadata,
       },
     })
-    const outbox = await tx.clinicalOutboxEvent.create({
-      data: {
-        eventKey: `appointment:${appointment.id}:v${nextVersion}:${updated.status}`,
-        eventType,
-        aggregateType: 'appointment',
-        aggregateId: appointment.id,
-        status: 'recorded',
-        attempts: 0,
-        nextAttemptAt: null,
-        facilityId: appointment.facilityId,
-        patientId: appointment.patientId,
-        appointmentId: appointment.id,
-        payload: metadata,
-        createdAt: now,
-      },
-    })
     const result = {
       id: updated.id,
       appointmentNumber: updated.appointmentNumber,
@@ -205,29 +189,11 @@ export default async function transitionAppointment(_root: unknown, args: Args, 
       facilityId: appointment.facilityId,
       patientId: appointment.patientId,
       auditLogId: audit.id,
-      outboxEventId: outbox.id,
+      
       result,
       occurredAt: now,
     })
     return result
   }, { timeout: 30_000 })
-  const settledStatus = String((outcome as { status?: unknown }).status ?? '')
-  if (!outcome.replayed && (settledStatus === 'confirmed' || settledStatus === 'cancelled')) {
-    await notifyPatient(context, args.appointmentId, settledStatus).catch(error => console.error('Visit notice not sent:', error instanceof Error ? error.message : 'Unknown error'))
-  }
   return outcome
-}
-
-// The patient hears when the clinic confirms or cancels their visit, with a link to view it. No clinical detail.
-async function notifyPatient(context: Context, appointmentId: string, status: string) {
-  const prisma = context.sudo().prisma as any
-  const appointment = await prisma.appointment.findUnique({ where: { id: appointmentId }, select: { id: true, appointmentNumber: true, startsAt: true, cancellationReason: true, facility: { select: { name: true, timeZone: true, phone: true } }, patient: { select: { email: true, firstName: true } } } })
-  if (!appointment?.patient?.email) return
-  const [{ sendVisitNoticeEmail }, { formatAppointmentTime }, { createVisitAccessToken }] = await Promise.all([import('../../lib/mail'), import('../../lib/appointmentRequestEmail'), import('../../security/visitAccess')])
-  const when = formatAppointmentTime(appointment.startsAt.toISOString(), appointment.facility?.timeZone || 'UTC')
-  const facilityName = appointment.facility?.name || 'Our care team'
-  const lines = status === 'confirmed'
-    ? [`Hi ${appointment.patient.firstName}, your visit ${appointment.appointmentNumber} is confirmed for ${when}.`, 'Please arrive 15 minutes early and bring your insurance card and a photo ID.']
-    : [`Hi ${appointment.patient.firstName}, your visit ${appointment.appointmentNumber} on ${when} has been cancelled by the clinic.`, appointment.facility?.phone ? `Call ${appointment.facility.phone} or request a new time online.` : 'Request a new time online.']
-  await sendVisitNoticeEmail(appointment.patient.email, { facilityName, heading: status === 'confirmed' ? 'Your visit is confirmed' : 'Your visit is cancelled', lines, manageToken: createVisitAccessToken(appointment.id) })
 }

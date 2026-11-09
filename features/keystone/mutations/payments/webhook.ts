@@ -1,7 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
-import { appendAuditAndOutbox } from '../operational/evidence'
+import { appendAudit } from '../operational/evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 export async function handlePatientPaymentWebhook(providerId: string, event: any, headers: Record<string, string>, rawBody: string, context: Context) {
@@ -37,7 +37,7 @@ export async function handlePatientPaymentWebhook(providerId: string, event: any
     if (!payment || payment.paymentProviderId !== provider.id || payment.status !== 'pending') throw new HospitalRefusal('Payment correlation is invalid')
     if (resource.amount_total !== payment.amountCents || String(resource.currency).toUpperCase() !== payment.currency) throw new HospitalRefusal('Provider amount/currency mismatch')
     const updated = await db.patientPayment.update({ where: { id: payment.id }, data: { status: 'succeeded', transitionVersion: { increment: 1 }, receivedAt: new Date(), providerPaymentId } })
-    await appendAuditAndOutbox(db, { eventKey: `payment:${updated.id}:v${updated.transitionVersion}:succeeded`, eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference: 'stripe_webhook', metadata: { source: 'verified_payment_webhook', aggregateId: updated.id, providerPaymentId, transitionVersion: updated.transitionVersion, amountCents: updated.amountCents, currency: updated.currency } })
+    await appendAudit(db, { eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference: 'stripe_webhook', metadata: { source: 'verified_payment_webhook', aggregateId: updated.id, providerPaymentId, transitionVersion: updated.transitionVersion, amountCents: updated.amountCents, currency: updated.currency } })
     await db.paymentWebhookReceipt.update({ where: { id: receipt.id }, data: { status: 'processed', processedAt: new Date() } })
     return { success: true, duplicate: false }
   }, { timeout: 30_000 })

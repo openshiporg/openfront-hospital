@@ -62,8 +62,7 @@ export async function scopedFacilityPatient(context: Context, facilityId: string
   return { facility, patient }
 }
 
-export async function appendAuditAndOutbox(tx: any, input: {
-  eventKey: string
+export async function appendAudit(tx: any, input: {
   eventType: string
   aggregateType: string
   aggregateId: string
@@ -71,11 +70,7 @@ export async function appendAuditAndOutbox(tx: any, input: {
   patientId?: string | null
   actorReference: string
   metadata: Record<string, unknown>
-  deliveryMode?: 'internal' | 'external'
-  installationId?: string | null
-  installationVersion?: number | null
   occurredAt?: Date
-  contractVersion?: string
 }) {
   const occurredAt = input.occurredAt || new Date()
   if (JSON.stringify(input.metadata).length > 8_000) throw new HospitalRefusal('Event metadata is too large')
@@ -91,28 +86,5 @@ export async function appendAuditAndOutbox(tx: any, input: {
       createdAt: occurredAt,
     },
   })
-  const deliveryMode = input.deliveryMode || 'internal'
-  if (deliveryMode === 'external' && (!input.installationId || !Number.isInteger(input.installationVersion) || Number(input.installationVersion) < 1)) {
-    throw new HospitalRefusal('External delivery requires a current integration generation')
-  }
-  const outbox = await tx.clinicalOutboxEvent.create({
-    data: {
-      eventKey: input.eventKey,
-      eventType: input.eventType,
-      aggregateType: input.aggregateType,
-      aggregateId: input.aggregateId,
-      contractVersion: input.contractVersion || 'hospital.event.v1',
-      deliveryMode,
-      installationId: input.installationId || null,
-      installationVersion: input.installationVersion || null,
-      status: deliveryMode === 'external' ? 'pending' : 'recorded',
-      attempts: 0,
-      nextAttemptAt: deliveryMode === 'external' ? occurredAt : null,
-      facilityId: input.facilityId,
-      patientId: input.patientId || null,
-      payload: input.metadata,
-      createdAt: occurredAt,
-    },
-  })
-  return { audit, outbox }
+  return { audit }
 }

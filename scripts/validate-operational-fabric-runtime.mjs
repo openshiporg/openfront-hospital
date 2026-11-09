@@ -178,7 +178,7 @@ try {
   if (await prisma.claimVersion.count({ where: { claimId: claim.id } }) !== 3) throw new Error('Claim version history is incomplete')
 
   const installMutation = `mutation($data:IntegrationInstallationWorkflowInput!){installIntegration(data:$data){id status transitionVersion installationKey signingSecret replayed}}`
-  const communicationInstallInput = { operationKey: key('comm-install'), facilityId: facility.id, name: `${prefix} communications`, kind: 'communications', endpointUrl: receiverUrl, allowedEventTypes: ['message.queued'] }
+  const communicationInstallInput = { operationKey: key('comm-install'), facilityId: facility.id, name: `${prefix} communications`, kind: 'communications', endpointUrl: receiverUrl, allowedEventTypes: ['integration.test'] }
   const communicationInstall = (await gql('install communications', installMutation, { data: communicationInstallInput }, adminCookie)).installIntegration
   const installReplay = (await gql('replay communications install', installMutation, { data: communicationInstallInput }, adminCookie)).installIntegration
   if (!communicationInstall.signingSecret || installReplay.signingSecret !== null || !installReplay.replayed) throw new Error('Integration signing secret was not one-time')
@@ -216,19 +216,14 @@ try {
   })).requestAppointment
   const publicIntake = publicRequest.intakeForms?.[0]
   if (!publicIntake?.accessCode) throw new Error('Public booking did not issue a one-time intake access value')
-  await gql('dispatch public booking follow-up', `mutation{dispatchIntegrationOutbox(limit:100){claimed delivered retried deadLettered}}`, {}, adminCookie)
-  const publicDelivery = received.find(item => item.payload?.aggregate?.id && item.payload?.data?.message?.body?.includes(publicIntake.accessCode))
-  const [storedPublicMessage, storedPublicIntake, storedPublicEvent] = await Promise.all([
+  const [storedPublicMessage, storedPublicIntake] = await Promise.all([
     prisma.patientMessage.findFirst({ where: { appointmentId: publicRequest.id, direction: 'outbound' } }),
     prisma.intakeForm.findUnique({ where: { id: publicIntake.id } }),
-    prisma.clinicalOutboxEvent.findFirst({ where: { appointmentId: publicRequest.id, eventType: 'message.queued' } }),
   ])
   if (
-    !publicDelivery || !publicDelivery.payload.data.message.body.includes(`/intake#accessCode=${publicIntake.accessCode}`) ||
     storedPublicIntake?.accessCodeHash !== digest(publicIntake.accessCode) ||
-    !storedPublicMessage?.body.includes('{{intake_link}}') || storedPublicMessage.body.includes(publicIntake.accessCode) ||
-    JSON.stringify(storedPublicEvent?.payload || {}).includes(publicIntake.accessCode)
-  ) throw new Error('Public booking intake link was not delivered through a token-safe retryable integration event')
+    storedPublicMessage?.status !== 'manual_required' || storedPublicMessage.body.includes(publicIntake.accessCode)
+  ) throw new Error('Public booking must record a token-safe manual staff follow-up task and send nothing')
 
   const existingGeneralEmailPreference = await prisma.communicationPreference.findFirst({ where: {
     facilityId: facility.id, patientId: patient.id, channel: 'email', purpose: 'general',
@@ -241,32 +236,16 @@ try {
     } }, adminCookie)).setCommunicationPreference
     optedOutPreferenceVersion = optedOutPreference.transitionVersion
   }
-  await denied('opted-out general message', `mutation($key:String!,$facility:ID!,$patient:ID!,$installation:ID!){sendSecurePatientMessage(operationKey:$key,facilityId:$facility,patientId:$patient,installationId:$installation,channel:"email",purpose:"general",body:"Local general message"){id}}`, { key: key('general-denied'), facility: facility.id, patient: patient.id, installation: communicationInstall.id }, adminCookie, 'opted out')
+  await denied('opted-out general message', `mutation($key:String!,$facility:ID!,$patient:ID!){sendSecurePatientMessage(operationKey:$key,facilityId:$facility,patientId:$patient,channel:"email",purpose:"general",body:"Local general message"){id}}`, { key: key('general-denied'), facility: facility.id, patient: patient.id}, adminCookie, 'opted out')
   await gql('allow general email', `mutation($data:CommunicationPreferenceWorkflowInput!){setCommunicationPreference(data:$data){${controlled}}}`, { data: {
     operationKey: key('preference'), facilityId: facility.id, patientId: patient.id, channel: 'email', purpose: 'general', status: 'allowed', reasonCode: 'patient_request', expectedVersion: optedOutPreferenceVersion,
   } }, adminCookie)
   await gql('register template', `mutation($data:CommunicationTemplateWorkflowInput!){registerCommunicationTemplate(data:$data){${controlled}}}`, { data: {
     operationKey: key('template'), facilityId: facility.id, templateKey: `${prefix}-general`, name: 'Local general template', channel: 'email', subjectTemplate: 'Hospital update', bodyTemplate: 'Your requested update is ready.',
   } }, adminCookie)
-  const message = (await gql('queue external message', `mutation($key:String!,$facility:ID!,$patient:ID!,$installation:ID!){sendSecurePatientMessage(operationKey:$key,facilityId:$facility,patientId:$patient,installationId:$installation,channel:"email",purpose:"general",subject:"Hospital update",body:"Your requested update is ready."){id status}}`, { key: key('message'), facility: facility.id, patient: patient.id, installation: communicationInstall.id }, adminCookie)).sendSecurePatientMessage
-  const dispatched = (await gql('dispatch message', `mutation{dispatchIntegrationOutbox(limit:10){claimed delivered retried deadLettered}}`, {}, adminCookie)).dispatchIntegrationOutbox
-  if (dispatched.delivered < 1 || !received.some(item => item.payload?.aggregate?.id === message.id)) throw new Error('Signed integration delivery did not complete')
-  const delivery = received.find(item => item.payload?.aggregate?.id === message.id)
-  const signature = String(delivery.headers['x-openfront-signature'] || '').replace(/^sha256=/, '')
-  const expectedSignature = createHmac('sha256', communicationInstall.signingSecret).update(`${delivery.headers['x-openfront-timestamp']}.${delivery.body}`).digest('hex')
-  if (signature !== expectedSignature || delivery.payload.contractVersion !== 'hospital.webhook.v1') throw new Error('Outbound webhook signature or contract version is invalid')
-  if ((await prisma.patientMessage.findUnique({ where: { id: message.id } }))?.status !== 'sent') throw new Error('Message did not move to sent after delivery')
-
+  const message = (await gql('record manual message', `mutation($key:String!,$facility:ID!,$patient:ID!){sendSecurePatientMessage(operationKey:$key,facilityId:$facility,patientId:$patient,channel:"email",purpose:"general",subject:"Hospital update",body:"Your requested update is ready."){id status}}`, { key: key('message'), facility: facility.id, patient: patient.id}, adminCookie)).sendSecurePatientMessage
+  if (message.status !== 'manual_required') throw new Error('Patient message must be a manual staff task')
   const appBase = new URL(endpoint); appBase.pathname = ''; appBase.search = ''
-  const deliveredEvent = { eventId: `${prefix}-message-delivered`, eventType: 'message.delivered', aggregateId: message.id, externalReference: `${prefix}-provider-message` }
-  const webhook = await signedWebhook(appBase.toString().replace(/\/$/, ''), communicationInstall.installationKey, communicationCredential.credential, communicationInstall.signingSecret, deliveredEvent)
-  if (webhook.status !== 200) throw new Error(`Signed inbound message webhook failed: ${webhook.status} ${await webhook.text()}`)
-  const webhookReplay = await signedWebhook(appBase.toString().replace(/\/$/, ''), communicationInstall.installationKey, communicationCredential.credential, communicationInstall.signingSecret, deliveredEvent)
-  const replayPayload = await webhookReplay.json()
-  if (webhookReplay.status !== 200 || !replayPayload.replayed) throw new Error('Inbound webhook replay was not deduplicated')
-  const altered = { ...deliveredEvent, aggregateId: encounter.id }
-  const alteredResponse = await signedWebhook(appBase.toString().replace(/\/$/, ''), communicationInstall.installationKey, communicationCredential.credential, communicationInstall.signingSecret, altered)
-  if (alteredResponse.status !== 409) throw new Error('Webhook event ID payload mismatch was not rejected')
 
   const paymentInstall = (await gql('install payment', installMutation, { data: { operationKey: key('payment-install'), facilityId: facility.id, name: `${prefix} payment`, kind: 'payment', endpointUrl: receiverUrl, allowedEventTypes: ['payment.pending', 'refund.pending'] } }, adminCookie)).installIntegration
   const paymentCredential = (await gql('issue payment credential', credentialMutation, { data: { operationKey: key('payment-credential'), installationId: paymentInstall.id, name: `${prefix} payment inbound`, scopes: ['webhook:write'], expiresAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString() } }, adminCookie)).issueMachineCredential
@@ -275,14 +254,12 @@ try {
     amountCents: 5000, currency: 'USD', method: 'card_external', externalReference: `${prefix}-payment-request`,
   } }, adminCookie)).recordPatientPayment
   await denied('unsigned external payment success', `mutation($operationKey:String!,$id:ID!){transitionPatientPayment(operationKey:$operationKey,paymentId:$id,toStatus:"succeeded",expectedVersion:1){id}}`, { operationKey: key('payment-unsigned-success'), id: payment.id }, adminCookie, 'verified integration event')
-  await gql('dispatch payment request', `mutation{dispatchIntegrationOutbox(limit:10){claimed delivered retried deadLettered}}`, {}, adminCookie)
   const paymentEvent = { eventId: `${prefix}-payment-succeeded`, eventType: 'payment.succeeded', aggregateId: payment.id, externalReference: `${prefix}-payment-provider` }
   const paymentWebhook = await signedWebhook(appBase.toString().replace(/\/$/, ''), paymentInstall.installationKey, paymentCredential.credential, paymentInstall.signingSecret, paymentEvent)
   if (paymentWebhook.status !== 200) throw new Error(`Payment webhook failed: ${paymentWebhook.status}`)
   const refund = (await gql('request external refund', `mutation($data:PatientRefundWorkflowInput!){requestPatientRefund(data:$data){${controlled}}}`, { data: { operationKey: key('refund'), paymentId: payment.id, amountCents: 1200, reasonCode: 'patient_request' } }, adminCookie)).requestPatientRefund
   await denied('unsigned external refund success', `mutation($operationKey:String!,$id:ID!){transitionPatientRefund(operationKey:$operationKey,refundId:$id,toStatus:"succeeded",expectedVersion:1){id}}`, { operationKey: key('refund-unsigned-success'), id: refund.id }, adminCookie, 'verified integration event')
   await denied('over refund', `mutation($data:PatientRefundWorkflowInput!){requestPatientRefund(data:$data){id}}`, { data: { operationKey: key('refund-over'), paymentId: payment.id, amountCents: 5000, reasonCode: 'invalid_total' } }, adminCookie, 'exceed')
-  await gql('dispatch refund request', `mutation{dispatchIntegrationOutbox(limit:10){claimed delivered retried deadLettered}}`, {}, adminCookie)
   const refundWebhook = await signedWebhook(appBase.toString().replace(/\/$/, ''), paymentInstall.installationKey, paymentCredential.credential, paymentInstall.signingSecret, { eventId: `${prefix}-refund-succeeded`, eventType: 'refund.succeeded', aggregateId: refund.id, externalReference: `${prefix}-refund-provider` })
   if (refundWebhook.status !== 200) throw new Error(`Refund webhook failed: ${refundWebhook.status}`)
   const finalPayment = await prisma.patientPayment.findUnique({ where: { id: payment.id } })
@@ -381,37 +358,11 @@ try {
   const linkReplay = (await gql('replay identity link', `mutation($data:ExternalIdentityWorkflowInput!){linkExternalIdentity(data:$data){id status replayed}}`, { data: linkInput }, adminCookie)).linkExternalIdentity
   if (link.id !== linkReplay.id || !linkReplay.replayed) throw new Error('External identity link replay failed')
 
-  const retryMessage = (await gql('queue retry message', `mutation($key:String!,$facility:ID!,$patient:ID!,$installation:ID!){sendSecurePatientMessage(operationKey:$key,facilityId:$facility,patientId:$patient,installationId:$installation,channel:"email",purpose:"care_operations",body:"Retry proof"){id}}`, { key: key('retry-message'), facility: facility.id, patient: patient.id, installation: communicationInstall.id }, adminCookie)).sendSecurePatientMessage
-  const retryEvent = await prisma.clinicalOutboxEvent.findUnique({ where: { eventKey: `patient_message:${retryMessage.id}:v1:queued` } })
-  failingEventIds.add(retryEvent.id)
-  await prisma.clinicalOutboxEvent.update({ where: { id: retryEvent.id }, data: { status: 'processing', attempts: 8, nextAttemptAt: new Date(Date.now() - 1000) } })
-  const recovered = (await gql('recover expired lease', `mutation{dispatchIntegrationOutbox(limit:10){claimed delivered retried deadLettered}}`, {}, adminCookie)).dispatchIntegrationOutbox
-  if (recovered.retried < 1) throw new Error('Expired worker lease was not recovered into retry')
-  await prisma.clinicalOutboxEvent.update({ where: { id: retryEvent.id }, data: { attempts: 9, nextAttemptAt: new Date(Date.now() - 1000) } })
-  const dead = (await gql('dead letter maximum attempts', `mutation{dispatchIntegrationOutbox(limit:10){claimed delivered retried deadLettered}}`, {}, adminCookie)).dispatchIntegrationOutbox
-  if (dead.deadLettered < 1 || (await prisma.clinicalOutboxEvent.findUnique({ where: { id: retryEvent.id } }))?.status !== 'dead_letter') throw new Error('Maximum integration attempts did not dead-letter')
-  const attempt = await prisma.integrationDeliveryAttempt.findFirst({ where: { outboxEventId: retryEvent.id }, orderBy: { attemptNumber: 'asc' } })
-  let immutableAttempt = false
-  try { await prisma.integrationDeliveryAttempt.update({ where: { id: attempt.id }, data: { errorCode: 'rewritten' } }) } catch { immutableAttempt = true }
-  if (!immutableAttempt) throw new Error('Integration delivery attempt was mutable')
-
-  const fencedEvent = await prisma.clinicalOutboxEvent.create({ data: {
-    eventKey: `${prefix}-claimed-before-pause`, eventType: 'message.queued', aggregateType: 'patient_message', aggregateId: retryMessage.id,
-    contractVersion: 'hospital.webhook.v1', deliveryMode: 'external', installationId: communicationInstall.id,
-    installationVersion: communicationInstall.transitionVersion, status: 'processing', attempts: 1,
-    nextAttemptAt: new Date(Date.now() - 11 * 60_000), facilityId: facility.id, patientId: patient.id,
-    payload: { source: 'runtime_generation_fence', aggregateId: retryMessage.id },
-  } })
   await gql('pause integration generation', `mutation($key:String!,$id:ID!){transitionIntegrationInstallation(operationKey:$key,installationId:$id,toStatus:"paused",expectedVersion:1){id status transitionVersion}}`, {
     key: key('integration-pause'), id: communicationInstall.id,
   }, adminCookie)
-  await gql('recover revoked claimed event', `mutation{dispatchIntegrationOutbox(limit:10){claimed delivered retried deadLettered}}`, {}, adminCookie)
-  const fencedAfterPause = await prisma.clinicalOutboxEvent.findUnique({ where: { id: fencedEvent.id } })
-  if (fencedAfterPause?.status !== 'dead_letter' || fencedAfterPause.lastError !== 'integration_generation_revoked' || received.some(item => item.payload?.eventId === fencedEvent.id)) {
-    throw new Error('Claimed outbound event crossed an integration generation revocation')
-  }
   const revokedInbound = await signedWebhook(appBase.toString().replace(/\/$/, ''), communicationInstall.installationKey, communicationCredential.credential, communicationInstall.signingSecret, {
-    eventId: `${prefix}-revoked-inbound`, eventType: 'message.queued', occurredAt: new Date().toISOString(), data: {},
+    eventId: `${prefix}-revoked-inbound`, eventType: 'payment.succeeded', occurredAt: new Date().toISOString(), data: {},
   })
   if (revokedInbound.status !== 401) throw new Error('Paused integration accepted a previously issued inbound credential')
 

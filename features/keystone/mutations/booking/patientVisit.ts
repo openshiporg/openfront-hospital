@@ -84,19 +84,8 @@ export async function cancelPatientVisit(_root: unknown, args: { accessToken: st
     if (updated.count !== 1) throw new HospitalRefusal('This visit just changed. Look it up again.')
     const metadata = { source: 'patient_self_service', aggregateType: 'appointment', aggregateId: id, fromStatus: current.status, status: 'cancelled', transitionVersion: nextVersion, reasonProvided: true }
     await tx.clinicalAuditLog.create({ data: { eventType: 'appointment.cancelled', occurredAt: now, actorType: 'patient_self_service', actorReference: '', facilityId: current.facilityId, patientId: current.patientId, appointmentId: id, metadata } })
-    await tx.clinicalOutboxEvent.create({ data: { eventKey: `appointment:${id}:v${nextVersion}:cancelled`, eventType: 'appointment.cancelled', aggregateType: 'appointment', aggregateId: id, status: 'recorded', attempts: 0, nextAttemptAt: null, facilityId: current.facilityId, patientId: current.patientId, appointmentId: id, payload: metadata, createdAt: now } })
     return { changed: true }
   }, { timeout: 30_000 })
   const appointment = await findVisit(context, { accessToken: args.accessToken })
-  if (outcome.changed && appointment) {
-    try {
-      const { sendVisitNoticeEmail } = await import('../../lib/mail')
-      const { formatAppointmentTime } = await import('../../lib/appointmentRequestEmail')
-      const email = (await prisma.patient.findUnique({ where: { id: appointment.patientId }, select: { email: true, firstName: true } }))
-      if (email?.email) await sendVisitNoticeEmail(email.email, { facilityName: appointment.facility?.name || 'Our care team', heading: 'Your visit is cancelled', lines: [`Hi ${email.firstName}, your visit ${appointment.appointmentNumber} on ${formatAppointmentTime(appointment.startsAt.toISOString(), appointment.facility?.timeZone || 'UTC')} is cancelled.`, 'Request a new time any time online.'], manageToken: args.accessToken })
-    } catch (error) {
-      console.error('Visit cancellation email not sent:', error instanceof Error ? error.message : 'Unknown error')
-    }
-  }
   return appointment ? serialize(appointment, args.accessToken) : null
 }

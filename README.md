@@ -170,12 +170,11 @@ The [model registry](features/keystone/models/index.ts) and [Prisma schema](sche
 - `npm run migrate` - Apply checked-in Prisma migrations.
 - `npm run lint` - Run the repository's ESLint script.
 - `npm run typecheck` - Run the configured TypeScript check.
-- `npm run worker:outbox` - Run the configured outbox delivery entry point.
 
 Use a disposable development database for migration generation. Review the script before running it against any existing data.
 
 ### Clinical Integration & Delivery
-The [registered workflows](features/keystone/mutations/index.ts) include booking, registration, encounters, controlled clinical operations, integration delivery, and portability. Run `npm run worker:outbox` separately for configured delivery; an installation record does not certify external EHR or laboratory connectivity.
+The [registered workflows](features/keystone/mutations/index.ts) include booking, registration, encounters, controlled clinical operations, integrations (inbound signed webhooks), and portability. An installation record does not certify external EHR or laboratory connectivity.
 
 ## Documentation
 
@@ -235,7 +234,7 @@ npm start
 The included [Railway configuration](railway.toml) defines this app's build and startup lifecycle. Provision services and secrets separately.
 
 ### Scaling Considerations
-Run `npm run worker:outbox` separately for configured delivery. Protect patient records, backup and restore procedures, encryption keys, and clinical access policies across every process.
+Protect patient records, backup and restore procedures, encryption keys, and clinical access policies across every process.
 
 ## Contributing
 

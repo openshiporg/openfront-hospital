@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import type { Context } from '.keystone/types'
 import { lockTransitionOperation, recordTransition, replayTransition, transitionEvidence } from '../transitionEvidence'
-import { appendAuditAndOutbox, bounded, hash, lockOperation, operationEvidence } from './evidence'
+import { appendAudit, bounded, hash, lockOperation, operationEvidence } from './evidence'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function requireInventory(context: Context) {
@@ -69,8 +69,8 @@ export async function createInventoryItem(_root: unknown, { data }: any, context
         },
       })
     }
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `inventory_item:${item.id}:v1:created`, eventType: 'inventory_item.created',
+    await appendAudit(prisma, {
+      eventType: 'inventory_item.created',
       aggregateType: 'inventory_item', aggregateId: item.id, facilityId: item.facilityId,
       actorReference: context.session!.itemId,
       metadata: { source: 'inventory_workflow', aggregateId: item.id, status: item.status, transitionVersion: 1 },
@@ -99,8 +99,7 @@ export async function transitionInventoryItem(_root: unknown, args: any, context
     if (args.toStatus === 'inactive' && current.quantityReserved > 0) throw new HospitalRefusal('Reserved inventory must be released before deactivation')
     const now = new Date()
     const updated = await prisma.inventoryItem.update({ where: { id: current.id }, data: { status: args.toStatus, transitionVersion: { increment: 1 }, actorReference: context.session!.itemId } })
-    const events = await appendAuditAndOutbox(prisma, {
-      eventKey: `inventory_item:${updated.id}:v${updated.transitionVersion}:${updated.status}`,
+    const events = await appendAudit(prisma, {
       eventType: `inventory_item.${updated.status}`, aggregateType: 'inventory_item', aggregateId: updated.id,
       facilityId: updated.facilityId, actorReference: context.session!.itemId,
       metadata: { source: 'inventory_workflow', aggregateId: updated.id, fromStatus: current.status, status: updated.status, transitionVersion: updated.transitionVersion, reasonCode }, occurredAt: now,
@@ -109,7 +108,7 @@ export async function transitionInventoryItem(_root: unknown, args: any, context
     await recordTransition(prisma, {
       evidence, aggregateType: 'inventory_item', aggregateId: updated.id, fromStatus: current.status, toStatus: updated.status,
       fromVersion: current.transitionVersion, toVersion: updated.transitionVersion, actorReference: context.session!.itemId,
-      facilityId: updated.facilityId, auditLogId: events.audit.id, outboxEventId: events.outbox.id, result: projected, occurredAt: now,
+      facilityId: updated.facilityId, auditLogId: events.audit.id, result: projected, occurredAt: now,
     })
     return projected
   }, { timeout: 30_000 })
@@ -179,8 +178,7 @@ export async function moveInventory(_root: unknown, { data }: any, context: Cont
         occurredAt: now,
       },
     })
-    await appendAuditAndOutbox(prisma, {
-      eventKey: `inventory_item:${item.id}:v${updated.transitionVersion}:${movementType}`,
+    await appendAudit(prisma, {
       eventType: `inventory.${movementType}`, aggregateType: 'inventory_item', aggregateId: item.id,
       facilityId: item.facilityId, actorReference: context.session!.itemId,
       metadata: { source: 'inventory_workflow', aggregateId: item.id, movementId: movement.id, movementType, transitionVersion: updated.transitionVersion, quantityDelta, reservedDelta },

@@ -11,7 +11,6 @@ export type FabricWorkspace = {
   facilitiesCount: number
   batches: Array<{ id: string; status: string; transitionVersion: number; rowCount: number; errorCount: number }>
   exports: Array<{ id: string; jobNumber: string; status: string; transitionVersion: number; exportType: string; format: string; expiresAt: string }>
-  outbox: { pending: number; retry: number; deadLetter: number } | null
   totals: { inventory: number | null; exports: number | null; succeededPayments: number | null }
 }
 
@@ -87,13 +86,6 @@ const queries: Record<FabricQueryKey, string> = {
       encountersCount(where:{status:{in:["open","in_progress"]}})
     }
   `,
-  outbox: `
-    query OperationalFabricOutbox {
-      pending:clinicalOutboxEventsCount(where:{status:{equals:"pending"}})
-      retry:clinicalOutboxEventsCount(where:{status:{equals:"retry"}})
-      deadLetter:clinicalOutboxEventsCount(where:{status:{equals:"dead_letter"}})
-    }
-  `,
 }
 
 type Projection = Record<string, any>
@@ -112,7 +104,6 @@ const requiredProjection: Record<FabricQueryKey, { arrays: string[]; counts: str
   retention: { arrays: [], counts: ['retentionPoliciesCount'] },
   portability: { arrays: ['importBatches', 'exportJobs'], counts: ['importBatchesCount', 'exportJobsCount'] },
   encounters: { arrays: [], counts: ['encountersCount'] },
-  outbox: { arrays: [], counts: ['pending', 'retry', 'deadLetter'] },
 }
 
 const failureLabels: Record<FabricQueryKey, string> = {
@@ -125,7 +116,6 @@ const failureLabels: Record<FabricQueryKey, string> = {
   retention: 'Retention policies are unavailable; retention record options and actions are hidden.',
   portability: 'Import/export records are unavailable; queued portability actions are hidden.',
   encounters: 'Encounter access could not be verified; encounter-hold actions are hidden.',
-  outbox: 'Outbox counts are unavailable; no zero-count status is inferred.',
 }
 
 function hasRequiredProjection(data: Projection | undefined, key: FabricQueryKey) {
@@ -196,7 +186,6 @@ export async function getOperationalFabricWorkspace(): Promise<FabricWorkspace> 
     facilitiesCount: data.facilitiesCount,
     batches: data.importBatches,
     exports: data.exportJobs,
-    outbox: availability.outbox ? { pending: data.pending, retry: data.retry, deadLetter: data.deadLetter } : null,
     totals: {
       inventory: availability.inventory ? data.inventoryItemsCount : null,
       exports: availability.portability ? data.exportJobsCount : null,

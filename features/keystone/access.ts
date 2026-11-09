@@ -272,10 +272,6 @@ export const rules = {
       { facility: { staff: { some: byId(userId) } } },
     ])
   },
-  canReadClinicalOutboxEvents: (args: AccessArgs): AccessFilter => {
-    if (!hasGlobalClinicalAccess(args) && !permissions.canViewReports(args)) return false
-    return scoped(args, (userId) => [{ facility: { staff: { some: byId(userId) } } }])
-  },
   canReadWorkflowTransitions: (args: AccessArgs): AccessFilter => {
     if (!hasGlobalClinicalAccess(args) && !permissions.canViewReports(args)) return false
     return scoped(args, userId => [{ facility: { staff: { some: byId(userId) } } }])

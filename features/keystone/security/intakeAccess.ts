@@ -32,8 +32,8 @@ function intakeDeliverySecret(candidate = String(process.env.INTAKE_DELIVERY_SIG
 }
 
 /**
- * Produce a high-entropy signed bearer that can be reconstructed by the outbox
- * worker from non-secret intake metadata. Only its SHA-256 digest is persisted;
+ * Produce a high-entropy signed bearer that can be reconstructed by a
+ * background job from non-secret intake metadata. Only its SHA-256 digest is persisted;
  * the queue never stores a plaintext or decryptable intake credential.
  */
 export function deliverableIntakeAccessToken(

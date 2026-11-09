@@ -51,63 +51,6 @@ export async function sendPasswordResetEmail(resetToken: string, to: string, bas
   void info
 }
 
-/** Receipt for an appointment request. Minimal by design: no clinical detail, no provider, no reason. */
-export async function sendAppointmentRequestEmail(
-  to: string,
-  details: { facilityName: string; firstName: string; appointmentNumber: string; whenLabel: string; intakeUrl: string; manageUrl?: string },
-): Promise<{ sent: boolean; error?: string; messageId?: string }> {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) return { sent: false, error: 'not_configured' }
-  const escape = (value: string) => value.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] as string)
-  try {
-    const info = await transport.sendMail({
-      to,
-      from: process.env.SMTP_FROM,
-      subject: `${details.facilityName}: we received your appointment request`,
-      html: emailLayout({
-        storeName: details.facilityName,
-        preheader: 'We received your appointment request.',
-        title: 'We received your appointment request',
-        body: `${emailParagraph(`Hi ${escape(details.firstName)}, ${escape(details.facilityName)} received your appointment request. We will contact you to confirm it.`)}
-${emailPanel(`Requested time: ${escape(details.whenLabel)}<br>Request number: ${escape(details.appointmentNumber)}`)}
-${details.intakeUrl ? emailButton('Complete your intake form', details.intakeUrl) : ''}
-${details.manageUrl ? emailMuted(`<a class="em-link" href="${escape(details.manageUrl)}" style="color:#52525b;text-decoration:underline;">View or cancel this visit</a>`) : ''}`,
-      }),
-    });
-    return { sent: true, messageId: [String((info as any)?.messageId || ''), String((info as any)?.response || '').slice(0,120)].filter(Boolean).join(' | ') };
-  } catch (error) {
-    return { sent: false, error: error instanceof Error ? error.message : 'send_failed' };
-  }
-}
-
-/** A short service message about one visit (confirmed, cancelled), with the patient's manage link. No clinical detail. */
-export async function sendVisitNoticeEmail(
-  to: string,
-  details: { facilityName: string; heading: string; lines: string[]; manageToken?: string },
-): Promise<{ sent: boolean; error?: string }> {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) return { sent: false, error: 'not_configured' }
-  const escape = (value: string) => value.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] as string)
-  let base = ''
-  try { base = getBaseUrlForEmails() } catch { base = '' }
-  const manageUrl = base && details.manageToken ? `${base}/visit#access=${encodeURIComponent(details.manageToken)}` : ''
-  try {
-    await transport.sendMail({
-      to,
-      from: process.env.SMTP_FROM,
-      subject: `${details.facilityName}: ${details.heading.toLowerCase()}`,
-      html: emailLayout({
-        storeName: details.facilityName,
-        preheader: details.heading,
-        title: details.heading,
-        body: `${details.lines.map(line => emailParagraph(escape(line))).join('')}
-${manageUrl ? emailButton('View your visit', manageUrl) : ''}`,
-      }),
-    })
-    return { sent: true }
-  } catch (error) {
-    return { sent: false, error: error instanceof Error ? error.message : 'send_failed' }
-  }
-}
-
 /** Confirms a patient account's email address; visits requested with that email then appear in the account. */
 export async function sendAccountConfirmEmail(to: string, details: { name: string; facilityName: string; token: string }): Promise<{ sent: boolean; error?: string }> {
   if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) return { sent: false, error: 'not_configured' }

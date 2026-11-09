@@ -13,11 +13,9 @@ const REPLAY_WINDOW_SECONDS = 5 * 60
 const EVENT_TYPES = new Set([
   'payment.succeeded', 'payment.failed',
   'refund.succeeded', 'refund.failed',
-  'message.sent', 'message.delivered', 'message.failed',
   'claim.acknowledged', 'claim.rejected',
 ])
 const INBOUND_EVENT_TYPES_BY_KIND: Record<string, ReadonlySet<string>> = {
-  communications: new Set(['message.sent', 'message.delivered', 'message.failed']),
   payment: new Set(['payment.succeeded', 'payment.failed', 'refund.succeeded', 'refund.failed']),
   webhook: new Set(['claim.acknowledged', 'claim.rejected']),
 }
@@ -121,21 +119,7 @@ async function applyDomainEvent(tx: any, input: {
     patientId = updated.patientId
     aggregateType = 'insurance_claim'
   } else {
-    if (input.installation.kind !== 'communications') throw new Error('integration_kind_mismatch')
-    await tx.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`webhook-aggregate:message:${aggregateId}`}, 0))::text AS "lock"`)
-    current = await tx.patientMessage.findUnique({ where: { id: aggregateId } })
-    if (!current || current.facilityId !== input.installation.facilityId || current.installationId !== input.installation.id) throw new Error('aggregate_scope_mismatch')
-    if (current.status === targetStatus) return { aggregateType: 'patient_message', aggregateId, replayedState: true }
-    const allowed: Record<string, string[]> = { queued: ['sent', 'failed'], sent: ['delivered', 'failed'] }
-    if (!allowed[current.status]?.includes(targetStatus)) throw new Error('invalid_domain_transition')
-    updated = await tx.patientMessage.update({ where: { id: current.id }, data: {
-      status: targetStatus, transitionVersion: { increment: 1 },
-      externalId: boundedText(input.payload.externalReference || input.eventId, 300),
-      ...(targetStatus === 'sent' ? { sentAt: input.now } : {}),
-      ...(targetStatus === 'delivered' ? { deliveredAt: input.now } : {}),
-    } })
-    patientId = updated.patientId
-    aggregateType = 'patient_message'
+    throw new Error('unsupported_event_type')
   }
 
   const metadata = {
@@ -146,12 +130,6 @@ async function applyDomainEvent(tx: any, input: {
   const audit = await tx.clinicalAuditLog.create({ data: {
     eventType: input.eventType, occurredAt: input.now, actorType: 'machine_credential', actorReference,
     facilityId: input.installation.facilityId, patientId, metadata, createdAt: input.now,
-  } })
-  const outbox = await tx.clinicalOutboxEvent.create({ data: {
-    eventKey: `${aggregateType}:${aggregateId}:v${updated.transitionVersion}:${updated.status}`,
-    eventType: input.eventType, aggregateType, aggregateId, contractVersion: 'hospital.event.v1',
-    deliveryMode: 'internal', status: 'recorded', attempts: 0, nextAttemptAt: null,
-    facilityId: input.installation.facilityId, patientId, payload: metadata, createdAt: input.now,
   } })
   if (aggregateType === 'insurance_claim') {
     await tx.claimVersion.create({ data: {
@@ -190,7 +168,7 @@ async function applyDomainEvent(tx: any, input: {
     facilityId: input.installation.facilityId,
     patientId,
     auditLogId: audit.id,
-    outboxEventId: outbox.id,
+    
     result: { id: updated.id, status: updated.status, transitionVersion: updated.transitionVersion },
     occurredAt: input.now,
   } })

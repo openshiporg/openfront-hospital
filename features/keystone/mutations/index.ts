@@ -23,14 +23,13 @@ import recordConsentDecision from './clinical/recordConsentDecision'
 import transitionIntakeReview from "./intake/transitionIntakeReview";
 import registerPatient from "./registration/registerPatient";
 import { arriveAppointment, transitionCareQueue } from "./clinical/manageCareQueue";
-import dispatchClinicalOutbox from "./clinical/dispatchClinicalOutbox";
 import { admitPatient, transitionAdmission, transitionBedReadiness, createMedicalOrder, transitionMedicalOrder, recordLabResult, transitionLabResult, correctLabResult, createPrescription, transitionPrescription, createProcedure, transitionProcedure, createCarePlan, transitionCarePlan, prepareInsuranceClaim, transitionInsuranceClaim, workflowPatientCandidates, workflowEncounterCandidates } from "./clinical/controlledWorkflows";
 import { recordPatientCoverage, transitionPatientCoverage, recordPatientPayment, transitionPatientPayment, requestPatientRefund, transitionPatientRefund, enableFacilityCardPayments } from './operational/billingWorkflows'
 import { createInventoryItem, transitionInventoryItem, moveInventory } from './operational/inventoryWorkflows'
 import { createClinicalDocument, transitionClinicalDocument, amendClinicalDocument, collectSpecimen, transitionSpecimen, recordVitalSign } from './operational/clinicalEvidenceWorkflows'
 import { reserveBed, releaseBedReservation } from './operational/bedReservationWorkflows'
 import { createCommunicationTemplate, reviseCommunicationTemplate, setCommunicationPreference } from './operational/communicationWorkflows'
-import { createIntegrationInstallation, transitionIntegrationInstallation, issueMachineCredential, revokeMachineCredential, dispatchIntegrationOutbox, linkExternalIdentity } from './operational/integrationWorkflows'
+import { createIntegrationInstallation, transitionIntegrationInstallation, issueMachineCredential, revokeMachineCredential, linkExternalIdentity } from './operational/integrationWorkflows'
 import { createRetentionPolicy, transitionRetentionPolicy, placeRecordHold, releaseRecordHold, recordRetentionDisposition } from './operational/retentionWorkflows'
 import { previewInventoryImport, applyInventoryImport, rollbackInventoryImport, requestExportJob, processExportJob } from './operational/portabilityWorkflows'
 import { createOnboardingAppointment, issueIntakeForm } from './onboarding/onboardingWorkflows'
@@ -397,7 +396,6 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
       }
 
       type ConsentDecisionResult { id: ID! decision: String! effectiveAt: DateTime! replayed: Boolean! }
-      type ClinicalOutboxDispatchResult { claimed: Int! delivered: Int! }
       type ControlledClinicalResult { id: ID! status: String! transitionVersion: Int! replayed: Boolean! originalAcknowledgement: JSON }
       type ControlledBedResult { id: ID! status: String! transitionVersion: Int! replayed: Boolean! }
 
@@ -506,7 +504,6 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         recordConsentDecision(data: ConsentDecisionWorkflowInput!): ConsentDecisionResult!
         arriveAppointment(appointmentId: ID!, idempotencyKey: String!, reasonCode: String): CareQueueResult!
         transitionCareQueue(operationKey: String!, ticketId: ID!, toStatus: String!, expectedVersion: Int!, encounterId: ID): CareQueueResult!
-        dispatchClinicalOutbox(limit: Int): ClinicalOutboxDispatchResult!
         admitPatient(data: AdmissionWorkflowInput!): ControlledClinicalResult!
         transitionAdmission(operationKey: String!, admissionId: ID!, toStatus: String!, expectedVersion: Int!, bedId: ID, reasonCode: String, dischargeDisposition: String): ControlledClinicalResult!
         transitionBedReadiness(operationKey: String!, bedId: ID!, toStatus: String!, expectedVersion: Int!): ControlledBedResult!
@@ -547,7 +544,6 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         transitionIntegrationInstallation(operationKey: String!, installationId: ID!, expectedVersion: Int!, toStatus: String!): ControlledClinicalResult!
         issueMachineCredential(data: MachineCredentialWorkflowInput!): MachineCredentialWorkflowResult!
         revokeMachineCredential(operationKey: String!, credentialId: ID!, expectedVersion: Int!): ControlledClinicalResult!
-        dispatchIntegrationOutbox(limit: Int): IntegrationDispatchResult!
         linkExternalIdentity(data: ExternalIdentityWorkflowInput!): ExternalIdentityWorkflowResult!
         establishRetentionPolicy(data: RetentionPolicyWorkflowInput!): ControlledClinicalResult!
         transitionRetentionPolicy(operationKey: String!, policyId: ID!, expectedVersion: Int!, toStatus: String!): ControlledClinicalResult!
@@ -683,7 +679,6 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         recordConsentDecision,
         arriveAppointment,
         transitionCareQueue,
-        dispatchClinicalOutbox,
         admitPatient,
         transitionAdmission,
         transitionBedReadiness,
@@ -724,7 +719,6 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         transitionIntegrationInstallation,
         issueMachineCredential,
         revokeMachineCredential,
-        dispatchIntegrationOutbox,
         linkExternalIdentity,
         establishRetentionPolicy: createRetentionPolicy,
         transitionRetentionPolicy,
