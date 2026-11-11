@@ -14,6 +14,7 @@ import { hash } from '../operational/evidence'
 import { consumeSharedRateLimit, requestIdentity } from '../../security/graphqlSecurity'
 import { calendarDateInTimeZone } from '../scheduling/facilityTime'
 import { HospitalRefusal } from '../../lib/constraint-errors'
+import { advanceTimedStates } from '../operational/maintenance'
 
 type Args = {
   appointmentTypeId: string
@@ -178,6 +179,8 @@ export default async function requestAppointment(_root: unknown, args: Args, con
     throw new HospitalRefusal('That appointment slot is no longer available')
   }
 
+  // Stale unconfirmed requests free the request cap on the request that would count them (no background timer exists).
+  await advanceTimedStates(prisma)
   const sudo = context.sudo()
   // A public request is not a reservation. Use a request-specific uniqueness key;
   // provider overlap is enforced only when staff confirms the appointment.

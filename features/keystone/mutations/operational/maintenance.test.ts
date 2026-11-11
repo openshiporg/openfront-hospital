@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { expireBedReservations, expireUnconfirmedAppointments, PAYMENT_SWEEP_ACTOR, reconcileStalePayments, resetExpiredPaymentSession, STALE_PAYMENT_MS } from './maintenance'
+import { advanceTimedStates, expireBedReservations, expireUnconfirmedAppointments, PAYMENT_SWEEP_ACTOR, reconcileStalePayments, resetExpiredPaymentSession, STALE_PAYMENT_MS } from './maintenance'
 
 function fakePrisma(state: any) {
   const tx: any = {
@@ -83,4 +83,16 @@ test('payment sweep: an expired session is cleared once under the sweep actor; t
   assert.equal(state.audit[0].metadata.source, 'payment_sweep')
   state.payment = { ...state.payment, providerPaymentId: null }
   assert.equal(await resetExpiredPaymentSession(prisma, 'x', 'cs_old', new Date(), PAYMENT_SWEEP_ACTOR), false, 'a second sweep finds nothing to clear')
+})
+
+test('advanceTimedStates settles on read, shares a pass within the gap, and a forced pass runs again', async () => {
+  const state: any = { reservation: { id: 'r', bedId: 'b', status: 'active', expiresAt: new Date(Date.now() - 60_000), transitionVersion: 1, facilityId: 'f', patientId: 'p' }, bed: { id: 'b', status: 'reserved', currentPatientId: null }, audit: [] }
+  const prisma = fakePrisma(state)
+  ;(globalThis as any).hospitalAdvance = undefined
+  const first: any = await advanceTimedStates(prisma)
+  assert.equal(first.bedReservations, 1)
+  assert.equal(state.reservation.status, 'expired')
+  assert.equal(await advanceTimedStates(prisma), null)
+  const forced: any = await advanceTimedStates(prisma, { force: true })
+  assert.equal(forced.bedReservations, 0)
 })

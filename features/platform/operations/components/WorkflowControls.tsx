@@ -1570,6 +1570,11 @@ export function AdmissionTransferForm({ id, version, facilityId }: { id: string;
   )
 }
 
+/** Staff Refresh: closes lapsed bed holds and unconfirmed requests and checks unconfirmed card payments (no background timer exists). */
+export function RefreshTimedStatesButton() {
+  return <InlineAction label="Refresh holds, requests and payments" onRun={() => actions.refreshTimedStates()} />
+}
+
 export function BedButton({ id, toStatus, version }: { id: string; toStatus: string; version: number }) {
   const operationKeys = useOperationKeys()
   const intent = `bed:${id}:${toStatus}:${version}`

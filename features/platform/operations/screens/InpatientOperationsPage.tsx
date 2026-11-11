@@ -25,11 +25,14 @@ import {
 } from '@/features/platform/components/ward'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
+import { keystoneContext } from '@/features/keystone/context'
+import { advanceTimedStates } from '@/features/keystone/mutations/operational/maintenance'
 import {
   AdmissionCreateForm,
   AdmissionDischargeForm,
   AdmissionTransferForm,
   BedButton,
+  RefreshTimedStatesButton,
   BedReservationCreateForm,
   BedReservationReleaseForm,
 } from '../components/WorkflowControls'
@@ -392,6 +395,8 @@ type PageProps = { searchParams: Promise<Record<string, string | string[] | unde
 
 export default async function InpatientOperationsPage({ searchParams }: PageProps) {
   const params = await searchParams
+  // Lapsed bed holds are closed by the request that reads them (no background timer exists).
+  await advanceTimedStates(keystoneContext.prisma)
   const admissionCursorRequest = parseAdmissionCursor(params.admissionsAfter, params.admissionsBefore)
   const reservationCursorRequest = parseBedReservationCursor(params.reservationsAfter, params.reservationsBefore)
   const bedCursorRequest = parseBedCursor(params.bedsAfter, params.bedsBefore)
@@ -437,6 +442,7 @@ export default async function InpatientOperationsPage({ searchParams }: PageProp
     >
       <WardBody>
         <BoundedDataNotice messages={options.notices} />
+        <div className="flex justify-end"><RefreshTimedStatesButton /></div>
         <ReadoutStrip>
           <Readout label="Available beds" tone="ok" value={bedsQueue.counts?.availableBeds ?? '—'} sub={bedsQueue.counts ? undefined : 'Unavailable'} />
           <Readout label="Occupied beds" tone="info" value={bedsQueue.counts?.occupiedBeds ?? '—'} sub={bedsQueue.counts && totalBeds ? <Meter value={bedsQueue.counts.occupiedBeds / totalBeds} tone="info" label="Occupied share" /> : bedsQueue.counts ? undefined : 'Unavailable'} />

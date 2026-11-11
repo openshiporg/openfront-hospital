@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import { BoundedDataNotice } from '@/features/platform/components/BoundedDataNotice'
@@ -235,6 +236,9 @@ export async function FacilityDetailPage({ params }: { params: Params }) {
     { type: 'page' as const, label: 'Platform' },
     { type: 'link' as const, label: 'Facilities', href: '/dashboard/platform/facilities' },
   ]
+  // An unknown id is a 404 even when the heavy structure query below is refused.
+  const exists = await keystoneClient<{ facility: { id: string } | null }>('query FacilityExists($id: ID!) { facility(where: { id: $id }) { id } }', { id })
+  if (exists.success && !exists.data.facility) notFound()
   const response = await getFacilityStructure(id)
   if (!response.success) {
     return <WorkspaceLoadError title="Facility" description="Facility details, departments, wards, rooms or beds may be unavailable for this session." breadcrumbs={breadcrumbs} />

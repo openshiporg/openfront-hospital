@@ -1,6 +1,8 @@
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient'
 import { getAppointmentQueue, getAppointmentStatusCounts, getAppointmentFacilityFilter } from '../actions/appointments'
 import { WorkspaceLoadError } from '@/features/platform/components/WorkspaceLoadError'
+import { keystoneContext } from '@/features/keystone/context'
+import { advanceTimedStates } from '@/features/keystone/mutations/operational/maintenance'
 import { AppointmentListPageClient } from './AppointmentListPageClient'
 
 interface PageProps {
@@ -9,6 +11,8 @@ interface PageProps {
 
 export async function AppointmentListPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams
+  // Requests nobody confirmed before their slot ended are cancelled by the request that reads the queue (no background timer exists).
+  await advanceTimedStates(keystoneContext.prisma)
   const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : 'all'
   const view = typeof resolvedSearchParams.view === 'string' ? resolvedSearchParams.view : 'today'
   const search = typeof resolvedSearchParams.search === 'string' ? resolvedSearchParams.search.trim().slice(0, 80) : ''

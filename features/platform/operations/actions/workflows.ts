@@ -84,6 +84,9 @@ export async function moveAdmission(variables: Record<string, unknown>) {
 export async function setBedReadiness(bedId: string, toStatus: string, expectedVersion: number, suppliedKey?: string) {
   return run(`mutation($operationKey:String!,$bedId:ID!,$toStatus:String!,$expectedVersion:Int!){transitionBedReadiness(operationKey:$operationKey,bedId:$bedId,toStatus:$toStatus,expectedVersion:$expectedVersion){id status transitionVersion replayed}}`, { operationKey: suppliedKey || operationKey(), bedId, toStatus, expectedVersion }, inpatientPath)
 }
+export async function refreshTimedStates() {
+  return run(`mutation{refreshTimedStates}`, {}, [...inpatientPath, '/dashboard/platform/appointments'])
+}
 export async function reserveBed(data: Record<string, unknown>) {
   return run(`mutation($data:BedReservationWorkflowInput!){reserveBed(data:$data){${result}}}`, { data }, inpatientPath)
 }

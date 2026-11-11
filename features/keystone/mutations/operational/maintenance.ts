@@ -2,8 +2,8 @@ import { Prisma } from '@prisma/client'
 
 import { appendAudit } from './evidence'
 
-// Time-based state settlement. Settlement runs from the in-process loop in instrumentation.ts (no separate worker service), so every
-// sweep is idempotent, compare-and-set, and safe to run beside other replicas.
+// Time-based state settlement. There is no timer, worker or cron. Every sweep is idempotent, compare-and-set, and safe to run
+// beside other replicas; they run on the request that reads the records (advanceTimedStates) and from the staff Refresh button.
 const SYSTEM_ACTOR = 'system_maintenance'
 export const REQUEST_GRACE_MS = 60 * 60_000
 /** A Checkout Session left unconfirmed this long is settled by the sweep (the payer may never load the return page). */
@@ -115,4 +115,33 @@ export async function runHospitalMaintenance(prisma: any, settle: (paymentId: st
   const appointments = await expireUnconfirmedAppointments(prisma, now)
   const payments = await reconcileStalePayments(prisma, settle, now)
   return { bedReservations, appointments, payments }
+}
+
+const MIN_GAP_MS = 5_000
+const advanceState = globalThis as unknown as { hospitalAdvance?: { at: number; running: Promise<unknown> | null } }
+
+/**
+ * Advance bed holds and unconfirmed appointment requests that have run out, on the request that reads them.
+ * Calls within five seconds of the last pass share its result. A failed pass is logged and never fails the request.
+ * `force` (the staff Refresh button) also asks the provider about card payments left unconfirmed, via `settle`.
+ */
+export async function advanceTimedStates(prisma: any, options: { force?: boolean; settle?: (paymentId: string) => Promise<unknown> } = {}) {
+  const s = (advanceState.hospitalAdvance ??= { at: 0, running: null })
+  if (s.running) {
+    await s.running.catch(() => undefined)
+    if (!options.force) return null
+  }
+  if (!options.force && Date.now() - s.at < MIN_GAP_MS) return null
+  const run = options.settle ? runHospitalMaintenance(prisma, options.settle) : Promise.all([expireBedReservations(prisma), expireUnconfirmedAppointments(prisma)]).then(([bedReservations, appointments]) => ({ bedReservations, appointments }))
+  s.running = run
+  try {
+    const result = await run
+    s.at = Date.now()
+    return result
+  } catch (error) {
+    console.error(JSON.stringify({ component: 'timed-states', status: 'failed', error: error instanceof Error ? error.message.slice(0, 300) : String(error) }))
+    return null
+  } finally {
+    s.running = null
+  }
 }

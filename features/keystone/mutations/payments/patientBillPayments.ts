@@ -4,7 +4,7 @@ import type { Context } from '.keystone/types'
 import { createPayment, getPaymentStatus } from '../../utils/paymentProviderAdapter'
 import { consumeSharedRateLimit, requestIdentity } from '../../security/graphqlSecurity'
 import { appendAudit } from '../operational/evidence'
-import { resetExpiredPaymentSession } from '../operational/maintenance'
+import { advanceTimedStates, PAYMENT_SWEEP_ACTOR, resetExpiredPaymentSession } from '../operational/maintenance'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
 function digest(value: string) { return createHash('sha256').update(value).digest() }
@@ -89,4 +89,11 @@ export async function settleFromProvider(context: Context, where: { id?: string;
     await appendAudit(db, { eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference, metadata: { source: 'payment_reconciliation', aggregateId: updated.id, providerPaymentId: updated.providerPaymentId, transitionVersion: nextVersion, amountCents: updated.amountCents, currency: updated.currency } })
     return { status: updated.status }
   }, { timeout: 30_000 })
+}
+
+/** Staff Refresh button: expired bed holds and unconfirmed requests are closed, and card payments left unconfirmed are checked with the provider. */
+export async function refreshTimedStates(_root: unknown, _args: unknown, context: Context) {
+  if (context.session?.listKey !== 'User') throw new HospitalRefusal('Staff sign-in required')
+  const result = await advanceTimedStates(context.sudo().prisma, { force: true, settle: paymentId => settleFromProvider(context, { id: paymentId }, PAYMENT_SWEEP_ACTOR) })
+  return result ?? { bedReservations: 0, appointments: 0, payments: 0 }
 }

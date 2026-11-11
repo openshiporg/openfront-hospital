@@ -36,7 +36,7 @@ import { createOnboardingAppointment, issueIntakeForm } from './onboarding/onboa
 import applyHospitalOnboarding from './onboarding/applyHospitalOnboarding'
 import bootstrapHospital from './bootstrap/bootstrapHospital'
 import { redeemUserPasswordResetToken, sendUserPasswordResetLink } from './passwordResetMutations'
-import { confirmPatientBillPayment, initiatePatientBillPayment, lookupPatientBill, reconcilePatientBillPayment } from './payments/patientBillPayments'
+import { confirmPatientBillPayment, initiatePatientBillPayment, lookupPatientBill, reconcilePatientBillPayment, refreshTimedStates } from './payments/patientBillPayments'
 
 const graphql = String.raw;
 
@@ -558,6 +558,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         applyHospitalOnboarding(configuration: JSON!): HospitalOnboardingResult!
         initiatePatientBillPayment(paymentToken: String!): JSON!
         reconcilePatientBillPayment(paymentId: ID!): JSON!
+        refreshTimedStates: JSON!
         confirmPatientBillPayment(sessionId: String!): JSON!
         enableFacilityCardPayments(facilityId: ID!): JSON!
         createOnboardingAppointment(data: OnboardingAppointmentInput!): OnboardingAppointmentResult!
@@ -736,6 +737,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         initiatePatientBillPayment,
         confirmPatientBillPayment,
         enableFacilityCardPayments,
+        refreshTimedStates,
         reconcilePatientBillPayment: (_root: unknown, { paymentId }: { paymentId: string }, context: any) => reconcilePatientBillPayment(paymentId, context),
       },
     },

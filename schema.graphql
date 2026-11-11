@@ -5109,6 +5109,7 @@ type Mutation {
   applyHospitalOnboarding(configuration: JSON!): HospitalOnboardingResult!
   initiatePatientBillPayment(paymentToken: String!): JSON!
   reconcilePatientBillPayment(paymentId: ID!): JSON!
+  refreshTimedStates: JSON!
   confirmPatientBillPayment(sessionId: String!): JSON!
   enableFacilityCardPayments(facilityId: ID!): JSON!
   createOnboardingAppointment(data: OnboardingAppointmentInput!): OnboardingAppointmentResult!
