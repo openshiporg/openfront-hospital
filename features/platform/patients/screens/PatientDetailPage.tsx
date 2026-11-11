@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { ClipboardList, DoorOpen, Stethoscope, UserPlus } from 'lucide-react'
 
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
@@ -81,6 +82,8 @@ export async function PatientDetailPage({ params }: { params: Promise<{ id: stri
     { type: 'link' as const, label: 'Patients', href: '/dashboard/platform/patients' },
   ]
 
+  // A missing patient is a real 404; only a failed load keeps the in-page notice.
+  if (chartResponse.success && !chartResponse.data.patient) notFound()
   if (!chartResponse.success || !chartResponse.data.patient) {
     const failed = !chartResponse.success
     return (
