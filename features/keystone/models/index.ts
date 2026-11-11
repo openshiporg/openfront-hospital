@@ -142,11 +142,22 @@ const rawModels = {
   PasswordResetRequest,
 }
 
+// Sidebar visibility follows the role: a list whose query access denies the session is hidden from navigation
+// (Keystone evaluates ui.isHidden per session in admin meta). Explicit isHidden settings are kept.
 export const models = Object.fromEntries(
-  Object.entries(rawModels).map(([key, model]) => [
-    key,
-    { ...model, graphql: { ...model.graphql, maxTake: 100 } },
-  ]),
+  Object.entries(rawModels).map(([key, model]: [string, any]) => {
+    const operationQuery = model?.access?.operation?.query
+    const filterQuery = model?.access?.filter?.query
+    const withMaxTake = { ...model, graphql: { ...model.graphql, maxTake: 100 } }
+    if (typeof operationQuery !== 'function' && typeof filterQuery !== 'function') return [key, withMaxTake]
+    const existing = model?.ui?.isHidden
+    const isHidden = (args: any) => {
+      if (existing === true || (typeof existing === 'function' && existing(args))) return true
+      if (typeof operationQuery === 'function' && !operationQuery(args)) return true
+      return typeof filterQuery === 'function' && filterQuery(args) === false
+    }
+    return [key, { ...withMaxTake, ui: { ...(model.ui ?? {}), isHidden } }]
+  }),
 ) as typeof rawModels
 
 export default models
