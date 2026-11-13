@@ -44,7 +44,6 @@ input UserWhereInput {
   id: IDFilter
   name: StringFilter
   securityVersion: IntFilter
-  passwordResetToken: StringNullableFilter
   passwordResetIssuedAt: DateTimeNullableFilter
   passwordResetRedeemedAt: DateTimeNullableFilter
   emailVerifiedAt: DateTimeNullableFilter
@@ -115,21 +114,6 @@ input IntFilter {
   not: IntFilter
 }
 
-input StringNullableFilter {
-  equals: String
-  in: [String!]
-  notIn: [String!]
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  contains: String
-  startsWith: String
-  endsWith: String
-  mode: QueryMode
-  not: StringNullableFilter
-}
-
 input DateTimeNullableFilter {
   equals: DateTime
   in: [DateTime!]
@@ -168,7 +152,6 @@ input UserOrderByInput {
   id: OrderDirection
   name: OrderDirection
   securityVersion: OrderDirection
-  passwordResetToken: OrderDirection
   passwordResetIssuedAt: OrderDirection
   passwordResetRedeemedAt: OrderDirection
   emailVerifiedAt: OrderDirection
@@ -512,6 +495,21 @@ input HospitalProfileWhereInput {
   updatedAt: DateTimeFilter
 }
 
+input StringNullableFilter {
+  equals: String
+  in: [String!]
+  notIn: [String!]
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  contains: String
+  startsWith: String
+  endsWith: String
+  mode: QueryMode
+  not: StringNullableFilter
+}
+
 input HospitalProfileOrderByInput {
   id: OrderDirection
   profileKey: OrderDirection
@@ -844,7 +842,6 @@ input PatientRegistrationWhereInput {
   consent: PatientConsentWhereInput
   auditLog: ClinicalAuditLogWhereInput
   createdBy: UserWhereInput
-  idempotencyKeyHash: StringFilter
   requestHash: StringFilter
   duplicateResolution: StringFilter
   createdAt: DateTimeFilter
@@ -853,7 +850,6 @@ input PatientRegistrationWhereInput {
 input PatientRegistrationOrderByInput {
   id: OrderDirection
   status: OrderDirection
-  idempotencyKeyHash: OrderDirection
   requestHash: OrderDirection
   duplicateResolution: OrderDirection
   createdAt: OrderDirection
@@ -900,7 +896,6 @@ input ProviderWhereInput {
   onboardingKey: StringNullableFilter
   firstName: StringFilter
   lastName: StringFilter
-  credentials: StringFilter
   specialty: StringFilter
   status: StringFilter
   bio: StringFilter
@@ -938,7 +933,6 @@ input ProviderOrderByInput {
   onboardingKey: OrderDirection
   firstName: OrderDirection
   lastName: OrderDirection
-  credentials: OrderDirection
   specialty: OrderDirection
   status: OrderDirection
   bio: OrderDirection
@@ -1806,7 +1800,6 @@ input CareQueueTicketWhereInput {
   queuePosition: IntFilter
   transitionVersion: IntFilter
   actorReference: StringFilter
-  idempotencyKeyHash: StringFilter
   requestHash: StringFilter
   arrivedAt: DateTimeFilter
   calledAt: DateTimeNullableFilter
@@ -1829,7 +1822,6 @@ input CareQueueTicketOrderByInput {
   queuePosition: OrderDirection
   transitionVersion: OrderDirection
   actorReference: OrderDirection
-  idempotencyKeyHash: OrderDirection
   requestHash: OrderDirection
   arrivedAt: OrderDirection
   calledAt: OrderDirection
@@ -4264,9 +4256,6 @@ input IntegrationInstallationWhereInput {
   requestHash: StringFilter
   facility: FacilityWhereInput
   endpointUrl: StringFilter
-  signingSecretCiphertext: StringFilter
-  signingSecretIv: StringFilter
-  signingSecretTag: StringFilter
   keyVersion: IntFilter
   actorReference: StringFilter
   lastSuccessAt: DateTimeNullableFilter
@@ -4286,9 +4275,6 @@ input IntegrationInstallationOrderByInput {
   operationKeyHash: OrderDirection
   requestHash: OrderDirection
   endpointUrl: OrderDirection
-  signingSecretCiphertext: OrderDirection
-  signingSecretIv: OrderDirection
-  signingSecretTag: OrderDirection
   keyVersion: OrderDirection
   actorReference: OrderDirection
   lastSuccessAt: OrderDirection
@@ -4323,7 +4309,6 @@ input MachineCredentialWhereUniqueInput {
   id: ID
   keyPrefix: String
   operationKeyHash: String
-  secretDigest: String
 }
 
 input MachineCredentialWhereInput {
@@ -4337,7 +4322,6 @@ input MachineCredentialWhereInput {
   operationKeyHash: StringFilter
   requestHash: StringFilter
   actorReference: StringFilter
-  secretDigest: StringFilter
   status: StringFilter
   facility: FacilityWhereInput
   installation: IntegrationInstallationWhereInput
@@ -4357,7 +4341,6 @@ input MachineCredentialOrderByInput {
   operationKeyHash: OrderDirection
   requestHash: OrderDirection
   actorReference: OrderDirection
-  secretDigest: OrderDirection
   status: OrderDirection
   createdAt: OrderDirection
   expiresAt: OrderDirection
@@ -4851,12 +4834,7 @@ input ExportJobWhereInput {
   facility: FacilityWhereInput
   requestedBy: UserWhereInput
   format: StringFilter
-  objectKey: StringFilter
   resultDigest: StringFilter
-  accessTokenDigest: StringFilter
-  resultCiphertext: StringFilter
-  resultIv: StringFilter
-  resultTag: StringFilter
   actorReference: StringFilter
   expiresAt: DateTimeFilter
   readyAt: DateTimeNullableFilter
@@ -4875,12 +4853,7 @@ input ExportJobOrderByInput {
   operationKeyHash: OrderDirection
   requestHash: OrderDirection
   format: OrderDirection
-  objectKey: OrderDirection
   resultDigest: OrderDirection
-  accessTokenDigest: OrderDirection
-  resultCiphertext: OrderDirection
-  resultIv: OrderDirection
-  resultTag: OrderDirection
   actorReference: OrderDirection
   expiresAt: OrderDirection
   readyAt: OrderDirection
