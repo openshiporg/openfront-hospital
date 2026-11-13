@@ -15,8 +15,8 @@ export function validateBoundedEncounterTransitionEvidence(input: {
   diagnosisSummary?: string | null
   reason?: string | null
 }) {
-  if (String(input.diagnosisSummary || '').trim()) {
-    throw new HospitalRefusal('Diagnosis authorship is unavailable in this bounded patient-operations release')
+  if (String(input.diagnosisSummary || '').trim() && input.toStatus !== 'closed') {
+    throw new HospitalRefusal('A diagnosis summary is recorded when the encounter is closed')
   }
   if (input.toStatus === 'closed' && !String(input.reason || '').trim()) {
     throw new HospitalRefusal('Operational closure reason is required to close an encounter')

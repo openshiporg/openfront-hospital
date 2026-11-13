@@ -217,6 +217,7 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
   const diagnosisSummary = bounded(args.diagnosisSummary, 'Diagnosis summary', 4000)
   const reason = bounded(args.reason, 'Transition reason', 1000)
   validateBoundedEncounterTransitionEvidence({ toStatus: args.toStatus, diagnosisSummary, reason })
+  if (diagnosisSummary && !context.session?.data.role?.canAccessAllClinicalData) throw new HospitalRefusal('Not authorized to record a diagnosis summary')
   if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected encounter version is invalid')
   return context.transaction(async (transactionContext: any) => {
     // Keystone 6.5 declares `isolationLevel` as the enum object while Prisma expects the
@@ -300,6 +301,7 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
         actorReference: context.session!.itemId,
         ...(args.toStatus === 'in_progress' && !encounter.startedAt ? { startedAt: now } : {}),
         ...(['closed', 'cancelled'].includes(args.toStatus) ? { endedAt: now } : {}),
+        ...(diagnosisSummary ? { diagnosisSummary } : {}),
       },
     })
     if (changed.count !== 1) throw new HospitalRefusal('Encounter changed; review before retrying')
@@ -312,7 +314,7 @@ export async function transitionEncounter(_root: unknown, args: TransitionArgs, 
       status: updated.status,
       transitionVersion,
       reasonProvided: Boolean(reason),
-      diagnosisSummaryUpdated: false,
+      diagnosisSummaryUpdated: Boolean(diagnosisSummary),
       clinicalAuthority: 'not_asserted',
       policyId: policy?.id || null,
       policyRevision: policy?.revision || null,

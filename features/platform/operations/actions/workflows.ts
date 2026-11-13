@@ -130,6 +130,9 @@ export async function moveProcedure(procedureId: string, toStatus: string, expec
 export async function draftClinicalDocument(data: Record<string, unknown>) {
   return run(`mutation($data:ClinicalDocumentWorkflowInput!){draftClinicalDocument(data:$data){${result}}}`, { data }, fulfillmentPath)
 }
+export async function moveClinicalDocument(documentId: string, toStatus: string, expectedVersion: number, suppliedKey?: string) {
+  return run(`mutation($operationKey:String!,$documentId:ID!,$toStatus:String!,$expectedVersion:Int!){transitionClinicalDocument(operationKey:$operationKey,documentId:$documentId,toStatus:$toStatus,expectedVersion:$expectedVersion){${result}}}`, { operationKey: suppliedKey || operationKey(), documentId, toStatus, expectedVersion }, fulfillmentPath)
+}
 export async function collectSpecimen(data: Record<string, unknown>) {
   return run(`mutation($data:SpecimenWorkflowInput!){collectSpecimen(data:$data){${result}}}`, { data }, fulfillmentPath)
 }

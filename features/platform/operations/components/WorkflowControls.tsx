@@ -1340,9 +1340,9 @@ export function ClinicalCreateForms({ options }: { options: OperationsWorkspaceO
         onSubmit={actions.scheduleProcedure}
       />
       <OperationForm
-        title="Draft operational encounter note"
-        description="Create an unsigned working note. It is not a signed clinical chart document and cannot be finalized in this release."
-        submitLabel="Create unsigned draft"
+        title="Write encounter note"
+        description="Create a draft note on the encounter. Sign it from Notes to sign; a signed note is final and can only be amended."
+        submitLabel="Save draft note"
         accessibleFacilityCount={options.facilitiesCount}
         fields={[
           { name: 'facilityId', label: 'Facility', kind: 'facility' },
@@ -1463,8 +1463,9 @@ function InlineAction({ label, onRun, onComplete, variant = 'outline' }: { label
   )
 }
 
-export function TransitionButton({ kind, id, toStatus, version }: { kind: 'order' | 'result' | 'prescription' | 'procedure' | 'carePlan'; id: string; toStatus: string; version: number }) {
+export function TransitionButton({ kind, id, toStatus, version, label }: { kind: 'order' | 'result' | 'prescription' | 'procedure' | 'carePlan' | 'document'; id: string; toStatus: string; version: number; label?: string }) {
   const move = {
+    document: actions.moveClinicalDocument,
     order: actions.moveMedicalOrder,
     result: actions.moveLabResult,
     prescription: actions.movePrescription,
@@ -1474,7 +1475,7 @@ export function TransitionButton({ kind, id, toStatus, version }: { kind: 'order
   const operationKeys = useOperationKeys()
   const intent = `${kind}:${id}:${toStatus}:${version}`
   const [originalLabTransition, setOriginalLabTransition] = useState<{ id: string; toStatus: string; version: number; operationKey: string; intent: string } | null>(null)
-  return <InlineAction label={originalLabTransition ? 'Retry exact original lab transition' : toStatus.replaceAll('_', ' ')} onRun={() => {
+  return <InlineAction label={originalLabTransition ? 'Retry exact original lab transition' : label || toStatus.replaceAll('_', ' ')} onRun={() => {
     if (kind !== 'result') return move(id, toStatus, version, operationKeys.get(intent))
     const original = originalLabTransition || { id, toStatus, version, operationKey: operationKeys.get(intent), intent }
     setOriginalLabTransition(original)

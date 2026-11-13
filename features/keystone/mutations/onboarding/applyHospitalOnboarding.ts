@@ -134,7 +134,7 @@ export default async function applyHospitalOnboarding(
   const intakeFormsInput = rows(configuration, 'intakeForms')
   const messagesInput = rows(configuration, 'messages')
   if ('portalAccess' in configuration) {
-    throw new HospitalRefusal('Patient portal records are not available in this bounded release')
+    throw new HospitalRefusal('Patient portal access is issued per patient after setup, not through onboarding data')
   }
   if (!departmentsInput.length || !facilitiesInput.length || !providersInput.length || !appointmentTypesInput.length) {
     throw new HospitalRefusal('Onboarding requires at least one department, facility, provider, and appointment type')

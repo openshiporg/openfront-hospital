@@ -76,12 +76,22 @@ export async function lockCurrentEncounter(context: any, encounterId: string) {
   return { encounter, appointment, tuple: episodeTuple(encounter) }
 }
 
+export const DEFAULT_EPISODE_POLICY = validateEpisodePolicy({
+  operationalClosure: 'enabled', legacyEpisodes: 'reviewed_late_only', newCare: 'new_encounter_required',
+  lateResults: 'allow_existing_order', resultCorrections: 'allow_recorded_human_review', claims: 'allow_reconciliation',
+  retention: 'unchanged_separate_retention_policy', admission: 'separate_admission_discharge_workflow',
+})
+function defaultEpisodePolicy(facilityId: string) {
+  return { id: null, facilityId, revision: 0, definition: DEFAULT_EPISODE_POLICY, reviewReference: 'standard_policy',
+    reviewedByReference: '', reviewedRoleReference: '', effectiveAt: new Date(0) }
+}
 export async function effectiveEpisodePolicy(prisma: any, facilityId: string) {
   if (!prisma.episodeClosurePolicy) throw new Error(EPISODE_UNAVAILABLE)
   try {
     const row = await prisma.episodeClosurePolicy.findFirst({ where: { facilityId, effectiveAt: { lte: new Date() } }, orderBy: { revision: 'desc' } })
     if (row) validateEpisodePolicy(row.definition)
-    return row
+    // A facility without a reviewed revision runs on the standard policy; any reviewed revision replaces it.
+    return row || defaultEpisodePolicy(facilityId)
   } catch (error: any) {
     if (['P2021', 'P2022'].includes(error?.code)) throw new Error(EPISODE_UNAVAILABLE)
     throw error

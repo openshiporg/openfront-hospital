@@ -184,6 +184,15 @@ function nextStatus(kind: QueueKind, status: string) {
   return transitions[kind][status]
 }
 
+const draftNotesQuery = `
+  query ClinicalDraftNotes {
+    clinicalDocuments(where: { status: { equals: "draft" } }, orderBy: [{ createdAt: asc }], take: 25) {
+      id documentNumber title status transitionVersion patient { displayName }
+    }
+    clinicalDocumentsCount(where: { status: { equals: "draft" } })
+  }
+`
+
 const fulfillmentFirstPageQuery = `
   query ClinicalFulfillmentFirstPage($ordersWhere: MedicalOrderWhereInput!, $resultsWhere: LabResultWhereInput!, $prescriptionsWhere: PrescriptionWhereInput!, $proceduresWhere: ProcedureWhereInput!, $carePlansWhere: CarePlanWhereInput!) {
     medicalOrders(where: $ordersWhere, orderBy: [{ createdAt: asc }, { id: asc }], take: 26) {
@@ -663,9 +672,10 @@ export default async function ClinicalFulfillmentPage({ searchParams }: PageProp
     { type: 'link' as const, label: 'Dashboard', href: '/dashboard' },
     { type: 'page' as const, label: 'Clinical fulfillment' },
   ]
-  const [fulfillment, options] = await Promise.all([
+  const [fulfillment, options, notes] = await Promise.all([
     getClinicalFulfillmentData(orderCursorRequest, resultsCursorRequest, prescriptionsCursorRequest, proceduresCursorRequest, carePlansCursorRequest),
     getOperationsWorkspaceOptions().catch(() => null),
+    keystoneClient<{ clinicalDocuments: Array<{ id: string; documentNumber: string; title: string; status: string; transitionVersion: number; patient?: { displayName?: string | null } | null }>; clinicalDocumentsCount: number }>(draftNotesQuery).catch(() => null),
   ])
   if (!fulfillment || !options) {
     return <><WorkspaceLoadError title="Clinical fulfillment" description="Clinical work items or required selectors may be incomplete." breadcrumbs={breadcrumbs} /><section className="px-4 pb-10 md:px-6"><LabResultReadbackPanel /></section></>
@@ -795,6 +805,22 @@ export default async function ClinicalFulfillmentPage({ searchParams }: PageProp
             </WardSection>
           ))}
         </div>
+        <WardSection id="queue-notes" title="Notes to sign" count={notes?.success ? notes.data.clinicalDocumentsCount : undefined}>
+          {!notes?.success
+            ? <Notice tone="bad" role="alert">Draft notes could not be loaded.</Notice>
+            : !notes.data.clinicalDocuments.length
+              ? <EmptyBoard title="No draft notes" />
+              : <Board>{notes.data.clinicalDocuments.map(row => (
+                <BoardRow
+                  key={row.id}
+                  tone={toneForStatus(row.status)}
+                  status={statusLabel(row.status)}
+                  title={<span className="text-sm font-semibold">{row.title || row.documentNumber}</span>}
+                  meta={<><span>{row.patient?.displayName ?? 'Restricted patient'}</span><Code>{row.documentNumber.slice(0, 12)}</Code></>}
+                  aside={<TransitionButton kind="document" id={row.id} toStatus="signed" label="Sign" version={row.transitionVersion} />}
+                />
+              ))}</Board>}
+        </WardSection>
         <WardSection id="clinical-tools" title="Record and look up">
           <div className="flex min-w-0 flex-col gap-3">
             <ClinicalCreateForms options={options} />

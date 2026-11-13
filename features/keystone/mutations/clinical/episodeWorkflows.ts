@@ -21,7 +21,9 @@ export async function rejectEpisodeCommand(context: any, scope: any, policy: any
     aggregateType: 'encounter_command', aggregateId: row.id, facilityId: scope.tuple.facilityId, patientId: scope.tuple.patientId,
     actorReference: context.session.itemId, metadata: { source: 'episode_policy_workflow', reasonCode, policyId: policy?.id || null, transitionPerformed: false }, occurredAt: now })
   await recordTransition(context.prisma, { evidence, aggregateType: 'encounter_command', aggregateId: row.id,
-    fromStatus: row.status, toStatus: 'rejected', fromVersion: row.transitionVersion, toVersion: row.transitionVersion,
+    // A rejected command performs no transition; the receipt spans the observed version (toVersion = observed)
+    // because the evidence constraint requires toVersion > fromVersion.
+    fromStatus: row.status, toStatus: 'rejected', fromVersion: row.transitionVersion - 1, toVersion: row.transitionVersion,
     actorReference: context.session.itemId, facilityId: scope.tuple.facilityId, patientId: scope.tuple.patientId,
     auditLogId: events.audit.id, result, occurredAt: now })
   return result
@@ -80,7 +82,7 @@ export async function episodePolicyWorkspace(_root: unknown, args: any, context:
     return { actorId: current.session.itemId, effective: policyProjection(effective), history: rows.slice(0, take).map(policyProjection),
       nextRevision: rows.length > take ? rows[take - 1].revision : null,
       canConfigure: current.session.data.role.canManageRoles === true && current.session.data.role.canManagePatients === true,
-      legacyState: effective ? 'explicit_reviewed_policy' : 'no_reviewed_policy_no_operational_closure' }
+      legacyState: effective?.id ? 'explicit_reviewed_policy' : 'standard_policy' }
   }, { isolationLevel: 'Serializable', timeout: 30_000 })
 }
 

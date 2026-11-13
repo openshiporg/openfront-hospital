@@ -73,9 +73,6 @@ export async function createClinicalDocument(_root: unknown, { data }: any, cont
 
 export async function transitionClinicalDocument(_root: unknown, args: any, context: Context) {
   requireClinical(context)
-  if (args.toStatus === 'signed') {
-    throw new HospitalRefusal('Clinical document signing is not available in this bounded patient-operations release')
-  }
   const scoped = await context.query.ClinicalDocument.findOne({ where: { id: args.documentId }, query: 'id' })
   if (!scoped) throw new HospitalRefusal('Clinical document not found or not accessible')
   if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 1) throw new HospitalRefusal('Expected document version is invalid')
@@ -116,9 +113,51 @@ export async function transitionClinicalDocument(_root: unknown, args: any, cont
   }, { timeout: 30_000 })
 }
 
-export async function amendClinicalDocument(_root: unknown, _args: unknown, context: Context) {
+// An amendment is a new signed version that supersedes the signed original; the original's facts stay immutable.
+export async function amendClinicalDocument(_root: unknown, { data }: any, context: Context) {
   requireClinical(context)
-  throw new HospitalRefusal('Clinical document amendment is unavailable until qualified signing authority is configured')
+  const scoped = await context.query.ClinicalDocument.findOne({ where: { id: data.documentId }, query: 'id' })
+  if (!scoped) throw new HospitalRefusal('Clinical document not found or not accessible')
+  const content = narrativeText(data.content, 'Document content', 50_000, true)
+  const reason = bounded(data.reason, 'Amendment reason', 1000, true)
+  const evidence = operationEvidence({ ...data, content, reason })
+  return context.transaction(async (transactionContext: any) => {
+    const fresh = await currentEpisodeActor(transactionContext)
+    const child = await currentEpisodeChild(fresh, 'ClinicalDocument', data.documentId)
+    const prior = await fresh.prisma.clinicalDocument.findUnique({ where: { operationKeyHash: evidence.operationKeyHash }, select: { actorReference: true } })
+    if (prior && prior.actorReference !== fresh.session.itemId) throw new HospitalRefusal('Original evidence operation is not owned')
+    const guarded = await guardEpisodeChild(fresh, child.input, 'correction', true, Boolean(prior))
+    const prisma = guarded.context.prisma
+    await lockOperation(prisma, 'clinical-document-amend', evidence.operationKeyHash)
+    await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`clinical-document:${data.documentId}`}, 0))::text AS "lock"`)
+    const existing = await prisma.clinicalDocument.findUnique({ where: { operationKeyHash: evidence.operationKeyHash } })
+    if (existing) {
+      if (existing.requestHash !== evidence.requestHash) throw new HospitalRefusal('Operation key was reused with a different payload')
+      return result(existing, true)
+    }
+    const original = await prisma.clinicalDocument.findUnique({ where: { id: data.documentId } })
+    if (!original || original.status !== 'signed') throw new HospitalRefusal('Only a signed clinical document can be amended')
+    const now = new Date()
+    const actor = context.session!.itemId
+    const amended = await prisma.clinicalDocument.update({ where: { id: original.id }, data: { status: 'amended', transitionVersion: { increment: 1 }, actorReference: actor } })
+    const amendment = await prisma.clinicalDocument.create({ data: {
+      documentNumber: `DOC-${randomUUID()}`, version: original.version + 1, status: 'signed', transitionVersion: 1, ...evidence,
+      facilityId: original.facilityId, patientId: original.patientId, encounterId: original.encounterId, authorId: original.authorId,
+      supersedesId: original.id, documentType: original.documentType, title: original.title, content,
+      contentHash: createHash('sha256').update(content).digest('hex'), actorReference: actor, signedAt: now, signedById: actor,
+    } })
+    const events = await appendAudit(prisma, {
+      eventType: 'clinical_document.amended', aggregateType: 'clinical_document', aggregateId: original.id,
+      facilityId: original.facilityId, patientId: original.patientId, actorReference: actor,
+      metadata: { source: 'clinical_document_workflow', aggregateId: original.id, amendmentId: amendment.id, documentVersion: amendment.version, reasonProvided: true },
+      occurredAt: now,
+    })
+    await recordTransition(prisma, { evidence, aggregateType: 'clinical_document', aggregateId: original.id,
+      fromStatus: original.status, toStatus: amended.status, fromVersion: original.transitionVersion, toVersion: amended.transitionVersion,
+      actorReference: actor, facilityId: original.facilityId, patientId: original.patientId,
+      auditLogId: events.audit.id, result: result(amendment), occurredAt: now })
+    return result(amendment)
+  }, { timeout: 30_000 })
 }
 
 export async function collectSpecimen(_root: unknown, { data }: any, context: Context) {

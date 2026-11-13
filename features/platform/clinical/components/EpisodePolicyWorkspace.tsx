@@ -72,7 +72,7 @@ export function EpisodePolicyConfiguration() {
       <Track className="self-start sm:self-end"><Pill disabled={!facilityId || pending} onClick={() => load()}>Load policy</Pill></Track>
     </div>
     {workspace && <div className="mt-4 space-y-4">
-      <p role="status" className="text-sm font-medium">{workspace.effective ? `Effective reviewed revision ${workspace.effective.revision}` : 'No reviewed policy. Closure is unavailable.'}</p>
+      <p role="status" className="text-sm font-medium">{workspace.effective?.id ? `Effective reviewed revision ${workspace.effective.revision}` : 'Standard policy in effect (closure, late results, corrections and claims enabled). Record a revision to change it.'}</p>
       <ul className="divide-y rounded-[4px] border text-sm">{workspace.history.map((entry: any) => <li key={entry.id} className="min-w-0 p-3">
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"><span className="font-medium text-foreground">Revision {entry.revision}</span><span>{String(entry.effectiveAt)}</span><span className="break-all">Review {entry.reviewReference}</span></p>
         <dl className="mt-2 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">{Object.entries(entry.definition).map(([key, value]) => <div key={key} className="flex min-w-0 justify-between gap-2"><dt className="text-muted-foreground">{labels[key]}</dt><dd className="text-right">{String(value).replaceAll('_', ' ')}</dd></div>)}</dl>
@@ -166,7 +166,7 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
       <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
         <div className="flex min-w-0 gap-2"><dt className="text-muted-foreground">Encounter</dt><dd>{workspace.status} · v{workspace.transitionVersion}</dd></div>
         <div className="flex min-w-0 gap-2"><dt className="text-muted-foreground">Appointment</dt><dd>{workspace.appointment ? `${workspace.appointment.status} / v${workspace.appointment.transitionVersion}` : 'none'}</dd></div>
-        <div className="flex min-w-0 gap-2"><dt className="text-muted-foreground">Policy</dt><dd>{workspace.policy ? `revision ${workspace.policy.revision}` : 'not configured'}</dd></div>
+        <div className="flex min-w-0 gap-2"><dt className="text-muted-foreground">Policy</dt><dd>{workspace.policy?.id ? `revision ${workspace.policy.revision}` : 'standard'}</dd></div>
       </dl>
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span>{workspace.legacyState.replaceAll('_', ' ')}</span>
@@ -188,8 +188,8 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
         <textarea name="reason" id={`${id}-reason`} maxLength={1000} required rows={2} className={`${fieldClass} h-auto py-2`} />
         <Track className="justify-self-start"><Pill type="submit" size="sm" variant="primary" disabled={pending || (workspace.status === 'in_progress' && workspace.policy?.definition.operationalClosure !== 'enabled')}>Apply transition</Pill></Track>
       </form>}
-      <ul className="space-y-1 tabular-nums text-xs text-muted-foreground">{workspace.history.map((entry: any) => <li key={entry.id}>v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus} · {entry.provenance.replaceAll('_', ' ')} · policy {entry.policy?.revision || 'unknown'} · {entry.owned ? 'your receipt' : 'another authorized operator'}</li>)}</ul>
-      <ul className="space-y-1 text-xs text-red-700 dark:text-red-300">{workspace.rejectedHistory.map((entry: any) => <li key={entry.id}>Owned rejected command at v{entry.observedVersion}: {entry.reasonCode.replaceAll('_', ' ')} · policy {entry.policyRevision || 'unconfigured'} · no transition performed</li>)}</ul>
+      <ul className="space-y-1 tabular-nums text-xs text-muted-foreground">{workspace.history.map((entry: any) => <li key={entry.id}>v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus} · {entry.provenance.replaceAll('_', ' ')} · policy {entry.policy ? (entry.policy.id ? entry.policy.revision : 'standard') : 'unknown'} · {entry.owned ? 'your receipt' : 'another authorized operator'}</li>)}</ul>
+      <ul className="space-y-1 text-xs text-red-700 dark:text-red-300">{workspace.rejectedHistory.map((entry: any) => <li key={entry.id}>Owned rejected command at v{entry.observedVersion}: {entry.reasonCode.replaceAll('_', ' ')} · policy {entry.policyRevision || 'standard'} · no transition performed</li>)}</ul>
       {(workspace.nextRejectedId || workspace.nextVersion) && <Track>
         {workspace.nextRejectedId && <Pill size="sm" disabled={pending} onClick={() => refresh(undefined, workspace.nextRejectedId)}>Older rejections</Pill>}
         {workspace.nextVersion && <Pill size="sm" disabled={pending} onClick={() => refresh(workspace.nextVersion)}>Older receipts</Pill>}

@@ -2,7 +2,7 @@ type StripeResponse = Record<string, any>
 
 async function stripeRequest(path: string, method = 'GET', body?: Record<string, unknown>, idempotencyKey?: string): Promise<StripeResponse> {
   const secret = process.env.STRIPE_SECRET_KEY
-  if (!secret || !secret.startsWith('sk_test_')) throw new Error('A Stripe test secret key is required')
+  if (!secret || !/^(sk|rk)_(test|live)_/.test(secret)) throw new Error('A Stripe secret key is required')
   const response = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
     headers: { Authorization: `Bearer ${secret}`, ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
@@ -47,7 +47,10 @@ export async function getPaymentStatusFunction({ paymentId }: { paymentId: strin
   const intent = await stripeRequest(`payment_intents/${encodeURIComponent(paymentId)}`)
   return { id: intent.id, status: intent.status, amount: intent.amount_received || intent.amount, currency: intent.currency.toUpperCase() }
 }
-export async function generatePaymentLinkFunction({ paymentId }: { paymentId: string }) { return `https://dashboard.stripe.com/test/payments/${encodeURIComponent(paymentId)}` }
+export async function generatePaymentLinkFunction({ paymentId }: { paymentId: string }) {
+  const mode = process.env.STRIPE_SECRET_KEY?.includes('_test_') ? 'test/' : ''
+  return `https://dashboard.stripe.com/${mode}payments/${encodeURIComponent(paymentId)}`
+}
 export async function handleWebhookFunction({ headers, rawBody }: { headers: Record<string, string>; rawBody: string }) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET
   if (!secret || !rawBody) throw new Error('Stripe webhook verification is not configured')

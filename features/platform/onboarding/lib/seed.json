@@ -202,7 +202,7 @@
       "patientKey": "patient-jordan-rivera",
       "firstName": "Jordan",
       "lastName": "Rivera",
-      "medicalRecordNumber": "NFC-DEMO-1001",
+      "medicalRecordNumber": "NFC-1001",
       "status": "active",
       "facilitySlug": "northstar-downtown-clinic",
       "dateOfBirth": "1988-04-12T00:00:00.000Z",
@@ -211,26 +211,26 @@
       "preferredContactMethod": "sms",
       "emergencyContactName": "Sam Rivera",
       "emergencyContactPhone": "+1-555-0198",
-      "insuranceSummary": { "payer": "Acme Health", "memberId": "DEMO-1001" },
+      "insuranceSummary": { "payer": "Acme Health", "memberId": "ACM-58210447" },
       "notes": "Prefers morning appointments."
     },
     {
       "patientKey": "patient-avery-morgan",
       "firstName": "Avery",
       "lastName": "Morgan",
-      "medicalRecordNumber": "NFC-DEMO-1002",
+      "medicalRecordNumber": "NFC-1002",
       "status": "active",
       "facilitySlug": "northstar-downtown-clinic",
       "dateOfBirth": "1979-11-03T00:00:00.000Z",
       "phone": "+1-555-0164",
       "email": "avery.morgan@example.test",
       "preferredContactMethod": "email",
-      "insuranceSummary": { "payer": "Northwind Plan", "memberId": "DEMO-1002" }
+      "insuranceSummary": { "payer": "Northwind Plan", "memberId": "NWP-33019862" }
     }
   ],
   "appointments": [
     {
-      "appointmentNumber": "APT-DEMO-1001",
+      "appointmentNumber": "APT-NS-1001",
       "status": "confirmed",
       "source": "front_desk",
       "patientKey": "patient-jordan-rivera",
@@ -246,7 +246,7 @@
       "reasonForVisit": "Establish care and review preventive screenings."
     },
     {
-      "appointmentNumber": "APT-DEMO-1002",
+      "appointmentNumber": "APT-NS-1002",
       "status": "requested",
       "patientKey": "patient-avery-morgan",
       "patientLastName": "Morgan",
@@ -266,7 +266,7 @@
       "title": "New patient intake",
       "patientKey": "patient-jordan-rivera",
       "patientLastName": "Rivera",
-      "appointmentNumber": "APT-DEMO-1001",
+      "appointmentNumber": "APT-NS-1001",
       "templateKey": "new_patient",
       "formSchema": { "sections": ["contact", "insurance", "reason_for_visit", "medical_history"] }
     },
@@ -274,7 +274,7 @@
       "title": "Follow-up pre-visit update",
       "patientKey": "patient-avery-morgan",
       "patientLastName": "Morgan",
-      "appointmentNumber": "APT-DEMO-1002",
+      "appointmentNumber": "APT-NS-1002",
       "templateKey": "follow_up",
       "formSchema": { "sections": ["contact", "reason_for_visit"] }
     }
@@ -283,7 +283,7 @@
     {
       "patientKey": "patient-jordan-rivera",
       "patientLastName": "Rivera",
-      "appointmentNumber": "APT-DEMO-1001",
+      "appointmentNumber": "APT-NS-1001",
       "channel": "phone",
       "subject": "Appointment confirmation follow-up",
       "body": "Manual staff follow-up is required. No external message was sent by this setup fixture."
@@ -291,7 +291,7 @@
     {
       "patientKey": "patient-avery-morgan",
       "patientLastName": "Morgan",
-      "appointmentNumber": "APT-DEMO-1002",
+      "appointmentNumber": "APT-NS-1002",
       "channel": "phone",
       "subject": "Appointment request follow-up",
       "body": "Manual staff follow-up is required. No external message was sent by this setup fixture."
