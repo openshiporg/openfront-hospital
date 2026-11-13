@@ -17,12 +17,14 @@ export function BookingWorkspace({ appointmentType, brandName, initialProviderId
   const [pending, setPending] = useState(false)
   const [requestPending, setRequestPending] = useState(false)
   const [revision, setRevision] = useState(0)
+  const [received, setReceived] = useState(false)
   const generation = useRef(0)
   const provider = appointmentType.providers.find(item => item.id === providerId)
   const facility = provider?.facilities.find(item => item.id === facilityId)
   const range = publicBookingDateRange(facility?.timeZone || 'UTC')
   const invalidate = () => { generation.current++; setSlots([]); setRevision(value => value + 1); setError('Check availability for the selected provider, location and date.') }
   return <section className="sf-panel sf-reveal" aria-labelledby="availability-heading">
+    {!received && <>
     <ol className="sf-stepper" aria-label="Request steps">
       <li data-state="done"><span>✓</span>Visit</li>
       <li data-state="current" aria-current="step"><span>2</span>Time</li>
@@ -61,6 +63,7 @@ export function BookingWorkspace({ appointmentType, brandName, initialProviderId
     </form>
     {error && <p role="alert" className="sf-notice sf-notice--warn"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>{error}</span></p>}
     {slots.length > 0 && <p className="sf-eyebrow">{formatCalendarDate(date)} · {slots.length} {slots.length === 1 ? 'time' : 'times'}</p>}
-    <AppointmentRequestForm appointmentType={appointmentType} providerId={providerId} facilityId={facilityId} slots={slots} brandName={brandName} availabilityRevision={revision} onPendingChange={setRequestPending} />
+    </>}
+    <AppointmentRequestForm appointmentType={appointmentType} providerId={providerId} facilityId={facilityId} slots={slots} brandName={brandName} availabilityRevision={revision} onPendingChange={setRequestPending} onReceived={setReceived} />
   </section>
 }

@@ -19,6 +19,7 @@ export const Provider = list({
     },
   },
   ui: {
+    labelField: 'displayName',
     hideCreate: args => !permissions.canAccessAllClinicalData(args),
     listView: {
       initialColumns: ['displayName', 'status', 'specialty', 'locationName'],

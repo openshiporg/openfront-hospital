@@ -187,7 +187,7 @@ export async function recordPatientPayment(_root: unknown, { data }: any, contex
         claimId: data.claimId || null, installationId: installation?.id || null, paymentProviderId,
         amountCents, refundedAmountCents: 0, currency: input.currency, method,
         externalReference: bounded(data.externalReference, 'External reference', 300),
-        receivedAt: isExternal ? null : now,
+        receivedAt: isExternal || isOnline ? null : now,
       },
     })
     await appendAudit(prisma, {

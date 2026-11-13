@@ -69,6 +69,7 @@ export async function appendAudit(tx: any, input: {
   facilityId: string
   patientId?: string | null
   actorReference: string
+  actorType?: string
   metadata: Record<string, unknown>
   occurredAt?: Date
 }) {
@@ -78,7 +79,7 @@ export async function appendAudit(tx: any, input: {
     data: {
       eventType: input.eventType,
       occurredAt,
-      actorType: 'staff_user',
+      actorType: input.actorType || 'staff_user',
       actorReference: input.actorReference,
       facilityId: input.facilityId,
       patientId: input.patientId || null,

@@ -338,3 +338,9 @@ a:hover > .sf-arrow, button:hover > .sf-arrow { transform: translateX(3px); }
 /* Inline text button (account sign-in / sign-up switch): reads as a link, not a control. */
 .sf-link-button { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
 .sf-link-button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* Tap targets: every link is at least 44px high (402 and 320 wide). */
+.sf-wordmark, .sf-back, .sf-leaflet__more, .sf-person__name a, .sf-footer__links a, .sf-footer address a { display: inline-flex; align-items: center; min-height: 44px; }
+.sf-leaflet__more { display: flex; padding-block: 0; }
+.sf-footer__links { gap: 0; }
+.sf-footer address { gap: 0; line-height: 1.2; }

@@ -16,6 +16,8 @@ import { OptionSelect } from '@/features/platform/components/OptionSelect'
 import { PlatformDateTimeInput } from '@/features/platform/components/PlatformDateTime'
 import { plural } from '@/features/platform/lib/plural'
 
+const METHOD_LABELS: Record<string, string> = { cash: 'Cash', check: 'Check', card_external: 'External card', bank_external: 'External bank', card_online: 'Online card' }
+
 type Response = { success: boolean; error?: string; data?: any }
 type Field = {
   name: string
@@ -443,7 +445,7 @@ function RefundPaymentCandidateField({ id, name, label, required }: { id: string
       }} placeholder="Search succeeded payment number" aria-label={`Search ${label.toLowerCase()} by payment number`} maxLength={100} />
       <OptionSelect id={id} name={name} required={required} aria-label={label} className={fieldClass} value={selected?.id || ''} onChange={event => setSelected(visibleOptions.find(option => option.id === event.target.value) || null)}>
         <option value="">{pending ? 'Searching…' : search.trim().length < 2 ? 'Enter at least 2 characters to search' : 'Select succeeded payment'}</option>
-        {visibleOptions.map(option => <option key={option.id} value={option.id} disabled={option.refundedAmountCents >= option.amountCents}>{option.paymentNumber} · {option.currency} · {option.method}</option>)}
+        {visibleOptions.map(option => <option key={option.id} value={option.id} disabled={option.refundedAmountCents >= option.amountCents}>{option.paymentNumber} · {option.currency} · {METHOD_LABELS[option.method] || option.method.replace(/_/g, ' ')}</option>)}
       </OptionSelect>
       {count > options.length && <p className="text-xs text-muted-foreground">Showing {options.length} of {count} matching succeeded payments. Narrow the payment number to find later results.</p>}
       {hasNoRecordedBalance && <p className="text-xs text-muted-foreground">Matches with no recorded unrefunded balance are disabled. Pending refund reservations are rechecked by the server.</p>}
@@ -684,7 +686,7 @@ function Form({ title, fields, submit, action, accessibleFacilityCount }: {
           if (oneTimeSecretExpected && !secret) {
             setError('The operation was recorded, but its one-time secret was not returned. It cannot be recovered; revoke or replace the credential before using it.')
           } else {
-            setMessage(secret ? `Completed. Copy this one-time value now: ${secret}` : 'Completed. The workspace has been refreshed.')
+            setMessage(secret ? `Completed. Copy this one-time value now: ${secret}` : payload?.paymentNumber ? `Payment recorded. Payment number: ${payload.paymentNumber}` : 'Completed. The workspace has been refreshed.')
           }
           setFacilityId('')
           setSelectedPatientId('')
@@ -911,7 +913,7 @@ function ConsentDecisionForms({ workspace }: { workspace: FabricWorkspace }) {
         { name: 'statementKey', label: 'Statement key' },
         { name: 'decision', label: 'Decision', kind: 'select', options: [{ value: 'granted', label: 'Granted' }, { value: 'declined', label: 'Declined' }] },
         { name: 'supersedesConsentId', label: 'Current decision to supersede', kind: 'current-consent-search', required: false },
-        { name: 'reasonCode', label: 'Reason code', required: false },
+        { name: 'reasonCode', label: 'Reason', required: false },
       ]}
       action={actions.recordConsent} />
     <Form title="Withdraw granted consent" submit="Record withdrawal" accessibleFacilityCount={workspace.facilitiesCount}
@@ -946,7 +948,7 @@ function InventoryMovementForm() {
       { name: 'movementType', label: 'Movement type', kind: 'select', options: ['receive','consume','reserve','release','adjust'].map(value => ({ value, label: value })) },
       { name: 'quantityDelta', label: 'On-hand change', kind: 'signed-integer', value: '0' },
       { name: 'reservedDelta', label: 'Reserved change', kind: 'signed-integer', value: '0' },
-      { name: 'reasonCode', label: 'Reason code', value: 'operator_adjustment' },
+      { name: 'reasonCode', label: 'Reason', value: 'Operator adjustment' },
     ]}
     action={async data => {
       const [itemId, version] = String(data.itemVersion).split('::')
@@ -992,7 +994,7 @@ export function OperationalFabricControls({ workspace }: { workspace: FabricWork
             { name: 'facilityId', label: 'Facility', kind: 'facility' },
           ]} />}
           <Form title="Request refund" submit="Request refund" action={actions.requestRefund} fields={[
-            { name: 'paymentId', label: 'Succeeded payment', kind: 'payment-search' }, { name: 'amountCents', label: 'Amount', kind: 'currency' }, { name: 'reasonCode', label: 'Reason code' },
+            { name: 'paymentId', label: 'Succeeded payment', kind: 'payment-search' }, { name: 'amountCents', label: 'Amount', kind: 'currency' }, { name: 'reasonCode', label: 'Reason' },
           ]} />
         </div>
       </WardSection>}
@@ -1020,7 +1022,7 @@ export function OperationalFabricControls({ workspace }: { workspace: FabricWork
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'patientId', label: 'Patient', kind: 'patient-search' },
             { name: 'channel', label: 'Channel', kind: 'select', options: ['sms','email'].map(value => ({ value, label: value })) },
             { name: 'purpose', label: 'Purpose', kind: 'select', options: ['care_operations','billing','general'].map(value => ({ value, label: value.replaceAll('_',' ') })) },
-            { name: 'status', label: 'Preference', kind: 'select', options: [{ value: 'allowed', label: 'Allowed' }, { value: 'opted_out', label: 'Opted out' }] }, { name: 'reasonCode', label: 'Reason code' },
+            { name: 'status', label: 'Preference', kind: 'select', options: [{ value: 'allowed', label: 'Allowed' }, { value: 'opted_out', label: 'Opted out' }] }, { name: 'reasonCode', label: 'Reason' },
           ]} />}
           {communicationsReady && facilityScopeReady && <Form title="Communication template" submit="Register template" action={actions.registerTemplate} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'templateKey', label: 'Template key' }, { name: 'name', label: 'Name' },
@@ -1056,7 +1058,7 @@ export function OperationalFabricControls({ workspace }: { workspace: FabricWork
           ]} />}
           {can.mayPlaceEncounterHold && retentionReady && available.encounters && facilityScopeReady && <Form title="Place encounter hold" submit="Place hold" action={actions.placeHold} accessibleFacilityCount={workspace.facilitiesCount} fields={[
             { name: 'facilityId', label: 'Facility', kind: 'facility' }, { name: 'aggregateId', label: 'Encounter', kind: 'encounter-search' },
-            { name: 'aggregateType', label: 'Aggregate type', value: 'encounter' }, { name: 'reasonCode', label: 'Reason code' }, { name: 'notes', label: 'Notes', kind: 'textarea', required: false },
+            { name: 'aggregateType', label: 'Aggregate type', value: 'encounter' }, { name: 'reasonCode', label: 'Reason' }, { name: 'notes', label: 'Notes', kind: 'textarea', required: false },
           ]} />}
         </div>
       </WardSection>}

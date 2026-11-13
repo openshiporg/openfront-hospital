@@ -221,7 +221,7 @@ export async function PatientListPage(props: { searchParams: Promise<Record<stri
                     <span className="tabular-nums">DOB {formatDate(patient.dateOfBirth)}</span>
                     <StatusTag status={patient.status || 'unknown'} tone={patientTone[patient.status || ''] || 'idle'} className="font-normal" />
                     <span>{patient.facilities?.map(item => item.name).filter(Boolean).join(' · ') || 'No visible facility'}</span>
-                    <span>{patient.preferredContactMethod || 'No contact preference'}</span>
+                    <span>{({ sms: 'Text', phone: 'Phone', email: 'Email', portal: 'Portal' } as Record<string, string>)[patient.preferredContactMethod || ''] || 'No contact preference'}</span>
                     <span className="tabular-nums">{plural(patient.appointmentsCount || 0, 'appt', 'appts')} · {patient.registrationsCount || 0} reg</span>
                   </>}
                   aside={<PatientActions patient={patient} />}

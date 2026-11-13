@@ -376,7 +376,14 @@ export async function searchUnverifiedCoverageCandidates(rawSearch: string) {
   )
 }
 export const recordConsent = async (data: Record<string, unknown>) => run(`mutation($data:ConsentDecisionWorkflowInput!){recordConsentDecision(data:$data){id decision effectiveAt replayed}}`, { data: withKey(data) })
-export const recordPayment = async (data: Record<string, unknown>) => run(`mutation($data:PatientPaymentWorkflowInput!){recordPatientPayment(data:$data){${controlled}}}`, { data: withKey(data) })
+export const recordPayment = async (data: Record<string, unknown>) => {
+  const response = await run<{ recordPatientPayment: { id: string; paymentNumber?: string } }>(`mutation($data:PatientPaymentWorkflowInput!){recordPatientPayment(data:$data){${controlled}}}`, { data: withKey(data) })
+  if (!response.success) return response
+  const created = response.data.recordPatientPayment
+  const found = await keystoneClient<{ patientPayment?: { paymentNumber?: string } | null }>(`query($id:ID!){patientPayment(where:{id:$id}){paymentNumber}}`, { id: created.id })
+  const paymentNumber = found.success ? found.data.patientPayment?.paymentNumber : undefined
+  return paymentNumber ? { ...response, data: { recordPatientPayment: { ...created, paymentNumber } } } : response
+}
 export const enableCardPayments = async (data: Record<string, unknown>) => run(`mutation($facilityId:ID!){enableFacilityCardPayments(facilityId:$facilityId)}`, { facilityId: data.facilityId })
 export const requestRefund = async (data: Record<string, unknown>) => run(`mutation($data:PatientRefundWorkflowInput!){requestPatientRefund(data:$data){${controlled}}}`, { data: withKey(data) })
 export const registerInventory = async (data: Record<string, unknown>) => run(`mutation($data:InventoryItemWorkflowInput!){registerInventoryItem(data:$data){id status transitionVersion quantityOnHand quantityReserved replayed}}`, { data: withKey(data) })

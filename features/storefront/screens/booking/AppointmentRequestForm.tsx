@@ -22,6 +22,7 @@ export function AppointmentRequestForm({
   brandName,
   availabilityRevision = 0,
   onPendingChange,
+  onReceived,
 }: {
   appointmentType: BookableAppointmentType
   providerId: string
@@ -30,12 +31,14 @@ export function AppointmentRequestForm({
   brandName: string
   availabilityRevision?: number
   onPendingChange?: (pending: boolean) => void
+  onReceived?: (received: boolean) => void
 }) {
   const slotKey = (slot: AvailableAppointmentSlot) => `${slot.facilityId}:${slot.startsAt}`
   const [selectedSlotKey, setSelectedSlotKey] = useState(slots[0] ? slotKey(slots[0]) : '')
   const [visibleSlotCount, setVisibleSlotCount] = useState(18)
   const selectedSlot = useMemo(() => slots.find(slot => slotKey(slot) === selectedSlotKey), [slots, selectedSlotKey])
   const [result, setResult] = useState<AppointmentRequestFeedback | null>(null)
+  const [receivedSlot, setReceivedSlot] = useState<AvailableAppointmentSlot | null>(null)
   const [isPending, startTransition] = useTransition()
   const [dirty, setDirty] = useState(false)
   const [unknown, setUnknown] = useState(false)
@@ -59,6 +62,14 @@ export function AppointmentRequestForm({
         <h2 className="sf-step-title sf-titleline"><span aria-hidden="true" className="sf-dot sf-dot--warn" /><span>Received · not yet confirmed</span></h2>
         <p className="sf-receipt__ref"><span className="sf-eyebrow">Ref</span>{result.reference}</p>
         <p>{result.message}</p>
+        {receivedSlot && (
+          <dl className="sf-dl" aria-label="Requested visit">
+            <div><dt>Visit</dt><dd>{appointmentType.name}</dd></div>
+            <div><dt>Clinician</dt><dd>{provider?.displayName || 'Care team'}</dd></div>
+            <div><dt>Time</dt><dd className="sf-mono">{formatFacilitySlotTime(receivedSlot.startsAt, receivedSlot.facilityTimeZone)}</dd></div>
+            <div><dt>Location</dt><dd>{receivedSlot.facilityName}</dd></div>
+          </dl>
+        )}
         <div className="sf-form-actions">
           {result.intakeHref && <a className="sf-pill sf-pill--primary" href={result.intakeHref}>Continue to private intake <ArrowRight aria-hidden="true" className="sf-arrow" /></a>}
           <a className="sf-pill" href="/visit">Check or cancel this visit</a>
@@ -108,6 +119,8 @@ export function AppointmentRequestForm({
             }
 
             setDirty(false)
+            setReceivedSlot(selectedSlot || null)
+            onReceived?.(true)
             const appointment = response.data.requestAppointment
             const accessCode = appointment.intakeForms?.[0]?.accessCode
             setResult(appointmentRequestReceipt({

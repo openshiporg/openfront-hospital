@@ -50,7 +50,7 @@ const queries: Record<FabricQueryKey, string> = {
   billing: `
     query OperationalFabricBilling {
       patientCoveragesCount(where:{status:{equals:"unverified"}})
-      patientPaymentsCount(where:{status:{equals:"succeeded"}})
+      patientPaymentsCount(where:{status:{in:["succeeded","refunded"]}})
     }
   `,
   consents: `

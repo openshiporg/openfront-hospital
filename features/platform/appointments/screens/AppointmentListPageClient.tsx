@@ -4,6 +4,7 @@ import { FacilitySearchField } from '@/features/platform/facilities/components/F
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
+import { formatTimeZoneLabel } from '@/features/storefront/lib/facilityTime'
 import { PageContainer } from '@/features/dashboard/components/PageContainer'
 import {
   Board,
@@ -74,7 +75,7 @@ export function AppointmentListPageClient({
       title="Appointments"
       tone={(statusCounts.requested || 0) > 0 ? 'warn' : 'accent'}
       status={(statusCounts.requested || 0) > 0 ? 'Requests waiting' : undefined}
-      meta={selectedFacility ? `${selectedFacility.name} · ${selectedFacility.timeZone}` : `${activeCount} active`}
+      meta={selectedFacility ? `${selectedFacility.name} · ${formatTimeZoneLabel(selectedFacility.timeZone)}` : `${activeCount} active`}
     />
   )
 
@@ -105,7 +106,7 @@ export function AppointmentListPageClient({
             </div>
             {activeView === 'today' && (
               <label className={`${labelClass} w-full sm:w-44`}>
-                <span>Date{selectedFacility?.timeZone && <span className="tabular-nums font-normal"> · {selectedFacility.timeZone}</span>}</span>
+                <span>Date{selectedFacility?.timeZone && <span className="tabular-nums font-normal"> · {formatTimeZoneLabel(selectedFacility.timeZone)}</span>}</span>
                 <PlatformDateInput name="date" defaultValue={safeSearchParams.get('date') || ''} />
               </label>
             )}

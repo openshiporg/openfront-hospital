@@ -86,7 +86,7 @@ export async function settleFromProvider(context: Context, where: { id?: string;
     if (current.transitionVersion !== payment.transitionVersion) throw new HospitalRefusal('Payment changed; reconcile again')
     const nextVersion = current.transitionVersion + 1
     const updated = await db.patientPayment.update({ where: { id: current.id }, data: { status: 'succeeded', transitionVersion: nextVersion, receivedAt: new Date(), externalReference: payment.providerPaymentId } })
-    await appendAudit(db, { eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference, metadata: { source: 'payment_reconciliation', aggregateId: updated.id, providerPaymentId: updated.providerPaymentId, transitionVersion: nextVersion, amountCents: updated.amountCents, currency: updated.currency } })
+    await appendAudit(db, { eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference, actorType: context.session?.itemId === actorReference ? 'staff_user' : actorReference === 'patient_checkout_return' ? 'patient_self_service' : 'system', metadata: { source: 'payment_reconciliation', aggregateId: updated.id, providerPaymentId: updated.providerPaymentId, transitionVersion: nextVersion, amountCents: updated.amountCents, currency: updated.currency } })
     return { status: updated.status }
   }, { timeout: 30_000 })
 }

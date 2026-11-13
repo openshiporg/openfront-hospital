@@ -1200,7 +1200,7 @@ export function BedReservationCreateForm({ options }: { options: OperationsWorks
         { name: 'patientId', label: 'Patient', kind: 'select', options: options.patients },
         { name: 'bedVersion', label: 'Available bed', kind: 'searchable' },
         { name: 'expiresAt', label: 'Expires at', kind: 'datetime-local' },
-        { name: 'reasonCode', label: 'Reason code', maxLength: 80 },
+        { name: 'reasonCode', label: 'Reason', maxLength: 80 },
       ]}
       onSubmit={async data => {
         const [bedId, version] = String(data.bedVersion).split('::')
