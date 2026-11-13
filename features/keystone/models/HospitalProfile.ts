@@ -24,6 +24,7 @@ export const HospitalProfile = list({
     },
   },
   ui: {
+    hideCreate: args => !permissions.canManageOnboarding(args),
     hideDelete: true,
     listView: { initialColumns: ['name', 'shortName', 'status', 'profileKey'] },
   },

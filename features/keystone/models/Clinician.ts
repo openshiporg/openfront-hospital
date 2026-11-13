@@ -9,7 +9,7 @@ export const Clinician = list({
     operation: { query: isSignedIn, create: permissions.canAccessAllClinicalData, update: permissions.canAccessAllClinicalData, delete: permissions.canAccessAllClinicalData },
     filter: { query: rules.canReadClinicians, update: rules.canReadClinicians, delete: rules.canReadClinicians },
   },
-  ui: { listView: { initialColumns: ['displayName', 'clinicianType', 'department'] } },
+  ui: { hideCreate: args => !permissions.canAccessAllClinicalData(args), listView: { initialColumns: ['displayName', 'clinicianType', 'department'] } },
   fields: {
     onboardingKey: text({
       db: { isNullable: true },

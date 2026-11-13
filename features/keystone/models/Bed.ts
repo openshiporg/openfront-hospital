@@ -25,6 +25,7 @@ export const Bed = list({
   },
   graphql: { omit: { update: true, delete: true } },
   ui: {
+    hideCreate: args => !permissions.canAccessAllClinicalData(args),
     hideDelete: true,
     listView: { initialColumns: ['bedNumber', 'room', 'status', 'currentPatient'] },
   },

@@ -18,7 +18,7 @@ export const ClinicianImage = list({
       delete: rules.canReadClinicianImages,
     },
   },
-  ui: { listView: { initialColumns: ['imagePath', 'altText', 'clinician', 'order'] } },
+  ui: { hideCreate: args => !permissions.canAccessAllClinicalData(args), listView: { initialColumns: ['imagePath', 'altText', 'clinician', 'order'] } },
   fields: {
     image: image({ storage: 'my_images' }),
     imagePath: text(),

@@ -2,6 +2,7 @@ import { readBoundedBody } from './boundedBody'
 import { randomUUID } from 'node:crypto'
 import { webhookErrorResponse } from './webhookErrors'
 import { Prisma } from '@prisma/client'
+import { applyRefundToPayment } from '../mutations/operational/billingWorkflows'
 import { effectiveEpisodePolicy } from '../mutations/clinical/episodeFence'
 import { episodeEligibility } from '../mutations/clinical/episodePolicy'
 
@@ -82,7 +83,7 @@ async function applyDomainEvent(tx: any, input: {
       completedAt: targetStatus === 'succeeded' ? input.now : null,
     } })
     if (targetStatus === 'succeeded') {
-      await tx.patientPayment.update({ where: { id: current.paymentId }, data: { refundedAmountCents: { increment: current.amountCents } } })
+      await applyRefundToPayment(tx, current.paymentId, current.amountCents)
     }
     patientId = updated.patientId
     aggregateType = 'refund'

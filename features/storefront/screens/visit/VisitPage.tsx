@@ -50,7 +50,7 @@ export function VisitPage() {
     try {
       const found = await findVisitAction({ appointmentNumber: number.trim(), dateOfBirth: dob })
       setVisit(found)
-      if (!found) setMessage('We could not find a visit with those details. Check the request number in your email, or call the clinic.')
+      if (!found) setMessage('We could not find a visit with those details. Check the request number you were given, or call the clinic.')
     } finally { setBusy(false) }
   }
 
@@ -68,7 +68,7 @@ export function VisitPage() {
   return <div className="sf-container" style={{ paddingBlock: '4rem', maxWidth: '42rem' }}>
     <h1 className="sf-display sf-display--page">Your visit</h1>
     {!visit && <>
-      <p style={{ marginTop: '.75rem' }}>{loadingLink ? 'Opening your visit…' : 'Enter the request number from your confirmation email and your date of birth.'}</p>
+      <p style={{ marginTop: '.75rem' }}>{loadingLink ? 'Opening your visit…' : 'Enter the request number shown when you sent the request and your date of birth.'}</p>
       <form onSubmit={lookup} className="sf-form" style={{ marginTop: '2rem' }}>
         <label className="sf-field"><span className="sf-label">Request number</span><input className="sf-input" required autoComplete="off" placeholder="APT-20261106-…" value={number} onChange={event => setNumber(event.target.value)} /></label>
         <label className="sf-field"><span className="sf-label">Date of birth</span><input className="sf-input" required type="date" value={dob} onChange={event => setDob(event.target.value)} /></label>

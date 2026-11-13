@@ -28,7 +28,7 @@ export const Facility = list({
       ...(resolvedData.timeZone !== undefined ? { timeZone: assertIanaTimeZone(resolvedData.timeZone) } : {}),
     }),
   },
-  ui: { listView: { initialColumns: ['name', 'facilityType', 'status', 'timeZone', 'city'] } },
+  ui: { hideCreate: args => !permissions.canAccessAllClinicalData(args), listView: { initialColumns: ['name', 'facilityType', 'status', 'timeZone', 'city'] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     slug: text({ isIndexed: 'unique', validation: { isRequired: true } }),

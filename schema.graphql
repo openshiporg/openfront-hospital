@@ -3683,6 +3683,7 @@ type PatientPayment {
   claim: InsuranceClaim
   installation: IntegrationInstallation
   paymentProviderId: String
+  amount: String
   amountCents: Int
   refundedAmountCents: Int
   currency: String

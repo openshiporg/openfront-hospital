@@ -60,6 +60,7 @@ export const ProviderScheduleBlock = list({
     },
   },
   ui: {
+    hideCreate: args => !permissions.canManageScheduling(args),
     listView: {
       initialColumns: ['scheduleLabel', 'provider', 'blockType', 'startsAt', 'endsAt'],
     },

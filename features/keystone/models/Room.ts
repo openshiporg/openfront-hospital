@@ -9,7 +9,7 @@ export const Room = list({
     operation: { query: isSignedIn, create: permissions.canAccessAllClinicalData, update: permissions.canAccessAllClinicalData, delete: permissions.canAccessAllClinicalData },
     filter: { query: rules.canReadRooms, update: rules.canReadRooms, delete: rules.canReadRooms },
   },
-  ui: { listView: { initialColumns: ['roomNumber', 'ward', 'roomType', 'status'] } },
+  ui: { hideCreate: args => !permissions.canAccessAllClinicalData(args), listView: { initialColumns: ['roomNumber', 'ward', 'roomType', 'status'] } },
   fields: {
     roomNumber: text({ isIndexed: 'unique', validation: { isRequired: true } }),
     ward: relationship({ ref: 'Ward', access: { create: permissions.canAccessAllClinicalData, update: () => false } }),

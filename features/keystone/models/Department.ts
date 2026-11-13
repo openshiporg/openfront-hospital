@@ -10,7 +10,7 @@ export const Department = list({
     operation: { query: isSignedIn, create: permissions.canAccessAllClinicalData, update: permissions.canAccessAllClinicalData, delete: permissions.canAccessAllClinicalData },
     filter: { query: rules.canReadDepartments, update: rules.canReadDepartments, delete: rules.canReadDepartments },
   },
-  ui: { listView: { initialColumns: ['name', 'code', 'status'] } },
+  ui: { hideCreate: args => !permissions.canAccessAllClinicalData(args), listView: { initialColumns: ['name', 'code', 'status'] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     code: text({ isIndexed: 'unique' }),

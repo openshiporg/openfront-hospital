@@ -14,6 +14,7 @@ export const AppointmentType = list({
     },
   },
   ui: {
+    hideCreate: args => !permissions.canAccessAllClinicalData(args),
     listView: {
       initialColumns: ['name', 'status', 'durationMinutes', 'priceCents'],
     },

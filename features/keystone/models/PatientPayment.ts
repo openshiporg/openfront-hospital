@@ -1,5 +1,5 @@
-import { list } from '@keystone-6/core'
-import { integer, relationship, select, text, timestamp } from '@keystone-6/core/fields'
+import { graphql, list } from '@keystone-6/core'
+import { integer, relationship, select, text, timestamp, virtual } from '@keystone-6/core/fields'
 import { denyAccess, isSignedIn, permissions, rules } from '../access'
 import { trackingFields } from './trackingFields'
 
@@ -11,11 +11,11 @@ export const PatientPayment = list({
     .replace(/providerPaymentId\s+String\s+@default\(""\)/, 'providerPaymentId String? @unique') } },
   access: { operation: { query: isSignedIn, create: denyAccess, update: denyAccess, delete: denyAccess }, filter: { query: rules.canReadBillingRecords } },
   graphql: { omit: { create: true, update: true, delete: true } },
-  ui: { hideCreate: true, hideDelete: true, listView: { initialColumns: ['paymentNumber', 'status', 'amountCents', 'method', 'patient', 'facility'] } },
+  ui: { hideCreate: true, hideDelete: true, listView: { initialColumns: ['paymentNumber', 'status', 'amount', 'method', 'patient', 'facility'] } },
   fields: {
     paymentNumber: text({ isIndexed: 'unique', validation: { isRequired: true } }),
     status: select({ type: 'string', options: [
-      { label: 'Pending', value: 'pending' }, { label: 'Succeeded', value: 'succeeded' },
+      { label: 'Pending', value: 'pending' }, { label: 'Succeeded', value: 'succeeded' }, { label: 'Refunded', value: 'refunded' },
       { label: 'Failed', value: 'failed' }, { label: 'Cancelled', value: 'cancelled' },
     ], defaultValue: 'pending', validation: { isRequired: true } }),
     transitionVersion: integer({ defaultValue: 1, validation: { isRequired: true, min: 1 } }),
@@ -23,6 +23,10 @@ export const PatientPayment = list({
     requestHash: text({ access: { read: permissions.canAccessAllClinicalData }, validation: { isRequired: true } }),
     actorReference: text({ access: { read: permissions.canReadAuditMetadata }, validation: { isRequired: true } }),
     facility: relationship({ ref: 'Facility' }), patient: relationship({ ref: 'Patient' }), claim: relationship({ ref: 'InsuranceClaim' }), installation: relationship({ ref: 'IntegrationInstallation' }), paymentProviderId: text({ access: { read: permissions.canManageBilling } }),
+    amount: virtual({
+      access: { read: permissions.canManageBilling },
+      field: graphql.field({ type: graphql.String, resolve: item => new Intl.NumberFormat('en-US', { style: 'currency', currency: String(item.currency || 'USD') }).format(Number(item.amountCents || 0) / 100) }),
+    }),
     amountCents: integer({ validation: { isRequired: true, min: 1 }, access: { read: permissions.canManageBilling } }),
     refundedAmountCents: integer({ defaultValue: 0, validation: { isRequired: true, min: 0 }, access: { read: permissions.canManageBilling } }),
     currency: text({ defaultValue: 'USD', validation: { isRequired: true } }),

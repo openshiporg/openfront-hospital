@@ -57,6 +57,15 @@ export const User = list({
       return next
     },
     afterOperation: async ({ operation, item, originalItem, context }) => {
+      // A staff user (has a role, not a patient account) with no facility sees empty pages; give them the default one.
+      if ((operation === 'create' || operation === 'update') && item?.roleId) {
+        const db = context.sudo().prisma
+        const hasFacility = await db.user.count({ where: { id: item.id, facilities: { some: {} } } })
+        if (!hasFacility && !(await db.patient.count({ where: { userId: item.id } }))) {
+          const facility = await db.facility.findFirst({ where: { status: 'active' }, orderBy: [{ createdAt: 'asc' }], select: { id: true } })
+          if (facility) await db.user.update({ where: { id: item.id }, data: { facilities: { connect: { id: facility.id } } } })
+        }
+      }
       if (operation === 'update' && originalItem?.email !== item?.email) {
         await context.sudo().prisma.passwordResetRequest.updateMany({
           where: { userId: item.id, status: 'pending' },

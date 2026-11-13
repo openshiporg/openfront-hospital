@@ -20,6 +20,7 @@ export const Patient = list({
   },
   graphql: { omit: { create: true, update: true, delete: true } },
   ui: {
+    labelField: 'displayName',
     listView: {
       initialColumns: ['displayName', 'status', 'dateOfBirth', 'phone', 'email'],
     },

@@ -9,7 +9,7 @@ export const Ward = list({
     operation: { query: isSignedIn, create: permissions.canAccessAllClinicalData, update: permissions.canAccessAllClinicalData, delete: permissions.canAccessAllClinicalData },
     filter: { query: rules.canReadWards, update: rules.canReadWards, delete: rules.canReadWards },
   },
-  ui: { listView: { initialColumns: ['name', 'department', 'floor', 'status'] } },
+  ui: { hideCreate: args => !permissions.canAccessAllClinicalData(args), listView: { initialColumns: ['name', 'department', 'floor', 'status'] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     department: relationship({ ref: 'Department', access: { create: permissions.canAccessAllClinicalData, update: () => false } }),

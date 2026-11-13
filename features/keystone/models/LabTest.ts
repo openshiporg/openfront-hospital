@@ -6,7 +6,7 @@ import { trackingFields } from './trackingFields'
 
 export const LabTest = list({
   access: { operation: { query: isSignedIn, create: permissions.canAccessAllClinicalData, update: permissions.canAccessAllClinicalData, delete: permissions.canAccessAllClinicalData } },
-  ui: { listView: { initialColumns: ['name', 'code', 'category'] } },
+  ui: { hideCreate: args => !permissions.canAccessAllClinicalData(args), listView: { initialColumns: ['name', 'code', 'category'] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     code: text({ isIndexed: 'unique' }),

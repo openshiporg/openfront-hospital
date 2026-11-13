@@ -241,7 +241,7 @@ async function transitionPaymentLike(
       ...(options.aggregateType === 'refund' && options.toStatus === 'failed' ? { failedAt: now } : {}),
     } })
     if (options.aggregateType === 'refund' && options.toStatus === 'succeeded') {
-      await prisma.patientPayment.update({ where: { id: current.paymentId }, data: { refundedAmountCents: { increment: current.amountCents } } })
+      await applyRefundToPayment(prisma, current.paymentId, current.amountCents)
     }
     const events = await appendAudit(prisma, {
       eventType: `${options.aggregateType}.${updated.status}`, aggregateType: options.aggregateType, aggregateId: updated.id,
@@ -319,7 +319,7 @@ export async function requestPatientRefund(_root: unknown, { data }: any, contex
       },
     })
     if (!isExternal && !isOnline) {
-      await prisma.patientPayment.update({ where: { id: payment.id }, data: { refundedAmountCents: { increment: amountCents } } })
+      await applyRefundToPayment(prisma, payment.id, amountCents)
     }
     await appendAudit(prisma, {
       eventType: `refund.${refund.status}`, aggregateType: 'refund', aggregateId: refund.id,
@@ -353,7 +353,7 @@ async function settleOnlineRefund(context: Context, refundId: string) {
     if (!current || current.status !== 'pending') return result(current)
     const now = new Date()
     const updated = await db.patientRefund.update({ where: { id: current.id }, data: { status: 'succeeded', transitionVersion: { increment: 1 }, completedAt: now, externalReference: providerRefund.id } })
-    await db.patientPayment.update({ where: { id: payment.id }, data: { refundedAmountCents: { increment: current.amountCents } } })
+    await applyRefundToPayment(db, payment.id, current.amountCents)
     await appendAudit(db, {
       eventType: 'refund.succeeded', aggregateType: 'refund', aggregateId: updated.id,
       facilityId: updated.facilityId, patientId: updated.patientId, actorReference: context.session!.itemId,
@@ -378,4 +378,13 @@ export async function enableFacilityCardPayments(_root: unknown, { facilityId }:
     update: { isInstalled: true, ...functions },
   })
   return { id: row.id, isInstalled: row.isInstalled }
+}
+
+
+// Adds a completed refund to its payment; a payment refunded in full becomes 'refunded' instead of staying 'succeeded'.
+export async function applyRefundToPayment(db: any, paymentId: string, amountCents: number) {
+  const payment = await db.patientPayment.update({ where: { id: paymentId }, data: { refundedAmountCents: { increment: amountCents } } })
+  if (payment.status === 'succeeded' && payment.refundedAmountCents >= payment.amountCents) {
+    await db.patientPayment.update({ where: { id: paymentId }, data: { status: 'refunded', transitionVersion: { increment: 1 } } })
+  }
 }
