@@ -65,6 +65,7 @@ export function StorefrontNav({ profile, current }: { profile: HospitalBranding;
             <Link className="sf-pill" aria-current={current === 'care' ? 'page' : undefined} href="/care">Care services</Link>
             <Link className="sf-pill" aria-current={current === 'providers' ? 'page' : undefined} href="/providers">Care team</Link>
             <Link className="sf-pill" aria-current={current === 'locations' ? 'page' : undefined} href="/locations">Locations</Link>
+            <Link className="sf-pill" href="/pay">Pay a bill</Link>
           </nav>
           <div className="sf-nav__actions sf-track">
             <Link className="sf-pill" aria-current={current === 'account' ? 'page' : undefined} href="/account">Your visits</Link>

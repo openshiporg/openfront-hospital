@@ -3,29 +3,29 @@
  * Leaflet-stock white and clinical ink; every service is a full-strength cover colour; 1px keylines, 3px corners.
  */
 .storefront {
-  --color-paper: #fbfcfa;
-  --color-paper-2: #f0f2ee;
-  --color-paper-3: #dfe2da;
+  --color-paper: #f3f8fe;
+  --color-paper-2: #e9f1fb;
+  --color-paper-3: #dbe7f6;
   --color-card: #ffffff;
-  --color-ink: #0e1f1c;
-  --color-ink-2: #3c4e4a;
-  --color-ink-3: #6b7975;
-  --color-rule: #dde2dd;
-  --color-rule-strong: #b9c2bd;
-  --color-accent: #0f5c4c;
-  --color-accent-2: #0f4a3e;
-  --color-accent-soft: #dcebe4;
+  --color-ink: #0b2149;
+  --color-ink-2: #46556f;
+  --color-ink-3: #6b7a93;
+  --color-rule: #dce7f5;
+  --color-rule-strong: #bcd2ee;
+  --color-accent: #2a73d9;
+  --color-accent-2: #1d5cb8;
+  --color-accent-soft: #e2eefc;
   --color-accent-ink: #ffffff;
-  --color-focus: #0d7160;
-  --color-lobby: #0f2421;
-  --color-lobby-2: #17322e;
+  --color-focus: #1d5cb8;
+  --color-lobby: #0b2149;
+  --color-lobby-2: #14305f;
   --color-lobby-ink: #e9f0ec;
-  --color-lobby-ink-2: #9fb3ad;
+  --color-lobby-ink-2: #a9bddb;
 
   /* Wayfinding zones: fixed sign colours per service line. */
   --zone-a: var(--color-accent);
-  --zone-b: #285d86;
-  --zone-c: #9a5412;
+  --zone-b: #2f7fa8;
+  --zone-c: #3a8f87;
 
   --color-warn: #fbf1d6;
   --color-warn-ink: #6d4b12;
@@ -37,9 +37,9 @@
   --color-dot-warn: #d99a1e;
   --color-dot-bad: #d0452f;
 
-  --font-display: var(--font-schibsted), "Helvetica Neue", Arial, sans-serif;
-  --font-body: var(--font-atkinson), system-ui, sans-serif;
-  --font-mono: var(--font-atkinson), system-ui, sans-serif;
+  --font-display: var(--font-jakarta), "Helvetica Neue", Arial, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-inter), system-ui, sans-serif;
 
   --space-3xs: 0.25rem;
   --space-2xs: 0.5rem;
@@ -59,20 +59,20 @@
   --text-2xl: clamp(1.9rem, 4vw, 3rem);
   --text-display: clamp(2.75rem, 6vw, 5.25rem);
 
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 3px;
-  --radius-xl: 3px;
-  --radius-pill: 3px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
 
   --shadow-raised: none;
   --shadow-recessed: none;
-  --shadow-card: 0 0 0 1px var(--color-rule);
+  --shadow-card: 0 0 0 1px var(--color-rule), 0 8px 24px -16px rgba(29,92,184,.25);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-short: 160ms;
   --dur-medium: 380ms;
-  --max-width: 78rem;
+  --max-width: 72rem;
 
   color: var(--color-ink);
   background: var(--color-paper);
