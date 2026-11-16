@@ -12,9 +12,16 @@ export async function HomePage() {
     getBookableAppointmentTypes(),
     getBookableProviders(),
   ])
+  return <HomeView profile={profile} appointmentTypes={appointmentTypes} providers={providers} />
+}
+
+export function HomeView({ profile, appointmentTypes, providers }: {
+  profile: Awaited<ReturnType<typeof getHospitalBranding>>
+  appointmentTypes: Awaited<ReturnType<typeof getBookableAppointmentTypes>>
+  providers: Awaited<ReturnType<typeof getBookableProviders>>
+}) {
   const serviceLines = careServiceLines(appointmentTypes)
   const previewProviders = providers.slice(0, 3)
-
   const lineIcon = (key: string) => key === 'primary-care' ? Stethoscope : key === 'behavioral-health' ? HeartPulse : Video
   const place = [profile.addressLine1, profile.city, profile.region, profile.postalCode].filter(Boolean).join(', ')
 
