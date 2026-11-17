@@ -19,6 +19,7 @@ export type EncounterTransitionInput = {
   toStatus: 'in_progress' | 'closed' | 'cancelled'
   expectedVersion: number
   reason?: string
+  diagnosisSummary?: string
   expectedReviewFingerprint?: string
   reviewedTuple?: Record<string, unknown>
 }
@@ -45,6 +46,7 @@ export async function transitionEncounter(input: EncounterTransitionInput) {
       $toStatus: String!
       $expectedVersion: Int!
       $reason: String
+      $diagnosisSummary: String
       $expectedReviewFingerprint: String
       $reviewedTuple: JSON
     ) {
@@ -54,6 +56,7 @@ export async function transitionEncounter(input: EncounterTransitionInput) {
         toStatus: $toStatus
         expectedVersion: $expectedVersion
         reason: $reason
+        diagnosisSummary: $diagnosisSummary
         expectedReviewFingerprint: $expectedReviewFingerprint
         reviewedTuple: $reviewedTuple
       ) {

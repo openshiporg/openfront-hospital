@@ -131,7 +131,7 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
     setPending(true); setMessage(''); remember(command)
     try {
       const input: EncounterTransitionInput = { operationKey: command.operationKey, encounterId: command.encounterId, toStatus: command.toStatus,
-        expectedVersion: command.expectedVersion, reason: command.reason, expectedReviewFingerprint: command.expectedReviewFingerprint, reviewedTuple: command.reviewedTuple }
+        expectedVersion: command.expectedVersion, reason: command.reason, ...(command.diagnosisSummary ? { diagnosisSummary: command.diagnosisSummary } : {}), expectedReviewFingerprint: command.expectedReviewFingerprint, reviewedTuple: command.reviewedTuple }
       const response = await transitionEncounter(input)
       if (!response.success) throw new Error(response.error)
       const result = (response.data as any).transitionEncounter
@@ -176,7 +176,7 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
       {!saved && ['open', 'in_progress'].includes(workspace.status) && <form className="grid min-w-0 gap-2" action={form => {
         const toStatus = String(form.get('toStatus')) as EncounterTransitionInput['toStatus']
         return send({ operationKey: `episode-${crypto.randomUUID()}`, encounterId, toStatus, expectedVersion: workspace.transitionVersion,
-          expectedReviewFingerprint: workspace.reviewFingerprint, reviewedTuple: workspace.tuple, reason: String(form.get('reason') || ''), actorId: workspace.actorId })
+          expectedReviewFingerprint: workspace.reviewFingerprint, reviewedTuple: workspace.tuple, reason: String(form.get('reason') || ''), diagnosisSummary: toStatus === 'closed' ? String(form.get('diagnosisSummary') || '').trim() || undefined : undefined, actorId: workspace.actorId })
       }}>
         <label htmlFor={`${id}-transition`} className={labelClass}>Transition</label>
         <OptionSelect className={selectStyle} name="toStatus" id={`${id}-transition`} required>
@@ -186,6 +186,10 @@ export function EpisodeClosurePanel({ encounterId }: { encounterId: string }) {
         </OptionSelect>
         <label htmlFor={`${id}-reason`} className={labelClass}>Administrative reason (no PHI)</label>
         <textarea name="reason" id={`${id}-reason`} maxLength={1000} required rows={2} className={`${fieldClass} h-auto py-2`} />
+        {workspace.status === 'in_progress' && <>
+          <label htmlFor={`${id}-diagnosis`} className={labelClass}>Diagnosis summary (recorded when closing)</label>
+          <textarea name="diagnosisSummary" id={`${id}-diagnosis`} maxLength={4000} rows={3} className={`${fieldClass} h-auto py-2`} />
+        </>}
         <Track className="justify-self-start"><Pill type="submit" size="sm" variant="primary" disabled={pending || (workspace.status === 'in_progress' && workspace.policy?.definition.operationalClosure !== 'enabled')}>Apply transition</Pill></Track>
       </form>}
       <ul className="space-y-1 tabular-nums text-xs text-muted-foreground">{workspace.history.map((entry: any) => <li key={entry.id}>v{entry.toVersion}: {entry.fromStatus} → {entry.toStatus} · {entry.provenance.replaceAll('_', ' ')} · policy {entry.policy ? (entry.policy.id ? entry.policy.revision : 'standard') : 'unknown'} · {entry.owned ? 'your receipt' : 'another authorized operator'}</li>)}</ul>
