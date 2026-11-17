@@ -15,7 +15,7 @@ import {
   requireSafeCents,
   scopedFacilityPatient,
 } from './evidence'
-import { getPaymentStatus, refundPayment } from '../../utils/paymentProviderAdapter'
+import { expirePayment, getPaymentStatus, refundPayment } from '../../utils/paymentProviderAdapter'
 import { isPaymentProviderConfigured } from '../../utils/paymentProviderConfig'
 import { HospitalRefusal } from '../../lib/constraint-errors'
 
@@ -213,6 +213,18 @@ async function transitionPaymentLike(
   if (options.toStatus === 'succeeded') throw new HospitalRefusal('External billing success requires a verified integration event')
   const scoped = await (context.query as any)[options.model].findOne({ where: { id: options.id }, query: 'id' })
   if (!scoped) throw new HospitalRefusal('Billing record not found or not accessible')
+  if (options.aggregateType === 'payment') {
+    // An online bill still open at Stripe is closed there first, so the patient can't pay it after it is cancelled here.
+    const sudo = context.sudo().prisma as any
+    const payment = await sudo.patientPayment.findUnique({ where: { id: options.id } })
+    if (payment?.status === 'pending' && payment.providerPaymentId) {
+      const provider = payment.paymentProviderId ? await sudo.paymentProvider.findFirst({ where: { id: payment.paymentProviderId } }) : null
+      if (!provider) throw new HospitalRefusal('Online payment provider is no longer active; reconcile before cancelling')
+      const state = await expirePayment({ provider, paymentId: payment.providerPaymentId })
+      if (state?.status === 'succeeded') throw new HospitalRefusal('The patient has already paid this online; use Reconcile to record it')
+      if (state && state.status !== 'canceled') throw new HospitalRefusal('The online checkout could not be closed; try again')
+    }
+  }
   const reasonCode = bounded(options.reasonCode, 'Billing transition reason', 80, options.toStatus !== 'succeeded')
   const externalReference = bounded(options.externalReference, 'External reference', 300)
   const evidence = transitionEvidence(options.operationKey, {

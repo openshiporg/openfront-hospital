@@ -47,6 +47,13 @@ export async function getPaymentStatusFunction({ paymentId }: { paymentId: strin
   const intent = await stripeRequest(`payment_intents/${encodeURIComponent(paymentId)}`)
   return { id: intent.id, status: intent.status, amount: intent.amount_received || intent.amount, currency: intent.currency.toUpperCase() }
 }
+/** Closes an open Checkout Session so it can no longer be paid. Answers the session's state afterwards. */
+export async function expirePaymentFunction({ paymentId }: { paymentId: string }) {
+  const current = await getPaymentStatusFunction({ paymentId })
+  if (!paymentId.startsWith('cs_') || current.status === 'succeeded' || current.status === 'canceled') return current
+  try { await stripeRequest(`checkout/sessions/${encodeURIComponent(paymentId)}/expire`, 'POST', {}) } catch { /* paid or closed meanwhile: the read below says which */ }
+  return getPaymentStatusFunction({ paymentId })
+}
 export async function generatePaymentLinkFunction({ paymentId }: { paymentId: string }) {
   const mode = process.env.STRIPE_SECRET_KEY?.includes('_test_') ? 'test/' : ''
   return `https://dashboard.stripe.com/${mode}payments/${encodeURIComponent(paymentId)}`

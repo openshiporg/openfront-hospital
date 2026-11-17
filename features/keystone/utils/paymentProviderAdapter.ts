@@ -1,11 +1,12 @@
 import { paymentProviderAdapters } from '../../integrations/payment'
 
-const operations = new Set(['createPaymentFunction', 'capturePaymentFunction', 'refundPaymentFunction', 'getPaymentStatusFunction', 'generatePaymentLinkFunction', 'handleWebhookFunction'])
+const operations = new Set(['createPaymentFunction', 'capturePaymentFunction', 'refundPaymentFunction', 'getPaymentStatusFunction', 'generatePaymentLinkFunction', 'handleWebhookFunction', 'expirePaymentFunction'])
 const adapters = new Set(Object.keys(paymentProviderAdapters))
 
 export async function executeAdapterFunction({ provider, functionName, args }: { provider: any; functionName: string; args: Record<string, any> }) {
   if (!operations.has(functionName)) throw new Error('Unknown payment adapter operation')
-  const selector = provider?.[functionName]
+  // Expire has no column of its own: it lives in the same adapter as the provider's status read.
+  const selector = provider?.[functionName === 'expirePaymentFunction' ? 'getPaymentStatusFunction' : functionName]
   if (typeof selector !== 'string' || !adapters.has(selector)) throw new Error('Payment adapter is not configured')
   const adapter = await paymentProviderAdapters[selector as keyof typeof paymentProviderAdapters]()
   const fn = (adapter as any)[functionName]
@@ -20,3 +21,11 @@ export const refundPayment = (input: any) => executeAdapterFunction({ ...input, 
 export const getPaymentStatus = (input: any) => executeAdapterFunction({ ...input, functionName: 'getPaymentStatusFunction', args: input })
 export const generatePaymentLink = (input: any) => executeAdapterFunction({ ...input, functionName: 'generatePaymentLinkFunction', args: input })
 export const handleWebhook = (input: any) => executeAdapterFunction({ ...input, functionName: 'handleWebhookFunction', args: input })
+/** Closes the provider's open checkout so it can't be paid; null when the adapter has no such step (nothing open to close). */
+export const expirePayment = async (input: any) => {
+  const selector = input.provider?.getPaymentStatusFunction
+  if (typeof selector !== 'string' || !adapters.has(selector)) throw new Error('Payment adapter is not configured')
+  const adapter: any = await paymentProviderAdapters[selector as keyof typeof paymentProviderAdapters]()
+  if (typeof adapter.expirePaymentFunction !== 'function') return null
+  return executeAdapterFunction({ ...input, functionName: 'expirePaymentFunction', args: input })
+}
