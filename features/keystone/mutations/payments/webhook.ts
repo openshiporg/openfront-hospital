@@ -26,7 +26,9 @@ export async function handlePatientPaymentWebhook(providerId: string, event: any
   }
   const resource = event.data.object
   const paymentId = resource.metadata?.patientPaymentId
-  const providerPaymentId = resource.payment_intent || resource.id
+  // The Checkout Session id stays the stored provider id (the return page and reconcile look it up); the PaymentIntent is the external reference.
+  const providerPaymentId = resource.id
+  const externalReference = resource.payment_intent || resource.id
   if (!paymentId || !providerPaymentId) throw new HospitalRefusal('Webhook payment correlation is missing')
   return context.transaction(async (tx: any) => {
     const db = tx.sudo().prisma
@@ -34,10 +36,15 @@ export async function handlePatientPaymentWebhook(providerId: string, event: any
     if (receipt.status === 'processed' || receipt.status === 'ignored') return { success: true, duplicate: true }
     await db.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`payment:${paymentId}`}, 0))::text AS "lock"`)
     const payment = await db.patientPayment.findUnique({ where: { id: paymentId } })
+    if (payment && payment.paymentProviderId === provider.id && payment.status === 'succeeded' && payment.providerPaymentId === providerPaymentId) {
+      // The return page or a reconcile already recorded this payment.
+      await db.paymentWebhookReceipt.update({ where: { id: receipt.id }, data: { status: 'processed', processedAt: new Date() } })
+      return { success: true, duplicate: true }
+    }
     if (!payment || payment.paymentProviderId !== provider.id || payment.status !== 'pending') throw new HospitalRefusal('Payment correlation is invalid')
     if (resource.amount_total !== payment.amountCents || String(resource.currency).toUpperCase() !== payment.currency) throw new HospitalRefusal('Provider amount/currency mismatch')
-    const updated = await db.patientPayment.update({ where: { id: payment.id }, data: { status: 'succeeded', transitionVersion: { increment: 1 }, receivedAt: new Date(), providerPaymentId } })
-    await appendAudit(db, { eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference: 'stripe_webhook', actorType: 'payment_provider', metadata: { source: 'verified_payment_webhook', aggregateId: updated.id, providerPaymentId, transitionVersion: updated.transitionVersion, amountCents: updated.amountCents, currency: updated.currency } })
+    const updated = await db.patientPayment.update({ where: { id: payment.id }, data: { status: 'succeeded', transitionVersion: { increment: 1 }, receivedAt: new Date(), externalReference } })
+    await appendAudit(db, { eventType: 'payment.succeeded', aggregateType: 'payment', aggregateId: updated.id, facilityId: updated.facilityId, patientId: updated.patientId, actorReference: 'stripe_webhook', actorType: 'payment_provider', metadata: { source: 'verified_payment_webhook', aggregateId: updated.id, providerPaymentId, externalReference, transitionVersion: updated.transitionVersion, amountCents: updated.amountCents, currency: updated.currency } })
     await db.paymentWebhookReceipt.update({ where: { id: receipt.id }, data: { status: 'processed', processedAt: new Date() } })
     return { success: true, duplicate: false }
   }, { timeout: 30_000 })
