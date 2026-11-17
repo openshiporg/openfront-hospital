@@ -54,6 +54,8 @@ export const User = list({
       )) {
         next.securityVersion = Number(item?.securityVersion || 1) + 1
       }
+      // A new address is not confirmed: the patient's visits stay hidden until the new address is confirmed.
+      if (operation === 'update' && next.email !== undefined && next.email !== item?.email) next.emailVerifiedAt = null
       return next
     },
     afterOperation: async ({ operation, item, originalItem, context }) => {
