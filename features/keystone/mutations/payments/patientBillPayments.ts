@@ -28,7 +28,7 @@ export async function lookupPatientBill(_root: unknown, { paymentNumber, dateOfB
 }
 
 export async function initiatePatientBillPayment(_root: unknown, { paymentToken }: { paymentToken: string }, context: Context) {
-  if (context.session?.listKey === 'User') throw new HospitalRefusal('Staff should issue this link from the billing workflow')
+  // The signed bill token is the authority: a signed-in patient (or staff in the same browser) pays the same way as a guest.
   const [paymentId, supplied] = paymentToken.split('.')
   const secret = process.env.SESSION_SECRET || ''
   if (!paymentId || !supplied || secret.length < 32 || !equal(supplied, createHmac('sha256', secret).update(`bill:${paymentId}`).digest('hex'))) throw new HospitalRefusal('Payment proof is invalid')
@@ -36,7 +36,6 @@ export async function initiatePatientBillPayment(_root: unknown, { paymentToken 
   const payment = await prisma.patientPayment.findUnique({ where: { id: paymentId } })
   const paymentProvider = payment?.paymentProviderId ? await prisma.paymentProvider.findFirst({ where: { id: payment.paymentProviderId, facilityId: payment.facilityId, isInstalled: true } }) : null
   if (!payment || payment.status !== 'pending' || payment.method !== 'card_online' || !paymentProvider) throw new HospitalRefusal('Payment is unavailable')
-  if (context.session) throw new HospitalRefusal('Patient portal payment sessions are not supported')
   if (payment.providerPaymentId) {
     // Resume the patient's open Checkout Session instead of creating a second one.
     const existing = await getPaymentStatus({ provider: paymentProvider, paymentId: payment.providerPaymentId })
