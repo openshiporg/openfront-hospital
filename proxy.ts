@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { handleDashboardRoutes, getAuthenticatedUser, checkInitStatus } from "@/features/dashboard/middleware";
+import { handleDashboardRoutes, getAuthenticatedUser, checkInitStatus, tooManyRequestsResponse } from "@/features/dashboard/middleware";
 import { handleStorefrontRoutes } from "@/features/storefront/middleware";
 import { NextResponse } from "next/server";
 import { isDashboardRoute } from "@/features/dashboard/lib/authFlow";
@@ -23,7 +23,8 @@ export async function proxy(request: NextRequest) {
   }
 
   // Get authenticated user once
-  const { user, redirectToInit } = await getAuthenticatedUser(request);
+  const { user, redirectToInit, rateLimited } = await getAuthenticatedUser(request);
+  if (rateLimited) return tooManyRequestsResponse(request);
 
   // If redirectToInit is true (no users exist) and user is on storefront, redirect to dashboard init
   if (redirectToInit && !isDashboardRoute(request.nextUrl.pathname, "init")) {

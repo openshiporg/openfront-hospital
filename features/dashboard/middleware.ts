@@ -75,10 +75,25 @@ export async function getAuthenticatedUser(request: NextRequest) {
       redirectToInit: data.redirectToInit
     };
   } catch (error) {
+    // Over the per-user GraphQL budget is not signed out: say so instead of sending the user to sign in.
+    if ((error as { response?: { status?: number } })?.response?.status === 429) return { user: null, redirectToInit: false, rateLimited: true };
     console.error("Auth check failed:", safeErrorSummary(error));
     
     return { user: null, redirectToInit: false };
   }
+}
+
+/** The answer while the user is over the GraphQL request budget: a plain "try again" page, never the sign-in redirect. */
+export function tooManyRequestsResponse(request: NextRequest) {
+  const again = sanitizeDashboardRedirect(request.nextUrl.pathname + request.nextUrl.search);
+  const href = again.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="60"><title>Too many requests</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1.5rem;line-height:1.5;color:#111">
+<h1 style="font-size:1.5rem;margin:0 0 .5rem">Too many requests</h1>
+<p style="margin:0 0 1.25rem">You are still signed in, but this account has made a lot of requests in the last minute. Wait a moment and try again; this page reloads itself in a minute.</p>
+<a href="${href}" style="display:inline-block;padding:.6rem 1.1rem;border-radius:.5rem;background:#111;color:#fff;text-decoration:none">Try again</a>
+</body></html>`;
+  return new NextResponse(html, { status: 429, headers: { "content-type": "text/html; charset=utf-8", "retry-after": "60", "cache-control": "no-store" } });
 }
 
 // Handles authentication and access control for dashboard routes

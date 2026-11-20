@@ -60,3 +60,14 @@ test('initialization uses the shared init page and Keystone initFirstItem, as in
   assert.match(route, /InitPage/)
   assert.match(keystone, /initFirstItem/)
 })
+
+test('a GraphQL 429 reads as "too many requests", never as signed out', async () => {
+  const { tooManyRequestsResponse } = await import('./middleware')
+  const response = tooManyRequestsResponse(request('/dashboard/platform/patients?x=1'))
+  assert.equal(response.status, 429)
+  assert.equal(response.headers.get('location'), null)
+  assert.equal(response.headers.get('retry-after'), '60')
+  const html = await response.text()
+  assert.match(html, /Too many requests/)
+  assert.match(html, /href="\/dashboard\/platform\/patients\?x=1"/)
+})
