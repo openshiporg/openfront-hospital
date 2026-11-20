@@ -15,6 +15,8 @@ import {
 } from '../../features/keystone/security/graphqlSecurity'
 import { phiReadAuditDescriptor, recordPhiReadAudit } from '../../features/keystone/security/phiReadAudit'
 import { maskGraphqlError } from '../../features/keystone/lib/graphql-error-mask'
+// @ts-expect-error graphql-upload ships no types for this entry point
+import processRequest from 'graphql-upload/processRequest.js'
 
 export const config = {
   api: {
@@ -23,6 +25,10 @@ export const config = {
 }
 
 const MAX_BODY_BYTES = 1_000_000
+// Image uploads from signed-in staff (clinician, facility and department photos).
+const MAX_UPLOAD_BODY_BYTES = 12_000_000
+const MAX_UPLOAD_FILE_BYTES = 10_000_000
+const MAX_UPLOAD_FILES = 5
 const production = process.env.NODE_ENV === 'production'
 const ANONYMOUS_LIMIT = production ? 120 : 2_000
 const AUTHENTICATED_LIMIT = production ? 600 : 2_000
@@ -173,13 +179,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return reject(res, 411, 'GraphQL request length is required')
   }
   const contentLength = Number(req.headers['content-length'] || 0)
-  if (!Number.isFinite(contentLength) || contentLength < 0 || contentLength > MAX_BODY_BYTES) {
+  const isUpload = String(req.headers['content-type'] || '').toLowerCase().startsWith('multipart/form-data')
+  if (!Number.isFinite(contentLength) || contentLength < 0 || contentLength > (isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)) {
     return reject(res, 413, 'GraphQL request body is too large')
   }
-  if (String(req.headers['content-type'] || '').toLowerCase().startsWith('multipart/form-data')) {
-    return reject(res, 415, 'GraphQL file uploads are not enabled')
+  if (isUpload && !isAllowedUploadRequest(req)) {
+    return reject(res, 403, 'File uploads need a signed-in staff session')
   }
-  if (!hasSafeGraphqlOrigin(req.method, req.headers)) {
+  if (!isUpload && !hasSafeGraphqlOrigin(req.method, req.headers)) {
     return reject(res, 403, 'GraphQL request origin is not allowed')
   }
   const identity = requestIdentity(req.headers, req.socket.remoteAddress)
@@ -218,7 +225,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return reject(res, 503, 'GraphQL request controls are unavailable')
   }
 
+  if (isUpload) {
+    try {
+      req.body = await processRequest(req, res, { maxFileSize: MAX_UPLOAD_FILE_BYTES, maxFiles: MAX_UPLOAD_FILES })
+    } catch {
+      return reject(res, 400, 'The uploaded file could not be read')
+    }
+  }
+
   res.setHeader('cache-control', 'no-store')
   res.setHeader('x-content-type-options', 'nosniff')
   return yoga(req, res)
+}
+
+// Multipart bodies are only accepted from a session cookie holder that also
+// sends the non-simple apollo-require-preflight header (so a cross-site form
+// cannot submit one) and, when the browser sends an Origin, from this host.
+// List access control still decides who may write each image field.
+function isAllowedUploadRequest(req: NextApiRequest) {
+  if (String(req.method || '').toUpperCase() !== 'POST') return false
+  if (!hasSessionCookie(req.headers)) return false
+  if (!req.headers['apollo-require-preflight']) return false
+  return hasSafeGraphqlOrigin(req.method, { ...req.headers, 'content-type': 'application/json' })
 }
