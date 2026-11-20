@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import type { CSSProperties } from 'react'
 import { notFound } from 'next/navigation'
-import { EmergencyNotice, Sign, StorefrontShell, zoneFor } from '@/features/storefront/components/StorefrontShell'
+import { EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
 import { careServiceLines } from '@/features/storefront/lib/careServices'
 import { getAvailableAppointmentSlots, getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
 import { BookingWorkspace } from './BookingWorkspace'
@@ -22,7 +21,6 @@ export async function AppointmentTypeBookingPage({
   if (!appointmentType) notFound()
 
   const line = careServiceLines([appointmentType])[0]
-  const zone = zoneFor(line?.key || 'other-care')
   const selectedProvider = resolvedSearchParams.providerId === undefined ? appointmentType.providers[0] : appointmentType.providers.find(item => item.id === resolvedSearchParams.providerId)
   const selectedFacility = resolvedSearchParams.facilityId === undefined ? selectedProvider?.facilities[0] : selectedProvider?.facilities.find(item => item.id === resolvedSearchParams.facilityId)
   const dateValue = resolvedSearchParams.date === undefined ? nextFacilityCalendarDate(selectedFacility?.timeZone || 'UTC') : resolvedSearchParams.date
@@ -40,13 +38,12 @@ export async function AppointmentTypeBookingPage({
       <div className="sf-container sf-work">
         <aside className="sf-work__rail sf-reveal">
           <Link className="sf-back" href="/book"><span aria-hidden="true">←</span> All visits</Link>
-          <div className={`sf-ticket ${zone.className}`} style={{ '--zone': `var(--zone-${zone.code.toLowerCase()})` } as CSSProperties}>
-            {line && <Sign zone={zone} label={line.title} arrow={false} />}
+          <div className="sf-ticket">
+            {line && <p className="sf-ticket__line">{line.title}</p>}
             <h1 className="sf-ticket__title">{appointmentType.name}</h1>
             {appointmentType.description && <p className="sf-ticket__desc">{appointmentType.description}</p>}
             <dl className="sf-dl">
-              <div><dt>Duration</dt><dd className="sf-mono">{appointmentType.durationMinutes} min</dd></div>
-              <div><dt>Estimate</dt><dd className="sf-mono">{appointmentType.formattedPrice || 'From clinic'}</dd></div>
+              <div><dt>Duration</dt><dd>{appointmentType.durationMinutes} min</dd></div>
               <div><dt>Clinicians</dt><dd>{appointmentType.providers.length}</dd></div>
             </dl>
           </div>

@@ -59,7 +59,11 @@ export function PayBillPage() {
       <label className="sf-field"><span className="sf-label">Date of birth</span><input className="sf-input" required type="date" value={dob} onChange={event => setDob(event.target.value)} /></label>
       <div className="sf-form-actions"><button className="sf-pill sf-pill--primary" disabled={busy} type="submit">{busy ? 'Checking…' : 'Find balance'}</button></div>
     </form>
-    {bill && <section style={{ marginTop: '2rem' }}><h2>{bill.facilityName}</h2><p>Balance due: {(bill.amountCents / 100).toLocaleString(undefined, { style: 'currency', currency: bill.currency })}</p><div className="sf-form-actions" style={{ marginTop: '1rem' }}><button className="sf-pill sf-pill--primary" disabled={busy} onClick={pay}>Pay now</button></div></section>}
+    {bill && <section className="sf-balance" aria-live="polite">
+      <h2 className="sf-muted" style={{ fontSize: 'var(--text-sm)', fontWeight: 700 }}>Balance due to {bill.facilityName}</h2>
+      <p className="sf-balance__amount">{(bill.amountCents / 100).toLocaleString(undefined, { style: 'currency', currency: bill.currency })}</p>
+      <div className="sf-form-actions" style={{ marginTop: '1rem' }}><button className="sf-pill sf-pill--primary" disabled={busy} onClick={pay}>{busy ? 'Opening card payment…' : 'Pay with card'}</button></div>
+    </section>}
     {message && <p role="status" className="sf-notice sf-notice--warn" style={{ marginTop: '1rem' }}>{message}</p>}
   </div>
 }

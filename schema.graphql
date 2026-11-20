@@ -5314,6 +5314,7 @@ type Query {
   hospitalBranding: HospitalBranding
   bookableAppointmentTypes: [BookableAppointmentType!]!
   bookableProviders: [BookableProviderEntry!]!
+  publicCareDirectory: PublicCareDirectory!
   availableAppointmentSlots(appointmentTypeId: ID!, providerId: ID!, facilityId: ID!, date: String!): [AvailableAppointmentSlot!]!
   intakeFormByAccessCode(accessCode: String!): PatientIntakeForm
   appointmentScheduleConflicts(facilityId: ID!, providerId: ID!, startsAt: String!, endsAt: String!, excludeAppointmentId: ID): ScheduleConflictResult!
@@ -5561,6 +5562,41 @@ type HospitalBranding {
   supportPhone: String
   supportEmail: String
   media: JSON
+}
+
+type PublicDepartmentName {
+  id: ID!
+  name: String!
+}
+
+type PublicFacility {
+  id: ID!
+  name: String!
+  facilityType: String
+  addressLine1: String
+  addressLine2: String
+  city: String
+  region: String
+  postalCode: String
+  phone: String
+  timeZone: String
+  photoUrl: String
+  photoAltText: String
+  departments: [PublicDepartmentName!]!
+}
+
+type PublicDepartment {
+  id: ID!
+  name: String!
+  description: String
+  phone: String
+  photoUrl: String
+  photoAltText: String
+}
+
+type PublicCareDirectory {
+  facilities: [PublicFacility!]!
+  departments: [PublicDepartment!]!
 }
 
 type BookableFacility {

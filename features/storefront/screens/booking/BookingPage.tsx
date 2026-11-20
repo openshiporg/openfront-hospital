@@ -3,9 +3,10 @@ import { VisitZones } from '@/features/storefront/components/VisitZones'
 import { careServiceLines } from '@/features/storefront/lib/careServices'
 import { getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
 import { getHospitalBranding } from '@/features/storefront/lib/data/branding'
+import { getPublicCareDirectory } from '@/features/storefront/lib/data/directory'
 
 export default async function BookingPage() {
-  const [profile, appointmentTypes] = await Promise.all([getHospitalBranding(), getBookableAppointmentTypes()])
+  const [profile, appointmentTypes, directory] = await Promise.all([getHospitalBranding(), getBookableAppointmentTypes(), getPublicCareDirectory()])
   const serviceLines = careServiceLines(appointmentTypes)
 
   return (
@@ -30,7 +31,7 @@ export default async function BookingPage() {
             <h2 className="sf-empty__title">Online requests are not open</h2>
             {profile.supportPhoneHref && <div className="sf-track"><a className="sf-pill sf-pill--raised" href={profile.supportPhoneHref}>Call {profile.supportPhone}</a></div>}
           </div>
-        ) : <VisitZones serviceLines={serviceLines} />}
+        ) : <VisitZones serviceLines={serviceLines} departments={directory.departments.map(department => ({ ...department, photoUrl: null, description: null }))} />}
       </div>
     </StorefrontShell>
   )

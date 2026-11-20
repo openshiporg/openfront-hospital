@@ -1,5 +1,6 @@
 import { publicEstimateText } from './publicEstimate'
 import type { Context } from '.keystone/types'
+import { publicPhotoUrls } from './publicPhotos'
 
 const MAX_PUBLIC_PROVIDERS = 50
 const MAX_PUBLIC_VISIT_TYPES_PER_PROVIDER = 25
@@ -17,6 +18,8 @@ type ProviderRecord = {
 }
 
 type ClinicianImageRecord = {
+  id: string
+  image_id: string | null
   imagePath: string | null
   altText: string | null
 }
@@ -39,11 +42,6 @@ function providerDisplayName(provider: {
   return `${provider.firstName || ''} ${provider.lastName || ''}${credentials}`.trim()
 }
 
-
-function canonicalImagePath(imagePath?: string | null) {
-  if (!imagePath?.startsWith('/images/') || imagePath.includes('..')) return null
-  return imagePath
-}
 
 /**
  * Public catalog of active providers and the visit types they offer.
@@ -92,6 +90,8 @@ async function loadBookableProviders(context: Context) {
     providers.some(provider => provider.appointmentTypes.length > MAX_PUBLIC_VISIT_TYPES_PER_PROVIDER)
   ) throw new Error('Public provider catalog exceeds its configured capacity')
 
+  const photos = await publicPhotoUrls(context, 'ClinicianImage', providers.map(provider => provider.clinicians[0]?.images[0]))
+
   return providers.map((provider) => ({
     id: provider.id,
     displayName: providerDisplayName(provider),
@@ -101,7 +101,7 @@ async function loadBookableProviders(context: Context) {
     specialty: provider.specialty,
     bio: provider.bio,
     locationName: provider.locationName,
-    imagePath: canonicalImagePath(provider.clinicians[0]?.images[0]?.imagePath),
+    imagePath: provider.clinicians[0]?.images[0] ? photos.get(provider.clinicians[0].images[0].id) || null : null,
     imageAltText: provider.clinicians[0]?.images[0]?.altText || null,
     appointmentTypes: provider.appointmentTypes.map((appointmentType) => ({
       id: appointmentType.id,

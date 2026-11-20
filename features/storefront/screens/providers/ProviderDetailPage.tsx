@@ -2,17 +2,20 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { formatTimeZoneLabel } from '@/features/storefront/lib/facilityTime'
 import { notFound } from 'next/navigation'
-import { Dot, EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
+import { EmergencyNotice, StorefrontShell } from '@/features/storefront/components/StorefrontShell'
 import { getBookableProviders } from '@/features/storefront/lib/data/providers'
 import { getBookableAppointmentTypes } from '@/features/storefront/lib/data/booking'
+import { Photo } from '@/features/storefront/components/Photo'
+import { facilityAddress, getPublicCareDirectory } from '@/features/storefront/lib/data/directory'
 import { getHospitalBranding } from '@/features/storefront/lib/data/branding'
 
 export async function ProviderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, profile, providers, appointmentTypes] = await Promise.all([
+  const [{ id }, profile, providers, appointmentTypes, directory] = await Promise.all([
     params,
     getHospitalBranding(),
     getBookableProviders(),
     getBookableAppointmentTypes(),
+    getPublicCareDirectory(),
   ])
   const provider = providers.find(item => item.id === id)
   if (!provider) notFound()
@@ -32,16 +35,9 @@ export async function ProviderDetailPage({ params }: { params: Promise<{ id: str
         <aside className="sf-work__rail sf-reveal">
           <Link className="sf-back" href="/providers"><span aria-hidden="true">←</span> Care team</Link>
           <div className="sf-person">
-            <div className="sf-person__photo">
-              {provider.imagePath
-                ? <img src={provider.imagePath} alt={provider.imageAltText || `Portrait of ${provider.displayName}`} />
-                : <div className="sf-person__initials" aria-hidden="true">{(provider.firstName?.[0] || '') + (provider.lastName?.[0] || '')}</div>}
-            </div>
+            <Photo src={provider.imagePath} alt={provider.imageAltText || `Portrait of ${provider.displayName}`} shape="portrait" eager />
             <div className="sf-person__body">
-              <h1 className="sf-person__name sf-titleline">
-                <Dot tone={accepting ? 'ok' : undefined} />
-                <span><span className="sf-sr">{accepting ? 'Accepting requests' : 'No online visits'}: </span>{provider.displayName}</span>
-              </h1>
+              <h1 className="sf-person__name" style={{ fontSize: 'var(--text-xl)' }}>{provider.displayName}</h1>
               <dl className="sf-dl">
                 {provider.credentials && <div><dt>Credentials</dt><dd>{provider.credentials}</dd></div>}
                 {provider.specialty && <div><dt>Specialty</dt><dd>{provider.specialty}</dd></div>}
@@ -68,10 +64,7 @@ export async function ProviderDetailPage({ params }: { params: Promise<{ id: str
                   <li key={visitType.id} className="sf-visit">
                     <div>
                       <p className="sf-visit__name">{visitType.name}</p>
-                      <p className="sf-visit__meta">
-                        {visitType.durationMinutes ? <span className="sf-mono">{visitType.durationMinutes} min</span> : null}
-                        <span className="sf-mono">{visitType.formattedPrice || 'Estimate from clinic'}</span>
-                      </p>
+                      {visitType.durationMinutes ? <p className="sf-visit__meta"><span>{visitType.durationMinutes} min</span></p> : null}
                     </div>
                     <div className="sf-track">
                       <Link className="sf-pill sf-pill--primary" href={`/book/${visitType.slug}?providerId=${provider.id}`}>Choose a time <ArrowRight aria-hidden="true" className="sf-arrow" /></Link>
@@ -86,9 +79,11 @@ export async function ProviderDetailPage({ params }: { params: Promise<{ id: str
             <section className="sf-panel" aria-labelledby="where-heading">
               <h2 id="where-heading" className="sf-step-title">Where</h2>
               <dl className="sf-dl">
-                {[...facilities.values()].map(facility => (
-                  <div key={facility.id}><dt>{facility.name}</dt><dd>{formatTimeZoneLabel(facility.timeZone)}</dd></div>
-                ))}
+                {[...facilities.values()].map(facility => {
+                  const listed = directory.facilities.find(item => item.id === facility.id)
+                  const address = listed ? facilityAddress(listed).join(', ') : ''
+                  return <div key={facility.id}><dt>{facility.name}</dt><dd>{address || formatTimeZoneLabel(facility.timeZone)}</dd></div>
+                })}
               </dl>
             </section>
           )}

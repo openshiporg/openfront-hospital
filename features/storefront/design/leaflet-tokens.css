@@ -9,7 +9,7 @@
   --color-card: #ffffff;
   --color-ink: #0b2149;
   --color-ink-2: #46556f;
-  --color-ink-3: #6b7a93;
+  --color-ink-3: #5a6a84;
   --color-rule: #dce7f5;
   --color-rule-strong: #bcd2ee;
   --color-accent: #2a73d9;
@@ -59,15 +59,15 @@
   --text-2xl: clamp(1.9rem, 4vw, 3rem);
   --text-display: clamp(2.75rem, 6vw, 5.25rem);
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 24px;
-  --radius-xl: 28px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
   --radius-pill: 999px;
 
   --shadow-raised: none;
   --shadow-recessed: none;
-  --shadow-card: 0 0 0 1px var(--color-rule), 0 8px 24px -16px rgba(29,92,184,.25);
+  --shadow-card: none;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-short: 160ms;

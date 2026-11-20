@@ -4,6 +4,7 @@ import redirectToInit from "./redirectToInit";
 import getBookableAppointmentTypes from "./booking/getBookableAppointmentTypes";
 import getHospitalBranding from './booking/getHospitalBranding'
 import getBookableProviders from "./booking/getBookableProviders";
+import getPublicCareDirectory from "./booking/getPublicCareDirectory";
 import getAvailableAppointmentSlots from "./booking/getAvailableAppointmentSlots";
 import requestAppointment from "./booking/requestAppointment";
 import { cancelPatientVisit, patientVisit } from "./booking/patientVisit";
@@ -137,6 +138,41 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         supportPhone: String
         supportEmail: String
         media: JSON
+      }
+
+      type PublicDepartmentName {
+        id: ID!
+        name: String!
+      }
+
+      type PublicFacility {
+        id: ID!
+        name: String!
+        facilityType: String
+        addressLine1: String
+        addressLine2: String
+        city: String
+        region: String
+        postalCode: String
+        phone: String
+        timeZone: String
+        photoUrl: String
+        photoAltText: String
+        departments: [PublicDepartmentName!]!
+      }
+
+      type PublicDepartment {
+        id: ID!
+        name: String!
+        description: String
+        phone: String
+        photoUrl: String
+        photoAltText: String
+      }
+
+      type PublicCareDirectory {
+        facilities: [PublicFacility!]!
+        departments: [PublicDepartment!]!
       }
 
       type BookableFacility {
@@ -472,6 +508,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         hospitalBranding: HospitalBranding
         bookableAppointmentTypes: [BookableAppointmentType!]!
         bookableProviders: [BookableProviderEntry!]!
+        publicCareDirectory: PublicCareDirectory!
         availableAppointmentSlots(
           appointmentTypeId: ID!
           providerId: ID!
@@ -649,6 +686,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         hospitalBranding: getHospitalBranding,
         bookableAppointmentTypes: getBookableAppointmentTypes,
         bookableProviders: getBookableProviders,
+        publicCareDirectory: getPublicCareDirectory,
         availableAppointmentSlots: getAvailableAppointmentSlots,
         intakeFormByAccessCode: getIntakeFormByAccessCode,
         appointmentScheduleConflicts,

@@ -3,32 +3,12 @@ import { ArrowRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { normalizeHospitalBrandTheme } from '@/features/lib/hospitalBrandTheme'
 import type { HospitalBranding } from '@/features/storefront/lib/data/branding'
-import type { CareServiceLine } from '@/features/storefront/lib/careServices'
 import { storeOwnMark } from '@/features/storefront/lib/store-mark'
 import { normalizeStoreLogoColor } from '@/features/platform/store-settings/lib/store-logo'
 import { practiceProfile } from '@/features/storefront/lib/practice'
 
-export type Zone = { code: string; className: string }
-
-/** Wayfinding zone for a service line: a fixed sign colour and letter. */
-export function zoneFor(key: CareServiceLine['key']): Zone {
-  if (key === 'primary-care') return { code: 'A', className: 'sf-zone-a' }
-  if (key === 'behavioral-health') return { code: 'B', className: 'sf-zone-b' }
-  return { code: 'C', className: 'sf-zone-c' }
-}
-
 export function Dot({ tone }: { tone?: 'ok' | 'warn' | 'bad' | 'accent' }) {
   return <span aria-hidden="true" className={`sf-dot${tone ? ` sf-dot--${tone}` : ''}`} />
-}
-
-export function Sign({ zone, label, arrow = true }: { zone: Zone; label: string; arrow?: boolean }) {
-  return (
-    <span className={`sf-sign ${zone.className}`}>
-      <span className="sf-sign__code" aria-hidden="true">{zone.code}</span>
-      <span className="sf-sign__label">{label}</span>
-      {arrow && <ArrowRight aria-hidden="true" className="sf-sign__arrow" />}
-    </span>
-  )
 }
 
 function Wordmark({ profile }: { profile: HospitalBranding }) {
@@ -116,6 +96,7 @@ export function StorefrontFooter({ profile }: { profile: HospitalBranding }) {
           <Link href="/intake">Pre-visit intake</Link>
           <Link href="/visit">Your visit</Link>
           <Link href="/pay">Pay a bill</Link>
+          <Link href="/account">Your account</Link>
         </nav>
         <div>
           {(profile.supportPhoneHref || profile.supportEmailHref) && (
