@@ -41,7 +41,10 @@ const FIELD_GRAPHQL_SELECTIONS: Record<string, (fieldPath: string, fieldMeta?: a
     if (fieldMeta?.displayMode === 'count') {
       return `${fieldPath}Count`
     }
-    return `${fieldPath} { id label: ${fieldMeta?.refLabelField || 'name'} }`
+    // A list cell shows a few related items; an unbounded to-many selection is
+    // charged 100 rows per row by the GraphQL cost guard and fails the whole page.
+    const take = fieldMeta?.many ? '(take: 10)' : ''
+    return `${fieldPath}${take} { id label: ${fieldMeta?.refLabelField || 'name'} }`
   },
   select: (fieldPath) => fieldPath,
   text: (fieldPath) => fieldPath,
